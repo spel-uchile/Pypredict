@@ -24,7 +24,6 @@ tlefile.TLE_URLS =  ("https://celestrak.com/NORAD/elements/argos.txt",
                      "https://celestrak.com/NORAD/elements/visual.txt",
                      "https://celestrak.com/NORAD/elements/weather.txt", )
 SUCHAI = Sat(name="SUCHAI", tle=tlefile.read("SUCHAI", "TLE/cubesat.txt"))
-#IRIDIUM83 = Sat(name="IRIDIUM 83", tle=tlefile.read("IRIDIUM 83 [+]", "TLE/iridium.txt"))
 IRIDIUM90 = Sat(name="IRIDIUM 90", tle=tlefile.read("IRIDIUM 90 [-]", "TLE/iridium.txt"))
 IRIDIUM91 = Sat(name="IRIDIUM 91", tle=tlefile.read("IRIDIUM 91 [+]", "TLE/iridium.txt"))
 IRIDIUM95 = Sat(name="IRIDIUM 95", tle=tlefile.read("IRIDIUM 95 [+]", "TLE/iridium.txt"))
