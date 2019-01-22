@@ -26,5 +26,9 @@ sudo sh install.sh
 
 ### Usage:
 ```bash
-python3 Pyorbital.py
+python3 Pypredict.py
+
+### Contact:
+Name: Matías Vidal
+e-mail: matias.vidal.v@gmail.com
 ```
