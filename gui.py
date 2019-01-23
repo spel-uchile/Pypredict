@@ -26,7 +26,7 @@ class GUI():
         self.root.protocol("WM_DELETE_WINDOW", exit)
         self.mainSat = self.Sats[0]
         tf = int(self.mainSat.getPeriod()*3)           # Total duration in seconds
-        self.dt = 3                                    # Step's length in seconds
+        self.dt = 1                                    # Step's length in seconds
         self.mainSat_lats, self.mainSat_lngs = self.mainSat.getLocation(tf, self.dt)
         fig = self.plotData()
         self.setCanvas(fig)
