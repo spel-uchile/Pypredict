@@ -5,13 +5,14 @@ from pyorbital import tlefile
 
 class Sat(Node):
 
-    def __init__(self, name="", lat=0, lng=0, alt=0, freq=437225000, tle=None):
+    def __init__(self, name="", lat=0, lng=0, alt=0, freq=437225000, tle=None, cat=None):
         deg2rad = pi/180
         self.name = name
         self.lat = lat
         self.lng = lng
         self.alt = alt
         self.freq = freq
+        self.cat = cat
         dayinsec = 24*3600                                        # Day in seconds
         if (tle is not None):
             self.incl = tle.inclination*deg2rad
@@ -62,6 +63,9 @@ class Sat(Node):
 
     def setMeanAnomaly(self, MA):
         self.MA = MA
+
+    def getCategory(self):
+        return self.cat
 
     def getInclination(self):
         return self.incl

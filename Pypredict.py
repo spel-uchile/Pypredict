@@ -23,10 +23,10 @@ tlefile.TLE_URLS =  ("https://celestrak.com/NORAD/elements/argos.txt",
                      "https://celestrak.com/NORAD/elements/tdrss.txt",
                      "https://celestrak.com/NORAD/elements/visual.txt",
                      "https://celestrak.com/NORAD/elements/weather.txt", )
-SUCHAI = Sat(name="SUCHAI", tle=tlefile.read("SUCHAI", "TLE/cubesat.txt"))
-IRIDIUM90 = Sat(name="IRIDIUM 90", tle=tlefile.read("IRIDIUM 90 [-]", "TLE/iridium.txt"))
-IRIDIUM91 = Sat(name="IRIDIUM 91", tle=tlefile.read("IRIDIUM 91 [+]", "TLE/iridium.txt"))
-IRIDIUM95 = Sat(name="IRIDIUM 95", tle=tlefile.read("IRIDIUM 95 [+]", "TLE/iridium.txt"))
+SUCHAI = Sat(name="SUCHAI", tle=tlefile.read("SUCHAI", "TLE/cubesat.txt"), cat="CubeSat")
+IRIDIUM90 = Sat(name="IRIDIUM 90", tle=tlefile.read("IRIDIUM 90 [-]", "TLE/iridium.txt"), cat="Iridium")
+IRIDIUM91 = Sat(name="IRIDIUM 91", tle=tlefile.read("IRIDIUM 91 [+]", "TLE/iridium.txt"), cat="Iridium")
+IRIDIUM95 = Sat(name="IRIDIUM 95", tle=tlefile.read("IRIDIUM 95 [+]", "TLE/iridium.txt"), cat="Iridium")
 #tdoa = TDOA()
 Sats = [SUCHAI, IRIDIUM90, IRIDIUM91, IRIDIUM95]
 #x, y, z = tdoa.calculateLocation(SUCHAI, IRIDIUM83, IRIDIUM90, IRIDIUM91, IRIDIUM95)

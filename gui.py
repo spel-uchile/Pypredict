@@ -242,26 +242,28 @@ class GUI():
         canvas = FigureCanvasTkAgg(fig, master=self.root)
         #self.root.rowconfigure(0, weight=1)
         #self.root.columnconfigure(0, weight=1)
-        canvas.get_tk_widget().grid(row=0, column=0, columnspan=12, sticky="NES")
+        canvas.get_tk_widget().grid(row=0, column=0, columnspan=13, sticky="NES")
         canvas.draw()
 
     def setTableTitles(self):
         #self.root.rowconfigure(1, weight=1)
-        Label(self.root, text="Satellite", bg=self.bg, fg=self.fg, width=26, anchor='w').grid(row=1, column=0)
-        Label(self.root, text="Latitude", bg=self.bg, fg=self.fg).grid(row=1, column=1)
-        Label(self.root, text="Longitude", bg=self.bg, fg=self.fg).grid(row=1, column=2)
-        Label(self.root, text="Altitude", bg=self.bg, fg=self.fg).grid(row=1, column=3)
-        Label(self.root, text="Semi-major axis", bg=self.bg, fg=self.fg).grid(row=1, column=4)
-        Label(self.root, text="Eccentricity", bg=self.bg, fg=self.fg).grid(row=1, column=5)
-        Label(self.root, text="RAN", bg=self.bg, fg=self.fg).grid(row=1, column=6)
-        Label(self.root, text="Inclination", bg=self.bg, fg=self.fg).grid(row=1, column=7)
-        Label(self.root, text="Arg. of Perigee", bg=self.bg, fg=self.fg).grid(row=1, column=8)
-        Label(self.root, text="Anomaly", bg=self.bg, fg=self.fg).grid(row=1, column=9)
-        Label(self.root, text="Mean anomaly", bg=self.bg, fg=self.fg).grid(row=1, column=10)
+        Label(self.root, text="Satellite", bg=self.bg, fg=self.fg, width=20, anchor='w').grid(row=1, column=0)
+        Label(self.root, text="Category", bg=self.bg, fg=self.fg, width=24, anchor='w').grid(row=1, column=1)
+        Label(self.root, text="Latitude", bg=self.bg, fg=self.fg).grid(row=1, column=2)
+        Label(self.root, text="Longitude", bg=self.bg, fg=self.fg).grid(row=1, column=3)
+        Label(self.root, text="Altitude", bg=self.bg, fg=self.fg).grid(row=1, column=4)
+        Label(self.root, text="Semi-major axis", bg=self.bg, fg=self.fg).grid(row=1, column=5)
+        Label(self.root, text="Eccentricity", bg=self.bg, fg=self.fg).grid(row=1, column=6)
+        Label(self.root, text="RAN", bg=self.bg, fg=self.fg).grid(row=1, column=7)
+        Label(self.root, text="Inclination", bg=self.bg, fg=self.fg).grid(row=1, column=8)
+        Label(self.root, text="Arg. of Perigee", bg=self.bg, fg=self.fg).grid(row=1, column=9)
+        Label(self.root, text="Anomaly", bg=self.bg, fg=self.fg).grid(row=1, column=10)
+        Label(self.root, text="Mean anomaly", bg=self.bg, fg=self.fg).grid(row=1, column=11)
 
     def setTableContent(self):
         rad2deg = 180/pi
         self.name_bt = []
+        self.cat_lbl = []
         self.lat_lbl = []
         self.lng_lbl = []
         self.alt_lbl = []
@@ -278,13 +280,14 @@ class GUI():
             self.root.columnconfigure(i, weight=1)
         for i in range(0, 6):
             self.name_bt.append(ttk.Button(self.root, style = "BW.TLabel"))
+            self.cat_lbl.append(Label(self.root, bg=self.bg, fg=self.fg, width=24, anchor='w'))
             self.lat_lbl.append(Label(self.root, bg=self.bg, fg=self.fg,  width=11, anchor='e'))
             self.lng_lbl.append(Label(self.root, bg=self.bg, fg=self.fg, width=12, anchor='e'))
-            self.alt_lbl.append(Label(self.root, bg=self.bg, fg=self.fg))
-            self.a_lbl.append(Label(self.root, bg=self.bg, fg=self.fg))
+            self.alt_lbl.append(Label(self.root, bg=self.bg, fg=self.fg, width=10, anchor='e'))
+            self.a_lbl.append(Label(self.root, bg=self.bg, fg=self.fg, width=11, anchor='e'))
             self.e_lbl.append(Label(self.root, bg=self.bg, fg=self.fg))
             self.ran_lbl.append(Label(self.root, bg=self.bg, fg=self.fg, width=7, anchor='e'))
-            self.i_lbl.append(Label(self.root, bg=self.bg, fg=self.fg))
+            self.i_lbl.append(Label(self.root, bg=self.bg, fg=self.fg, width=7, anchor='e'))
             self.w_lbl.append(Label(self.root, bg=self.bg, fg=self.fg, width=7, anchor='e'))
             self.theta_lbl.append(Label(self.root, bg=self.bg, fg=self.fg, width=7, anchor='e'))
             self.ma_lbl.append(Label(self.root, bg=self.bg, fg=self.fg, width=7, anchor='e'))
@@ -305,6 +308,7 @@ class GUI():
             Sat.updateOrbitalParameters()
             self.name_bt[i]['text'] = Sat.name
             self.name_bt[i]['command'] = lambda Sat=Sat: self.changeMainSat(Sat)
+            self.cat_lbl[i]['text'] = Sat.getCategory()
             self.lat_lbl[i]['text'] = "{:0.6f}{}".format(Sat.getLat(), "°")
             self.lng_lbl[i]['text'] = "{:0.6f}{}".format(Sat.getLng(), "°")
             self.alt_lbl[i]['text'] = "{:0.1f} {}".format((Sat.getAlt()/1000), "km")
@@ -325,27 +329,28 @@ class GUI():
             if (len(self.Sats) >= 6):
                 self.bottom_index = 6
                 self.rememberRow(self.bottom_index)
-                self.up_bt.grid(row=2, column=11, rowspan=3, sticky="NESW")
-                self.down_bt.grid(row=5, column=11, rowspan=3, sticky="NESW")
+                self.up_bt.grid(row=2, column=12, rowspan=3, sticky="NESW")
+                self.down_bt.grid(row=5, column=12, rowspan=3, sticky="NESW")
 
     def rememberRow(self, r):
         self.name_bt[r-1].grid(row=r+1, column=0, sticky="NESW")
-        self.lat_lbl[r-1].grid(row=r+1, column=1)
-        self.lng_lbl[r-1].grid(row=r+1, column=2)
-        self.alt_lbl[r-1].grid(row=r+1, column=3)
-        self.a_lbl[r-1].grid(row=r+1, column=4)
-        self.e_lbl[r-1].grid(row=r+1, column=5)
-        self.ran_lbl[r-1].grid(row=r+1, column=6)
-        self.i_lbl[r-1].grid(row=r+1, column=7)
-        self.w_lbl[r-1].grid(row=r+1, column=8)
-        self.theta_lbl[r-1].grid(row=r+1, column=9)
-        self.ma_lbl[r-1].grid(row=r+1, column=10)
+        self.cat_lbl[r-1].grid(row=r+1, column=1)
+        self.lat_lbl[r-1].grid(row=r+1, column=2)
+        self.lng_lbl[r-1].grid(row=r+1, column=3)
+        self.alt_lbl[r-1].grid(row=r+1, column=4)
+        self.a_lbl[r-1].grid(row=r+1, column=5)
+        self.e_lbl[r-1].grid(row=r+1, column=6)
+        self.ran_lbl[r-1].grid(row=r+1, column=7)
+        self.i_lbl[r-1].grid(row=r+1, column=8)
+        self.w_lbl[r-1].grid(row=r+1, column=9)
+        self.theta_lbl[r-1].grid(row=r+1, column=10)
+        self.ma_lbl[r-1].grid(row=r+1, column=11)
 
     def forgetLastRows(self):
         self.top_index = 0
         self.bottom_index = 4*(len(self.Sats) > 4) + len(self.Sats)*(len(self.Sats) <= 4)
-        self.up_bt.grid(row=2, column=11, rowspan=2, sticky="NESW")
-        self.down_bt.grid(row=4, column=11, rowspan=2, sticky="NESW")
+        self.up_bt.grid(row=2, column=12, rowspan=2, sticky="NESW")
+        self.down_bt.grid(row=4, column=12, rowspan=2, sticky="NESW")
         if (len(self.Sats) > 4):
             self.forgetRow(self.bottom_index)
             if (len(self.Sats) >= 6):
@@ -353,6 +358,7 @@ class GUI():
 
     def forgetRow(self, r):
         self.name_bt[r].grid_forget()
+        self.cat_lbl[r].grid_forget()
         self.lat_lbl[r].grid_forget()
         self.lng_lbl[r].grid_forget()
         self.alt_lbl[r].grid_forget()
@@ -531,33 +537,33 @@ class GUI():
         self.sat_txt.append(self.ax.text([], [], "", color='yellow', size=8,
                             transform=Geodetic(), ha="center"))
         if (add_sat in self.argos):
-            self.Sats.append(Sat(add_sat, tle=tlefile.read(add_sat, "TLE/argos.txt")))
+            self.Sats.append(Sat(add_sat, tle=tlefile.read(add_sat, "TLE/argos.txt"), cat="Argos Data Collection System"))
         elif (add_sat in self.cubesat):
-            self.Sats.append(Sat(add_sat, tle=tlefile.read(add_sat, "TLE/cubesat.txt")))
+            self.Sats.append(Sat(add_sat, tle=tlefile.read(add_sat, "TLE/cubesat.txt"), cat="CubeSat"))
         elif (add_sat in self.dmc):
-            self.Sats.append(Sat(add_sat, tle=tlefile.read(add_sat, "TLE/dmc.txt")))
+            self.Sats.append(Sat(add_sat, tle=tlefile.read(add_sat, "TLE/dmc.txt"), cat="Disaster Monitoring"))
         elif (add_sat in self.goes):
-            self.Sats.append(Sat(add_sat, tle=tlefile.read(add_sat, "TLE/goes.txt")))
+            self.Sats.append(Sat(add_sat, tle=tlefile.read(add_sat, "TLE/goes.txt"), cat="GOES"))
         elif (add_sat in self.intelsat):
-            self.Sats.append(Sat(add_sat, tle=tlefile.read(add_sat, "TLE/intelsat.txt")))
+            self.Sats.append(Sat(add_sat, tle=tlefile.read(add_sat, "TLE/intelsat.txt"), cat="Intelsat"))
         elif (add_sat in self.iridium):
-            self.Sats.append(Sat(add_sat, tle=tlefile.read(add_sat, "TLE/iridium.txt")))
+            self.Sats.append(Sat(add_sat, tle=tlefile.read(add_sat, "TLE/iridium.txt"), cat="Iridium"))
         elif (add_sat in self.iridium_next):
-            self.Sats.append(Sat(add_sat, tle=tlefile.read(add_sat, "TLE/iridium-NEXT.txt")))
+            self.Sats.append(Sat(add_sat, tle=tlefile.read(add_sat, "TLE/iridium-NEXT.txt"), cat="Iridium Next"))
         elif (add_sat in self.noaa):
-            self.Sats.append(Sat(add_sat, tle=tlefile.read(add_sat, "TLE/noaa.txt")))
+            self.Sats.append(Sat(add_sat, tle=tlefile.read(add_sat, "TLE/noaa.txt"), cat="NOAA"))
         elif (add_sat in self.planet):
-            self.Sats.append(Sat(add_sat, tle=tlefile.read(add_sat, "TLE/planet.txt")))
+            self.Sats.append(Sat(add_sat, tle=tlefile.read(add_sat, "TLE/planet.txt"), cat="Planet"))
         elif (add_sat in self.resource):
-            self.Sats.append(Sat(add_sat, tle=tlefile.read(add_sat, "TLE/resource.txt")))
+            self.Sats.append(Sat(add_sat, tle=tlefile.read(add_sat, "TLE/resource.txt"), cat="Earth Resources"))
         elif (add_sat in self.sarsat):
-            self.Sats.append(Sat(add_sat, tle=tlefile.read(add_sat, "TLE/sarsat.txt")))
+            self.Sats.append(Sat(add_sat, tle=tlefile.read(add_sat, "TLE/sarsat.txt"), cat="Search & Rescue"))
         elif (add_sat in self.spire):
-            self.Sats.append(Sat(add_sat, tle=tlefile.read(add_sat, "TLE/spire.txt")))
+            self.Sats.append(Sat(add_sat, tle=tlefile.read(add_sat, "TLE/spire.txt"), cat="Spire"))
         elif (add_sat in self.tdrss):
-            self.Sats.append(Sat(add_sat, tle=tlefile.read(add_sat, "TLE/tdrss.txt")))
+            self.Sats.append(Sat(add_sat, tle=tlefile.read(add_sat, "TLE/tdrss.txt"), cat="Tracking and Data Relay"))
         elif (add_sat in self.weather):
-            self.Sats.append(Sat(add_sat, tle=tlefile.read(add_sat, "TLE/weather.txt")))
+            self.Sats.append(Sat(add_sat, tle=tlefile.read(add_sat, "TLE/weather.txt"), cat="Weather"))
         else:
             self.Sats.append(Sat(add_sat, tle=tlefile.read(add_sat)))
         self.curr_sats_lst.insert(END, add_sat)
