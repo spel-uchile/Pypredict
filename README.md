@@ -30,5 +30,6 @@ python3 Pypredict.py
 ```
 
 ### Contact:
-Name: Matías Vidal
-e-mail: matias.vidal.v@gmail.com
+
+* Name: Matías Vidal
+* e-mail: matias.vidal.v@gmail.com
