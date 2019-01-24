@@ -247,18 +247,20 @@ class GUI():
 
     def setTableTitles(self):
         #self.root.rowconfigure(1, weight=1)
-        Label(self.root, text="Satellite", bg=self.bg, fg=self.fg, width=20, anchor='w').grid(row=1, column=0)
-        Label(self.root, text="Category", bg=self.bg, fg=self.fg, width=24, anchor='w').grid(row=1, column=1)
-        Label(self.root, text="Latitude", bg=self.bg, fg=self.fg).grid(row=1, column=2)
-        Label(self.root, text="Longitude", bg=self.bg, fg=self.fg).grid(row=1, column=3)
-        Label(self.root, text="Altitude", bg=self.bg, fg=self.fg).grid(row=1, column=4)
-        Label(self.root, text="Semi-major axis", bg=self.bg, fg=self.fg).grid(row=1, column=5)
-        Label(self.root, text="Eccentricity", bg=self.bg, fg=self.fg).grid(row=1, column=6)
-        Label(self.root, text="RAN", bg=self.bg, fg=self.fg).grid(row=1, column=7)
-        Label(self.root, text="Inclination", bg=self.bg, fg=self.fg).grid(row=1, column=8)
-        Label(self.root, text="Arg. of Perigee", bg=self.bg, fg=self.fg).grid(row=1, column=9)
-        Label(self.root, text="Anomaly", bg=self.bg, fg=self.fg).grid(row=1, column=10)
-        Label(self.root, text="Mean anomaly", bg=self.bg, fg=self.fg).grid(row=1, column=11)
+        Label(self.root, text="Satellite", font="TkDefaultFont 10 bold", 
+                bg=self.bg, fg=self.fg, width=18, anchor='w').grid(row=1, column=0, sticky="W")
+        Label(self.root, text="Category", font="TkDefaultFont 10 bold",
+                bg=self.bg, fg=self.fg, width=24, anchor='w').grid(row=1, column=1, sticky="W")
+        Label(self.root, text="Latitude", font="TkDefaultFont 10 bold", bg=self.bg, fg=self.fg).grid(row=1, column=2)
+        Label(self.root, text="Longitude", font="TkDefaultFont 10 bold", bg=self.bg, fg=self.fg).grid(row=1, column=3)
+        Label(self.root, text="Altitude", font="TkDefaultFont 10 bold", bg=self.bg, fg=self.fg).grid(row=1, column=4)
+        Label(self.root, text="Semi-major axis", font="TkDefaultFont 10 bold", bg=self.bg, fg=self.fg).grid(row=1, column=5)
+        Label(self.root, text="Eccentricity", font="TkDefaultFont 10 bold", bg=self.bg, fg=self.fg).grid(row=1, column=6)
+        Label(self.root, text="RAN", font="TkDefaultFont 10 bold", bg=self.bg, fg=self.fg).grid(row=1, column=7)
+        Label(self.root, text="Inclination", font="TkDefaultFont 10 bold", bg=self.bg, fg=self.fg).grid(row=1, column=8)
+        Label(self.root, text="Arg. of Perigee", font="TkDefaultFont 10 bold", bg=self.bg, fg=self.fg).grid(row=1, column=9)
+        Label(self.root, text="Anomaly", font="TkDefaultFont 10 bold", bg=self.bg, fg=self.fg).grid(row=1, column=10)
+        Label(self.root, text="Mean anomaly", font="TkDefaultFont 10 bold", bg=self.bg, fg=self.fg).grid(row=1, column=11)
 
     def setTableContent(self):
         rad2deg = 180/pi
@@ -276,7 +278,7 @@ class GUI():
         self.ma_lbl = []
         self.top_index = 0
         self.bottom_index = 4*(len(self.Sats) > 4) + len(self.Sats)*(len(self.Sats) <= 4)
-        for i in range(0, 11):
+        for i in range(0, 12):
             self.root.columnconfigure(i, weight=1)
         for i in range(0, 6):
             self.name_bt.append(ttk.Button(self.root, style = "BW.TLabel"))
@@ -288,7 +290,7 @@ class GUI():
             self.e_lbl.append(Label(self.root, bg=self.bg, fg=self.fg))
             self.ran_lbl.append(Label(self.root, bg=self.bg, fg=self.fg, width=7, anchor='e'))
             self.i_lbl.append(Label(self.root, bg=self.bg, fg=self.fg, width=7, anchor='e'))
-            self.w_lbl.append(Label(self.root, bg=self.bg, fg=self.fg, width=7, anchor='e'))
+            self.w_lbl.append(Label(self.root, bg=self.bg, fg=self.fg, width=8, anchor='e'))
             self.theta_lbl.append(Label(self.root, bg=self.bg, fg=self.fg, width=7, anchor='e'))
             self.ma_lbl.append(Label(self.root, bg=self.bg, fg=self.fg, width=7, anchor='e'))
         self.updateTableContent()
@@ -333,8 +335,8 @@ class GUI():
                 self.down_bt.grid(row=5, column=12, rowspan=3, sticky="NESW")
 
     def rememberRow(self, r):
-        self.name_bt[r-1].grid(row=r+1, column=0, sticky="NESW")
-        self.cat_lbl[r-1].grid(row=r+1, column=1)
+        self.name_bt[r-1].grid(row=r+1, column=0, sticky="W")
+        self.cat_lbl[r-1].grid(row=r+1, column=1, sticky="W")
         self.lat_lbl[r-1].grid(row=r+1, column=2)
         self.lng_lbl[r-1].grid(row=r+1, column=3)
         self.alt_lbl[r-1].grid(row=r+1, column=4)
