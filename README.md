@@ -6,7 +6,7 @@ Current version: 1.0
 
 ### Supported software:
 
-* Python3
+* Python 3.6.7
 * Ubuntu 18.04
 
 ### Installation instructions:
