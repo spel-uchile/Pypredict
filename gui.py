@@ -17,6 +17,7 @@ class GUI():
     #@profile
     def __init__(self, Sats):
         self.Sats = Sats
+        self.sortSats()
         self.root = Tk()
         self.img = Image("photo", file="img/favicon.png") 
         self.root.call('wm', 'iconphoto', self.root._w, self.img)
@@ -256,7 +257,7 @@ class GUI():
         Label(self.root, text="Altitude", font="TkDefaultFont 10 bold", bg=self.bg, fg=self.fg).grid(row=1, column=4)
         Label(self.root, text="Semi-major axis", font="TkDefaultFont 10 bold", bg=self.bg, fg=self.fg).grid(row=1, column=5)
         Label(self.root, text="Eccentricity", font="TkDefaultFont 10 bold", bg=self.bg, fg=self.fg).grid(row=1, column=6)
-        Label(self.root, text="RAN", font="TkDefaultFont 10 bold", bg=self.bg, fg=self.fg).grid(row=1, column=7)
+        Label(self.root, text="RAAN", font="TkDefaultFont 10 bold", bg=self.bg, fg=self.fg).grid(row=1, column=7)
         Label(self.root, text="Inclination", font="TkDefaultFont 10 bold", bg=self.bg, fg=self.fg).grid(row=1, column=8)
         Label(self.root, text="Arg. of Perigee", font="TkDefaultFont 10 bold", bg=self.bg, fg=self.fg).grid(row=1, column=9)
         Label(self.root, text="Anomaly", font="TkDefaultFont 10 bold", bg=self.bg, fg=self.fg).grid(row=1, column=10)
@@ -335,6 +336,7 @@ class GUI():
                 self.down_bt.grid(row=5, column=12, rowspan=3, sticky="NESW")
 
     def rememberRow(self, r):
+        self.root.rowconfigure(r+1, weight=1)
         self.name_bt[r-1].grid(row=r+1, column=0, sticky="W")
         self.cat_lbl[r-1].grid(row=r+1, column=1, sticky="W")
         self.lat_lbl[r-1].grid(row=r+1, column=2)
@@ -486,6 +488,7 @@ class GUI():
         self.sarsat = []
         self.spire = []
         self.tdrss = []
+        self.tle_new = []
         self.weather = []
         self.readSatsFromFile("TLE/argos.txt", self.argos)
         self.readSatsFromFile("TLE/cubesat.txt", self.cubesat)
@@ -500,12 +503,13 @@ class GUI():
         self.readSatsFromFile("TLE/sarsat.txt", self.sarsat)
         self.readSatsFromFile("TLE/spire.txt", self.spire)
         self.readSatsFromFile("TLE/tdrss.txt", self.tdrss)
+        self.readSatsFromFile("TLE/tle-new.txt", self.tle_new)
         self.readSatsFromFile("TLE/weather.txt", self.weather)
         self.avail_sats = self.argos + self.cubesat + self.dmc + self.goes
         self.avail_sats += self.intelsat + self.iridium + self.iridium_next
         self.avail_sats += self.noaa + self.planet + self.resource
         self.avail_sats += self.sarsat + self.spire + self.tdrss
-        self.avail_sats += self.weather
+        self.avail_sats += self.tle_new + self.weather
         self.avail_sats.sort()
 
     def showAvailSats(self):
@@ -531,6 +535,9 @@ class GUI():
         self.remove_sat_bt = Button(self.popup, text="←",
                                     command=self.removeSat)
         self.remove_sat_bt.grid(row=2, column=2)
+
+    def sortSats(self):
+        self.Sats.sort(key = lambda s: s.name)
 
     def addSat(self):
         add_sat = self.avail_sats_lst.get(self.avail_sats_lst.curselection())
@@ -564,11 +571,14 @@ class GUI():
             self.Sats.append(Sat(add_sat, tle=tlefile.read(add_sat, "TLE/spire.txt"), cat="Spire"))
         elif (add_sat in self.tdrss):
             self.Sats.append(Sat(add_sat, tle=tlefile.read(add_sat, "TLE/tdrss.txt"), cat="Tracking and Data Relay"))
+        elif (add_sat in self.tle_new):
+            self.Sats.append(Sat(add_sat, tle=tlefile.read(add_sat, "TLE/tle-new.txt"), cat="Last 30 Days' Launches"))
         elif (add_sat in self.weather):
             self.Sats.append(Sat(add_sat, tle=tlefile.read(add_sat, "TLE/weather.txt"), cat="Weather"))
         else:
             self.Sats.append(Sat(add_sat, tle=tlefile.read(add_sat)))
         self.curr_sats_lst.insert(END, add_sat)
+        self.sortSats()
 
     def removeSat(self):
         del_sat = self.curr_sats_lst.get(self.curr_sats_lst.curselection())
@@ -630,6 +640,8 @@ class GUI():
         tlefile.fetch("TLE/spire.txt")
         tlefile.TLE_URLS = ("https://celestrak.com/NORAD/elements/tdrss.txt", )
         tlefile.fetch("TLE/tdrss.txt")
+        tlefile.TLE_URLS = ("https://celestrak.com/NORAD/elements/tle-new.txt", )
+        tlefile.fetch("TLE/tle-new.txt")
         tlefile.TLE_URLS = ("https://celestrak.com/NORAD/elements/visual.txt", )
         tlefile.fetch("TLE/visual.txt")
         tlefile.TLE_URLS = ("https://celestrak.com/NORAD/elements/weather.txt", )
