@@ -272,7 +272,7 @@ class GUI():
         self.alt_lbl = []
         self.a_lbl = []
         self.e_lbl = []
-        self.ran_lbl = []
+        self.raan_lbl = []
         self.i_lbl = []
         self.w_lbl = []
         self.theta_lbl = []
@@ -289,7 +289,7 @@ class GUI():
             self.alt_lbl.append(Label(self.root, bg=self.bg, fg=self.fg, width=10, anchor='e'))
             self.a_lbl.append(Label(self.root, bg=self.bg, fg=self.fg, width=11, anchor='e'))
             self.e_lbl.append(Label(self.root, bg=self.bg, fg=self.fg))
-            self.ran_lbl.append(Label(self.root, bg=self.bg, fg=self.fg, width=7, anchor='e'))
+            self.raan_lbl.append(Label(self.root, bg=self.bg, fg=self.fg, width=7, anchor='e'))
             self.i_lbl.append(Label(self.root, bg=self.bg, fg=self.fg, width=7, anchor='e'))
             self.w_lbl.append(Label(self.root, bg=self.bg, fg=self.fg, width=8, anchor='e'))
             self.theta_lbl.append(Label(self.root, bg=self.bg, fg=self.fg, width=7, anchor='e'))
@@ -317,7 +317,7 @@ class GUI():
             self.alt_lbl[i]['text'] = "{:0.1f} {}".format((Sat.getAlt()/1000), "km")
             self.a_lbl[i]['text'] = "{:0.2f} {}".format((Sat.getSemiMajorAxis()/1000), "km")
             self.e_lbl[i]['text'] = "{:0.4f}".format(Sat.getEccentricity())
-            self.ran_lbl[i]['text'] = "{:0.2f}{}".format((Sat.getRAN()*rad2deg), "°")
+            self.raan_lbl[i]['text'] = "{:0.2f}{}".format((Sat.getRAAN()*rad2deg), "°")
             self.i_lbl[i]['text'] = "{:0.2f}{}".format((Sat.getInclination()*rad2deg), "°")
             self.w_lbl[i]['text'] = "{:0.2f}{}".format((Sat.getArgPerigee()*rad2deg), "°")
             self.theta_lbl[i]['text'] = "{:0.2f}{}".format((Sat.getAnomaly()*rad2deg % 360), "°")
@@ -344,7 +344,7 @@ class GUI():
         self.alt_lbl[r-1].grid(row=r+1, column=4)
         self.a_lbl[r-1].grid(row=r+1, column=5)
         self.e_lbl[r-1].grid(row=r+1, column=6)
-        self.ran_lbl[r-1].grid(row=r+1, column=7)
+        self.raan_lbl[r-1].grid(row=r+1, column=7)
         self.i_lbl[r-1].grid(row=r+1, column=8)
         self.w_lbl[r-1].grid(row=r+1, column=9)
         self.theta_lbl[r-1].grid(row=r+1, column=10)
@@ -368,7 +368,7 @@ class GUI():
         self.alt_lbl[r].grid_forget()
         self.a_lbl[r].grid_forget()
         self.e_lbl[r].grid_forget()
-        self.ran_lbl[r].grid_forget()
+        self.raan_lbl[r].grid_forget()
         self.i_lbl[r].grid_forget()
         self.w_lbl[r].grid_forget()
         self.theta_lbl[r].grid_forget()
@@ -389,7 +389,7 @@ class GUI():
                                                                                            (Sat.getAlt()/1000),
                                                                                            (Sat.getSemiMajorAxis()/1000),
                                                                                            Sat.getEccentricity(),
-                                                                                           (Sat.getRAN()*rad2deg), '°',
+                                                                                           (Sat.getRAAN()*rad2deg), '°',
                                                                                            (Sat.getInclination()*rad2deg), '°',
                                                                                            (Sat.getArgPerigee()*rad2deg), '°',
                                                                                            (Sat.getAnomaly()*rad2deg % 360), '°')
@@ -409,7 +409,7 @@ class GUI():
                                                                                            (Sat.getAlt()/1000),
                                                                                            (Sat.getSemiMajorAxis()/1000),
                                                                                            Sat.getEccentricity(),
-                                                                                           (Sat.getRAN()*rad2deg), '°',
+                                                                                           (Sat.getRAAN()*rad2deg), '°',
                                                                                            (Sat.getInclination()*rad2deg), '°',
                                                                                            (Sat.getArgPerigee()*rad2deg), '°',
                                                                                            (Sat.getAnomaly()*rad2deg % 360), '°')
@@ -458,6 +458,7 @@ class GUI():
         self.ent = StringVar()
         self.srch_box = Entry(self.popup, textvariable=self.ent)
         self.srch_box.grid(row=0, column=1)
+        self.srch_box.focus()
 
     def searchSat(self, event):
         srch = self.srch_box.get().upper()
