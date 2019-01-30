@@ -5,7 +5,7 @@ from pyorbital import tlefile
 
 class Sat(Node):
 
-    def __init__(self, name="", lat=0, lng=0, alt=0, freq=437225000, tle=None, cat=None):
+    def __init__(self, name="", lat=0, lng=0, alt=0, freq=437225000, tle=None, cat=""):
         deg2rad = pi/180
         self.name = name
         self.lat = lat
@@ -16,7 +16,7 @@ class Sat(Node):
         dayinsec = 24*3600                                        # Day in seconds
         if (tle is not None):
             self.incl = tle.inclination*deg2rad
-            self.RAN0 = tle.right_ascension*deg2rad
+            self.RAAN0 = tle.right_ascension*deg2rad
             self.e = tle.excentricity
             self.w0 = tle.arg_perigee*deg2rad
             self.MA0 = tle.mean_anomaly*deg2rad
@@ -27,7 +27,7 @@ class Sat(Node):
             print(self.name + " TLE found!")
         else:
             self.incl = 97.39*deg2rad
-            self.RAN0 = 281.63*deg2rad
+            self.RAAN0 = 281.63*deg2rad
             self.e = 0.001
             self.w0 = 248*deg2rad
             self.MA0 = 112*deg2rad
@@ -35,7 +35,7 @@ class Sat(Node):
             self.epoch_year = 18
             self.epoch_day = 222.64
             print("No TLE found, used default parameters instead")
-        self.RAN = self.RAN0
+        self.RAAN = self.RAAN0
         self.w = self.w0
         self.MA = self.MA0
         self.theta = self.MA
@@ -55,14 +55,34 @@ class Sat(Node):
     def setInclination(self, incl):
         self.incl = incl
 
-    def setRAN(self, RAN):
-        self.RAN = RAN
+    def setRAAN(self, RAAN):
+        self.RAAN0 = RAAN
+        self.RAAN = RAAN
+
+    def setArgPerigee(self, w):
+        self.w = w
 
     def setEccentricity(self, e):
         self.e = e
 
     def setMeanAnomaly(self, MA):
+        self.MA0 = MA
         self.MA = MA
+
+    def setTrueAnomaly(self, theta):
+        self.theta = theta
+
+    def setSemiMajorAxis(self, a):
+        self.a = a
+
+    def setMeanVelocity(self, n):
+        self.n = n
+
+    def setDMY(self, D, M, Y):
+        self.GST0 = self.getGST(D, M, Y)
+    
+    def setCategory(self, cat):
+        self.cat = cat
 
     def getCategory(self):
         return self.cat
@@ -70,8 +90,8 @@ class Sat(Node):
     def getInclination(self):
         return self.incl
 
-    def getRAN(self):
-        return self.RAN
+    def getRAAN(self):
+        return self.RAAN
 
     def getArgPerigee(self):
         return self.w
@@ -90,6 +110,14 @@ class Sat(Node):
 
     def getXYZ(self):
         return self.x, self.y, self.z
+
+    def getTwoPositions(self, dt):
+        tnow = self.getTnow()
+        self.updateOrbitalParameters(tnow + dt)
+        x1, y1, z1 = self.getXYZ()
+        self.updateOrbitalParameters(tnow)
+        x0, y0, z0 = self.getXYZ()
+        return x0, y0, z0, x1, y1, z1
 
     def getDMY(self):
         Y = int(self.epoch_year) + 2000                                                         # Year
@@ -180,38 +208,39 @@ class Sat(Node):
             t = tnow + i
             j = int(i/dt)
 
-            RAN = self.RAN0 - 1.5*aux*cos_incl*(t - self.t0)
+            RAAN = self.RAAN0 - 1.5*aux*cos_incl*(t - self.t0)
             w = self.w0 + 0.75*aux*(5*cos_incl**2 - 1)*(t - self.t0)
             MA = self.MA0 + (self.n + 0.75*aux*(sqrt(1 - self.e**2))*(2 - 3*sin_incl**2))*(t - self.t0)
             E = self.M2E(MA)
             theta = self.E2theta(E)
 
-            cos_RAN = cos(RAN)
-            sin_RAN = sin(RAN)
+            cos_RAAN = cos(RAAN)
+            sin_RAAN = sin(RAAN)
             cos_w = cos(w)
             sin_w = sin(w)
             cos_theta = cos(theta)
             sin_theta = sin(theta)
 
-            Rot_Mat = matrix((((cos_RAN*cos_w - sin_RAN*cos_incl*sin_w), (-sin_RAN*cos_incl*cos_w - cos_RAN*sin_w), (sin_RAN*sin_incl)),
-                              ((cos_RAN*cos_incl*sin_w + sin_RAN*cos_w), (cos_RAN*cos_incl*cos_w - sin_RAN*sin_w), (-cos_RAN*sin_incl)),
+            Rot_Mat = matrix((((cos_RAAN*cos_w - sin_RAAN*cos_incl*sin_w), (-sin_RAAN*cos_incl*cos_w - cos_RAAN*sin_w), (sin_RAAN*sin_incl)),
+                              ((cos_RAAN*cos_incl*sin_w + sin_RAAN*cos_w), (cos_RAAN*cos_incl*cos_w - sin_RAAN*sin_w), (-cos_RAAN*sin_incl)),
                               ((sin_incl*sin_w), (sin_incl*cos_w), (cos_incl))))
             r0 = self.p/(1 + self.e*cos_theta)
             r_vect0 = array([[r0*cos_theta], [r0*sin_theta], [0]])
             r_vectf = Rot_Mat*r_vect0
             r_s = sqrt(r_vectf.item(0)**2 + r_vectf.item(1)**2 + r_vectf.item(2)**2)
             decl_s = arcsin(r_vectf.item(2)/r_s)
-            RAN_s = arctan2(r_vectf.item(1),r_vectf.item(0))
+            RAAN_s = arctan2(r_vectf.item(1),r_vectf.item(0))
 
             lat.append(arctan(re_rp2*tan(decl_s)) % pi)
-            lng.append((RAN_s - self.GST0 - wt*t)  % twopi)
+            lng.append((RAAN_s - self.GST0 - wt*t)  % twopi)
 
             lat[j] = ((lat[j] > pi/2)*(lat[j] - pi) + (lat[j] <= pi/2)*(lat[j]))*rad2deg
             lng[j] = ((lng[j] > pi)*(lng[j] - twopi) + (lng[j] <= pi)*(lng[j]))*rad2deg
         return lat, lng
 
-    def updateOrbitalParameters(self):
-        tnow = self.getTnow()
+    def updateOrbitalParameters(self, tnow=None):
+        if (tnow is None):
+            tnow = self.getTnow()
         J2 = 1.083*10**(-3)                             # Second degree harmonic model of Earth
         rad2deg = 180/pi                                # Radian to degrees
         re_rp2 = (6378/6356)**2                         # (equatorial radius/polar radius)^2
@@ -222,20 +251,20 @@ class Sat(Node):
         cos_incl = cos(self.incl)
         sin_incl = sin(self.incl)
 
-        self.RAN = self.RAN0 - 1.5*aux*cos_incl*(tnow - self.t0)
+        self.RAAN = self.RAAN0 - 1.5*aux*cos_incl*(tnow - self.t0)
         self.w = self.w0 + 0.75*aux*(5*cos_incl**2 - 1)*(tnow - self.t0)
         self.MA = self.MA0 + (self.n + 0.75*aux*(sqrt(1 - self.e**2))*(2 - 3*sin_incl**2))*(tnow - self.t0)
         E = self.M2E(self.MA)
         self.theta = self.E2theta(E)
-        cos_RAN = cos(self.RAN)
-        sin_RAN = sin(self.RAN)
+        cos_RAAN = cos(self.RAAN)
+        sin_RAAN = sin(self.RAAN)
         cos_w = cos(self.w)
         sin_w = sin(self.w)
         cos_theta = cos(self.theta)
         sin_theta = sin(self.theta)
 
-        Rot_Mat = matrix((((cos_RAN*cos_w - sin_RAN*cos_incl*sin_w), (-sin_RAN*cos_incl*cos_w - cos_RAN*sin_w), (sin_RAN*sin_incl)),
-                          ((cos_RAN*cos_incl*sin_w + sin_RAN*cos_w), (cos_RAN*cos_incl*cos_w - sin_RAN*sin_w), (-cos_RAN*sin_incl)),
+        Rot_Mat = matrix((((cos_RAAN*cos_w - sin_RAAN*cos_incl*sin_w), (-sin_RAAN*cos_incl*cos_w - cos_RAAN*sin_w), (sin_RAAN*sin_incl)),
+                          ((cos_RAAN*cos_incl*sin_w + sin_RAAN*cos_w), (cos_RAAN*cos_incl*cos_w - sin_RAAN*sin_w), (-cos_RAAN*sin_incl)),
                           ((sin_incl*sin_w), (sin_incl*cos_w), (cos_incl))))
         r0 = self.p/(1 + self.e*cos_theta)
         r_vect0 = array([[r0*cos_theta], [r0*sin_theta], [0]])
@@ -245,10 +274,10 @@ class Sat(Node):
         self.z = r_vectf.item(2)
         r_s = sqrt(self.x**2 + self.y**2 + self.z**2)
         decl_s = arcsin(self.z/r_s)
-        RAN_s = arctan2(self.y, self.x)
+        RAAN_s = arctan2(self.y, self.x)
 
         lat = arctan(re_rp2*tan(decl_s)) % pi
-        lng = (RAN_s - self.GST0 - wt*tnow)  % twopi
+        lng = (RAAN_s - self.GST0 - wt*tnow)  % twopi
 
         self.lat = ((lat > pi/2)*(lat - pi) + (lat <= pi/2)*lat)*rad2deg
         self.lng = ((lng > pi)*(lng - twopi) + (lng <= pi)*lng)*rad2deg
