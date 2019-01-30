@@ -37,7 +37,7 @@ class GUI():
         self.setTableContent()
         self.tableRefresher()
         ani = FuncAnimation(self.fig, self.update, self.data_gen(),
-                            interval=self.dt*964, blit=True, repeat=False)
+                            interval=self.dt*964, blit=False, repeat=False)
         self.root.bind("<F11>", self.fullscreen)
         self.root.bind("<Escape>", self.exitFullscreen)
         self.run()
@@ -655,13 +655,23 @@ class GUI():
         tlefile.fetch("TLE/weather.txt")
 
     def earth(self):
-        img = imread("img/earth_nasa_day.png")
         img_extent = (-180, 180, -90, 90)
-        self.ax.imshow(img, origin='upper', extent=img_extent,
-                       transform=PlateCarree())
+        self.ax.imshow(imread("img/earth_nasa_day.png"), origin='upper',
+                       extent=img_extent, transform=PlateCarree())
+        self.fig.canvas.draw()
+        mu = 5.9722*6.67408*10**13
+        for sat in self.Sats:
+            sat.changePlanet()
 
     def mars(self):
-        self.ax.draw(imread("img/mars_nasa_day.png"))
+        img_extent = (-180, 180, -90, 90)
+        self.ax.imshow(imread("img/mars_nasa_day.png"), origin='upper',
+                       extent=img_extent, transform=PlateCarree()) 
+        self.fig.canvas.draw()
+        mu = 0.64171*6.67408*10**13
+        for sat in self.Sats:
+            sat.changePlanet(M=0.64171*10**24, P_r=3389500, Eq_r=3396200, 
+                    Po_r=3376200, J2=0.00196045, P_w=7.08821812*10**(-5))
 
     def setMenu(self):
         menubar = Menu(self.root, bg=self.bg, fg=self.fg, activeforeground=self.fg,
@@ -671,7 +681,7 @@ class GUI():
         filemenu = Menu(menubar, tearoff=0, bg=self.active_bg, fg=self.fg,
                         activeforeground=self.fg, activebackground=self.bg)
         filemenu.add_command(label="Open", command=self.notAvailable)
-        filemenu.add_command(label="Save", command=self.saveAs)
+        filemenu.add_command(label="Save as", command=self.saveAs)
         filemenu.add_separator()
         filemenu.add_command(label="Exit", command=exit)
         menubar.add_cascade(label="File", menu=filemenu)
