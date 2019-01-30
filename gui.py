@@ -7,6 +7,7 @@ from matplotlib.pyplot import imread, subplots, tight_layout
 from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
 from datetime import datetime
 from tkinter import Button, Entry, END, Image, Label, Listbox, Menu, StringVar, ttk, Tk
+from tkinter.filedialog import asksaveasfilename
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from sat import Sat
 from warnings import filterwarnings
@@ -22,20 +23,20 @@ class GUI():
         self.img = Image("photo", file="img/favicon.png") 
         self.root.call('wm', 'iconphoto', self.root._w, self.img)
         self.geometry()
-        self.root.title('PyPredict')
+        self.root.title('Pypredict')
         self.setTheme('#404040', 'white', '#303030')
         self.root.protocol("WM_DELETE_WINDOW", exit)
         self.mainSat = self.Sats[0]
         tf = int(self.mainSat.getPeriod()*3)           # Total duration in seconds
         self.dt = 1                                    # Step's length in seconds
         self.mainSat_lats, self.mainSat_lngs = self.mainSat.getLocation(tf, self.dt)
-        fig = self.plotData()
-        self.setCanvas(fig)
+        self.plotData()
+        self.setCanvas()
         self.setMenu()
         self.setTableTitles()
         self.setTableContent()
         self.tableRefresher()
-        ani = FuncAnimation(fig, self.update, self.data_gen(),
+        ani = FuncAnimation(self.fig, self.update, self.data_gen(),
                             interval=self.dt*964, blit=True, repeat=False)
         self.root.bind("<F11>", self.fullscreen)
         self.root.bind("<Escape>", self.exitFullscreen)
@@ -120,17 +121,16 @@ class GUI():
     def plotData(self):
         screen_height = self.root.winfo_screenheight()
         if (screen_height < 1080):
-            fig, self.ax = subplots(figsize=(12, 6),
+            self.fig, self.ax = subplots(figsize=(12, 6),
                                     subplot_kw={'projection': PlateCarree()})
         else:
-            fig, self.ax = subplots(figsize=(18, 9),
+            self.fig, self.ax = subplots(figsize=(18, 9),
                                     subplot_kw={'projection': PlateCarree()})
         img_extent = (-180, 180, -90, 90)
         self.ax.imshow(imread("img/earth_nasa_day.png"), origin='upper',
                        extent=img_extent, transform=PlateCarree())
         self.gridAndFormat()
         tight_layout(pad=-0.26)
-        return fig
 
     def gridAndFormat(self):
         gl = self.ax.gridlines(crs=PlateCarree(), draw_labels=True,
@@ -239,8 +239,8 @@ class GUI():
             self.top_index += 1
             self.bottom_index += 1
 
-    def setCanvas(self, fig):
-        canvas = FigureCanvasTkAgg(fig, master=self.root)
+    def setCanvas(self):
+        canvas = FigureCanvasTkAgg(self.fig, master=self.root)
         #self.root.rowconfigure(0, weight=1)
         #self.root.columnconfigure(0, weight=1)
         canvas.get_tk_widget().grid(row=0, column=0, columnspan=13, sticky="NES")
@@ -420,6 +420,12 @@ class GUI():
     def tableRefresher(self):
         self.updateTableContent()
         self.root.after(500, self.tableRefresher)
+
+    def saveAs(self):
+        file_name = asksaveasfilename()
+        if file_name is None:
+            return
+        self.fig.savefig(file_name)
 
     def notAvailable(self):
         print("This command is not available yet")
@@ -665,7 +671,7 @@ class GUI():
         filemenu = Menu(menubar, tearoff=0, bg=self.active_bg, fg=self.fg,
                         activeforeground=self.fg, activebackground=self.bg)
         filemenu.add_command(label="Open", command=self.notAvailable)
-        filemenu.add_command(label="Save", command=self.notAvailable)
+        filemenu.add_command(label="Save", command=self.saveAs)
         filemenu.add_separator()
         filemenu.add_command(label="Exit", command=exit)
         menubar.add_cascade(label="File", menu=filemenu)
@@ -694,7 +700,7 @@ class GUI():
 
         helpmenu = Menu(menubar, tearoff=0, bg=self.active_bg, fg=self.fg,
                         activeforeground=self.fg, activebackground=self.bg)
-        helpmenu.add_command(label="About PyPredict", command=self.notAvailable)
+        helpmenu.add_command(label="About Pypredict", command=self.notAvailable)
         menubar.add_cascade(label="Help", menu=helpmenu)
 
         # Display the menu
