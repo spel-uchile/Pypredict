@@ -41,16 +41,17 @@ class Sat(Node):
         self.theta = self.MA
         G = 6.67408*10**(-11)                                     # Gravitational constant
         Mt = 5.9722*10**24                                        # Earth mass
-        ut = G*Mt                                                 # Gravitational parameter for Earth
-        self.a = (ut/self.n**2)**(1/3)                            # Semi-major axis
-        self.p = self.a*(1 - self.e**2)                           # Semilatus-rectum
         self.t0 = (self.epoch_day - int(self.epoch_day))*dayinsec # Initial time in seconds
         D, Month, Y = self.getDMY()                               # Get day, month and year from TLE data
         self.GST0 = self.getGST(int(D), Month, Y)                 # Get Greenwich sideral time
-        self.updateOrbitalParameters()                            # Update orbital parameters
+        self.a = (G*Mt/self.n**2)**(1/3)                          # Semi-major axis
+        self.changePlanet()                                       # Sets all the planet's parameters
 
     def __call__(self):
         return self
+
+    def setMu(self, mu):
+        self.mu = mu
 
     def setInclination(self, incl):
         self.incl = incl
@@ -158,20 +159,18 @@ class Sat(Node):
         theta = 2*arctan(sqrt((1 + self.e)/(1 - self.e))*tan(E/2))
         return theta
 
-    def getEarthRadius(self):
-        Eq_r = 6378000   # Equatorial radius
-        Po_r = 6356000   # Polar radius
+    def getPlanetRadius(self):
         cos_lat = cos(self.lat)
         sin_lat = sin(self.lat)
-        Earth_r = sqrt(((Eq_r**2*cos_lat)**2 + (Po_r**2*sin_lat)**2)/((Eq_r*cos_lat)**2 + (Po_r*sin_lat)**2))
-        return Earth_r
+        radius = sqrt(((self.Eq_r**2*cos_lat)**2 + (self.Po_r**2*sin_lat)**2)/((self.Eq_r*cos_lat)**2 + (self.Po_r*sin_lat)**2))
+        return radius
 
     def getPeriod(self):
         return 2*pi/self.n
 
     def getCoverage(self):
-        E_r = self.getEarthRadius()
-        ang = arccos(E_r/(E_r + self.alt))*180/pi
+        radius = self.getPlanetRadius()
+        ang = arccos(radius/(radius + self.alt))*180/pi
         return ang
 
     def getComCoverage(self, E_r):
@@ -195,13 +194,9 @@ class Sat(Node):
         tnow = self.getTnow()
         lat = []
         lng = []
-        J2 = 1.083*10**(-3)                # Second degree harmonic model of Earth
-        rad2deg = 180/pi                   # Radian to degrees
-        re_rp2 = (6378/6356)**2            # (equatorial radius/polar radius)^2
-        twopi = 2*pi                       # Two times pi
-        E_r = 6371000                      # Earth radius
-        wt = twopi/(23*3600 + 56*60 + 4.1) # Earth's angular velocity
-        aux = self.n*(E_r**2/self.p**2)*J2 # Calculate only one time
+        rad2deg = 180/pi                             # Radian to degrees
+        twopi = 2*pi                                 # Two times pi
+        aux = self.n*(self.P_r**2/self.p**2)*self.J2 # Calculate only one time
         cos_incl = cos(self.incl)
         sin_incl = sin(self.incl)
         for i in range(0, tf, dt):
@@ -231,23 +226,32 @@ class Sat(Node):
             decl_s = arcsin(r_vectf.item(2)/r_s)
             RAAN_s = arctan2(r_vectf.item(1),r_vectf.item(0))
 
-            lat.append(arctan(re_rp2*tan(decl_s)) % pi)
-            lng.append((RAAN_s - self.GST0 - wt*t)  % twopi)
+            lat.append(arctan(self.Er_Pr2*tan(decl_s)) % pi)
+            lng.append((RAAN_s - self.GST0 - self.P_w*t)  % twopi)
 
             lat[j] = ((lat[j] > pi/2)*(lat[j] - pi) + (lat[j] <= pi/2)*(lat[j]))*rad2deg
             lng[j] = ((lng[j] > pi)*(lng[j] - twopi) + (lng[j] <= pi)*(lng[j]))*rad2deg
         return lat, lng
 
+    def changePlanet(self, M=5.9722*10**24, P_r=6371000, Eq_r=6378000, Po_r=6356000, J2=0.00108263, P_w=7.29211505*10**(-5)):
+        G = 6.67408*10**(-11)                       # Gravitational constant
+        self.mu = G*M                               # Gravitational parameter
+        self.n = sqrt(self.mu/(self.a**3))          # Mean motion
+        self.p = self.a*(1 - self.e**2)
+        self.P_r = P_r                              # Planet radius
+        self.Eq_r = Eq_r                            # Equatorial radius
+        self.Po_r = Po_r                            # Polar radius
+        self.Er_Pr2 = (Eq_r/Po_r)**2                # (Equatorial radius/Polar radius)^2
+        self.J2 = J2                                # The planet's second degree harmonic model
+        self.P_w = P_w                              # The planet's angular velocity
+        self.updateOrbitalParameters()
+
     def updateOrbitalParameters(self, tnow=None):
         if (tnow is None):
             tnow = self.getTnow()
-        J2 = 1.083*10**(-3)                             # Second degree harmonic model of Earth
         rad2deg = 180/pi                                # Radian to degrees
-        re_rp2 = (6378/6356)**2                         # (equatorial radius/polar radius)^2
         twopi = 2*pi                                    # Two times pi
-        E_r = 6371000                                   # Earth radius
-        wt = twopi/(23*3600 + 56*60 + 4.1)              # Earth's angular velocity
-        aux = self.n*(E_r**2/self.p**2)*J2              # Calculate only one time
+        aux = self.n*(self.P_r**2/self.p**2)*self.J2    # Calculate only one time
         cos_incl = cos(self.incl)
         sin_incl = sin(self.incl)
 
@@ -276,9 +280,9 @@ class Sat(Node):
         decl_s = arcsin(self.z/r_s)
         RAAN_s = arctan2(self.y, self.x)
 
-        lat = arctan(re_rp2*tan(decl_s)) % pi
-        lng = (RAAN_s - self.GST0 - wt*tnow)  % twopi
+        lat = arctan(self.Er_Pr2*tan(decl_s)) % pi
+        lng = (RAAN_s - self.GST0 - self.P_w*tnow)  % twopi
 
         self.lat = ((lat > pi/2)*(lat - pi) + (lat <= pi/2)*lat)*rad2deg
         self.lng = ((lng > pi)*(lng - twopi) + (lng <= pi)*lng)*rad2deg
-        self.alt = r_s - self.getEarthRadius()
+        self.alt = r_s - self.getPlanetRadius()
