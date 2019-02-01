@@ -11,8 +11,10 @@ from tkinter.filedialog import asksaveasfilename
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from sat import Sat
 from warnings import filterwarnings
+import ssl
 
 filterwarnings("ignore", category=RuntimeWarning)
+ssl._create_default_https_context = ssl._create_unverified_context
 
 class GUI():
     #@profile
@@ -37,7 +39,7 @@ class GUI():
         self.setTableContent()
         self.tableRefresher()
         ani = FuncAnimation(self.fig, self.update, self.data_gen(),
-                            interval=self.dt*964, blit=False, repeat=False)
+                            interval=self.dt*964, blit=True, repeat=False)
         self.root.bind("<F11>", self.fullscreen)
         self.root.bind("<Escape>", self.exitFullscreen)
         self.run()
@@ -127,7 +129,7 @@ class GUI():
             self.fig, self.ax = subplots(figsize=(18, 9),
                                     subplot_kw={'projection': PlateCarree()})
         img_extent = (-180, 180, -90, 90)
-        self.ax.imshow(imread("img/earth_nasa_day.png"), origin='upper',
+        self.map = self.ax.imshow(imread("img/earth_nasa_day.png"), origin='upper',
                        extent=img_extent, transform=PlateCarree())
         self.gridAndFormat()
         tight_layout(pad=-0.26)
@@ -158,16 +160,20 @@ class GUI():
         self.ax_sat, = self.ax.plot([], [], 'yo', ms=6)
         self.ax_cov = []
         self.sat_txt = []
+        sats_lngs = []
+        sats_lats = []
+        sats_angs = []
+        sats_names = []
         for i in range(0, len(self.Sats)):
             self.ax_cov.append(self.ax.fill([0,0], [0,0], transform=Geodetic(),
                                color='white', alpha=self.cov_alpha)[0])
             self.sat_txt.append(self.ax.text([], [], "", color='yellow', size=8,
                                         transform=Geodetic(), ha="center"))
         while True:
-            sats_lngs = []
-            sats_lats = []
-            sats_angs = []
-            sats_names = []
+            sats_lngs[:] = []
+            sats_lats[:] = []
+            sats_angs[:] = []
+            sats_names[:] = []
             for Sat in self.Sats:
                 Sat.updateOrbitalParameters()
                 sats_lngs.append(Sat.getLng())
@@ -254,14 +260,14 @@ class GUI():
                 bg=self.bg, fg=self.fg, width=24, anchor='w').grid(row=1, column=1, sticky="W")
         Label(self.root, text="Latitude", font="TkDefaultFont 10 bold", bg=self.bg, fg=self.fg).grid(row=1, column=2)
         Label(self.root, text="Longitude", font="TkDefaultFont 10 bold", bg=self.bg, fg=self.fg).grid(row=1, column=3)
-        Label(self.root, text="Altitude", font="TkDefaultFont 10 bold", bg=self.bg, fg=self.fg).grid(row=1, column=4)
-        Label(self.root, text="Semi-major axis", font="TkDefaultFont 10 bold", bg=self.bg, fg=self.fg).grid(row=1, column=5)
-        Label(self.root, text="Eccentricity", font="TkDefaultFont 10 bold", bg=self.bg, fg=self.fg).grid(row=1, column=6)
-        Label(self.root, text="RAAN", font="TkDefaultFont 10 bold", bg=self.bg, fg=self.fg).grid(row=1, column=7)
-        Label(self.root, text="Inclination", font="TkDefaultFont 10 bold", bg=self.bg, fg=self.fg).grid(row=1, column=8)
-        Label(self.root, text="Arg. of Perigee", font="TkDefaultFont 10 bold", bg=self.bg, fg=self.fg).grid(row=1, column=9)
-        Label(self.root, text="Anomaly", font="TkDefaultFont 10 bold", bg=self.bg, fg=self.fg).grid(row=1, column=10)
-        Label(self.root, text="Mean anomaly", font="TkDefaultFont 10 bold", bg=self.bg, fg=self.fg).grid(row=1, column=11)
+        Label(self.root, text="Alt. [km]", font="TkDefaultFont 10 bold", bg=self.bg, fg=self.fg).grid(row=1, column=4)
+        Label(self.root, text="a [km]", font="TkDefaultFont 10 bold", bg=self.bg, fg=self.fg).grid(row=1, column=5)
+        Label(self.root, text="e", font="TkDefaultFont 10 bold", bg=self.bg, fg=self.fg).grid(row=1, column=6)
+        Label(self.root, text="Ω", font="TkDefaultFont 10 bold", bg=self.bg, fg=self.fg).grid(row=1, column=7)
+        Label(self.root, text="i", font="TkDefaultFont 10 bold", bg=self.bg, fg=self.fg).grid(row=1, column=8)
+        Label(self.root, text="ω", font="TkDefaultFont 10 bold", bg=self.bg, fg=self.fg).grid(row=1, column=9)
+        Label(self.root, text="T. Anom.", font="TkDefaultFont 10 bold", bg=self.bg, fg=self.fg).grid(row=1, column=10)
+        Label(self.root, text="M. Anom.", font="TkDefaultFont 10 bold", bg=self.bg, fg=self.fg).grid(row=1, column=11)
 
     def setTableContent(self):
         rad2deg = 180/pi
@@ -284,14 +290,14 @@ class GUI():
         for i in range(0, 6):
             self.name_bt.append(ttk.Button(self.root, style = "BW.TLabel"))
             self.cat_lbl.append(Label(self.root, bg=self.bg, fg=self.fg, width=24, anchor='w'))
-            self.lat_lbl.append(Label(self.root, bg=self.bg, fg=self.fg,  width=11, anchor='e'))
-            self.lng_lbl.append(Label(self.root, bg=self.bg, fg=self.fg, width=12, anchor='e'))
-            self.alt_lbl.append(Label(self.root, bg=self.bg, fg=self.fg, width=10, anchor='e'))
-            self.a_lbl.append(Label(self.root, bg=self.bg, fg=self.fg, width=11, anchor='e'))
+            self.lat_lbl.append(Label(self.root, bg=self.bg, fg=self.fg,  width=9, anchor='e'))
+            self.lng_lbl.append(Label(self.root, bg=self.bg, fg=self.fg, width=10, anchor='e'))
+            self.alt_lbl.append(Label(self.root, bg=self.bg, fg=self.fg, width=9, anchor='e'))
+            self.a_lbl.append(Label(self.root, bg=self.bg, fg=self.fg, width=7, anchor='e'))
             self.e_lbl.append(Label(self.root, bg=self.bg, fg=self.fg))
             self.raan_lbl.append(Label(self.root, bg=self.bg, fg=self.fg, width=7, anchor='e'))
             self.i_lbl.append(Label(self.root, bg=self.bg, fg=self.fg, width=7, anchor='e'))
-            self.w_lbl.append(Label(self.root, bg=self.bg, fg=self.fg, width=8, anchor='e'))
+            self.w_lbl.append(Label(self.root, bg=self.bg, fg=self.fg, width=7, anchor='e'))
             self.theta_lbl.append(Label(self.root, bg=self.bg, fg=self.fg, width=7, anchor='e'))
             self.ma_lbl.append(Label(self.root, bg=self.bg, fg=self.fg, width=7, anchor='e'))
         self.updateTableContent()
@@ -312,16 +318,16 @@ class GUI():
             self.name_bt[i]['text'] = Sat.name
             self.name_bt[i]['command'] = lambda Sat=Sat: self.changeMainSat(Sat)
             self.cat_lbl[i]['text'] = Sat.getCategory()
-            self.lat_lbl[i]['text'] = "{:0.6f}{}".format(Sat.getLat(), "°")
-            self.lng_lbl[i]['text'] = "{:0.6f}{}".format(Sat.getLng(), "°")
-            self.alt_lbl[i]['text'] = "{:0.1f} {}".format((Sat.getAlt()/1000), "km")
-            self.a_lbl[i]['text'] = "{:0.2f} {}".format((Sat.getSemiMajorAxis()/1000), "km")
+            self.lat_lbl[i]['text'] = "{:0.4f}{}".format(Sat.getLat(), "°")
+            self.lng_lbl[i]['text'] = "{:0.4f}{}".format(Sat.getLng(), "°")
+            self.alt_lbl[i]['text'] = "{:0.1f}".format((Sat.getAlt()/1000))
+            self.a_lbl[i]['text'] = "{:0.2f}".format((Sat.getSemiMajorAxis()/1000))
             self.e_lbl[i]['text'] = "{:0.4f}".format(Sat.getEccentricity())
             self.raan_lbl[i]['text'] = "{:0.2f}{}".format((Sat.getRAAN()*rad2deg), "°")
             self.i_lbl[i]['text'] = "{:0.2f}{}".format((Sat.getInclination()*rad2deg), "°")
             self.w_lbl[i]['text'] = "{:0.2f}{}".format((Sat.getArgPerigee()*rad2deg), "°")
-            self.theta_lbl[i]['text'] = "{:0.2f}{}".format((Sat.getAnomaly()*rad2deg % 360), "°")
-            self.ma_lbl[i]['text'] = "{:0.2f}{}".format((Sat.getMeanAnomaly()*rad2deg % 360), "°")
+            self.theta_lbl[i]['text'] = "{:0.2f}{}".format((Sat.getAnomaly()*rad2deg), "°")
+            self.ma_lbl[i]['text'] = "{:0.2f}{}".format((Sat.getMeanAnomaly()*rad2deg), "°")
             i += 1
 
     def rememberLastRows(self):
@@ -585,7 +591,9 @@ class GUI():
         else:
             self.Sats.append(Sat(add_sat, tle=tlefile.read(add_sat)))
         self.curr_sats_lst.insert(END, add_sat)
+        self.srch_box.focus()
         self.sortSats()
+        
 
     def removeSat(self):
         del_sat = self.curr_sats_lst.get(self.curr_sats_lst.curselection())
@@ -656,18 +664,16 @@ class GUI():
 
     def earth(self):
         img_extent = (-180, 180, -90, 90)
-        self.ax.imshow(imread("img/earth_nasa_day.png"), origin='upper',
-                       extent=img_extent, transform=PlateCarree())
-        self.fig.canvas.draw()
+        self.map.set_data(imread("img/earth_nasa_day.png"))
+        self.fig.canvas.draw_idle()
         mu = 5.9722*6.67408*10**13
         for sat in self.Sats:
             sat.changePlanet()
 
     def mars(self):
-        img_extent = (-180, 180, -90, 90)
-        self.ax.imshow(imread("img/mars_nasa_day.png"), origin='upper',
-                       extent=img_extent, transform=PlateCarree()) 
-        self.fig.canvas.draw()
+        img_extent = (-180, 180, -90, 90) 
+        self.map.set_data(imread("img/mars_nasa_day.png"))
+        self.fig.canvas.draw_idle()
         mu = 0.64171*6.67408*10**13
         for sat in self.Sats:
             sat.changePlanet(M=0.64171*10**24, P_r=3389500, Eq_r=3396200, 
