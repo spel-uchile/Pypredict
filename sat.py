@@ -53,28 +53,46 @@ class Sat(Node):
     def setMu(self, mu):
         self.mu = mu
 
+    def setEpoch(self):
+        date = datetime.utcnow()                        # Use current time in UTC.
+        tnow = self.getCurrentTimeInSeconds(date)       # Current time in seconds
+        days = self.month2days(date.month) + date.day   # Days in current time
+        self.epoch_day = days
+        self.t0 = (days - int(days))*86400
+        self.epoch_year = date.year - 2000
+
     def setInclination(self, incl):
         self.incl = incl
 
     def setRAAN(self, RAAN):
-        self.RAAN0 = RAAN
         self.RAAN = RAAN
+
+    def setRAAN0(self, RAAN0):
+        self.RAAN0
 
     def setArgPerigee(self, w):
         self.w = w
+
+    def setArgPerigee0(self, w0):
+        self.w0 = w0
 
     def setEccentricity(self, e):
         self.e = e
 
     def setMeanAnomaly(self, MA):
-        self.MA0 = MA
         self.MA = MA
+
+    def setMeanAnomaly0(self, MA0):
+        self:MA0 = self.MA0
 
     def setTrueAnomaly(self, theta):
         self.theta = theta
 
     def setSemiMajorAxis(self, a):
         self.a = a
+
+    def setSemilatusRectum(self, p):
+        self.p = p
 
     def setMeanVelocity(self, n):
         self.n = n
@@ -257,9 +275,9 @@ class Sat(Node):
 
         self.RAAN = self.RAAN0 - 1.5*aux*cos_incl*(tnow - self.t0)
         self.w = self.w0 + 0.75*aux*(5*cos_incl**2 - 1)*(tnow - self.t0)
-        self.MA = self.MA0 + (self.n + 0.75*aux*(sqrt(1 - self.e**2))*(2 - 3*sin_incl**2))*(tnow - self.t0)
+        self.MA = (self.MA0 + (self.n + 0.75*aux*(sqrt(1 - self.e**2))*(2 - 3*sin_incl**2))*(tnow - self.t0)) % twopi
         E = self.M2E(self.MA)
-        self.theta = self.E2theta(E)
+        self.theta = self.E2theta(E) % twopi
         cos_RAAN = cos(self.RAAN)
         sin_RAAN = sin(self.RAAN)
         cos_w = cos(self.w)
