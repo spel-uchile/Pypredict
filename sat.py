@@ -4,7 +4,10 @@ from datetime import datetime
 from pyorbital import tlefile
 
 class Sat(Node):
-
+    __slots__ = ["cat", "incl", "RAAN0", "RAAN", "e", "w0", "w", "MA0", "MA", "n",
+                 "epoch_year", "epoch_day", "theta", "GST0", "a", "mu", "t0", "p", 
+                 "x", "y", "z", "Eq_r", "Po_r", "P_r", "Er_Pr2", "J2", "P_w", "r",
+                 "h", "vt", "vr", "v", "tray_lat", "tray_lng"]
     def __init__(self, name="", lat=0, lng=0, alt=0, freq=437225000, tle=None, cat=""):
         deg2rad = pi/180
         self.name = name
@@ -13,6 +16,8 @@ class Sat(Node):
         self.alt = alt
         self.freq = freq
         self.cat = cat
+        self.tray_lat = []
+        self.tray_lng = []
         dayinsec = 24*3600                                        # Day in seconds
         if (tle is not None):
             self.incl = tle.inclination*deg2rad
@@ -53,14 +58,6 @@ class Sat(Node):
     def setMu(self, mu):
         self.mu = mu
 
-    def setEpoch(self):
-        date = datetime.utcnow()                        # Use current time in UTC.
-        tnow = self.getCurrentTimeInSeconds(date)       # Current time in seconds
-        days = self.month2days(date.month) + date.day   # Days in current time
-        self.epoch_day = days
-        self.t0 = (days - int(days))*86400
-        self.epoch_year = date.year - 2000
-
     def setInclination(self, incl):
         self.incl = incl
 
@@ -96,9 +93,6 @@ class Sat(Node):
 
     def setMeanVelocity(self, n):
         self.n = n
-
-    def setDMY(self, D, M, Y):
-        self.GST0 = self.getGST(D, M, Y)
     
     def setCategory(self, cat):
         self.cat = cat
@@ -127,16 +121,30 @@ class Sat(Node):
     def getMeanAnomaly(self):
         return self.MA
 
+    def getSpecAngMomentum(self):
+        return self.h
+
+    # Calculates the velocity relative to its Perifocal Frame and
+    # transforms it to the Geocentric Equatorial Frame
+    def getVelocityVector(self):
+        v_p = -self.mu*sin(self.theta)/self.h
+        v_q = self.mu*(self.e + cos(self.theta))/self.h
+        sin_RAAN = sin(self.RAAN)
+        cos_RAAN = cos(self.RAAN)
+        sin_i = sin(self.incl)
+        cos_i = cos(self.incl)
+        sin_w = sin(self.w)
+        cos_w = cos(self.w)
+        v_x = v_p*(-sin_RAAN*cos_i*sin_w + cos_RAAN*cos_w)
+        v_x -= v_q*(sin_RAAN*cos_i*cos_w + cos_RAAN*sin_w)
+        v_y = v_p*(cos_RAAN*cos_i*sin_w + sin_RAAN*cos_w)
+        v_y += v_q*(cos_RAAN*cos_i*cos_w - sin_RAAN*sin_w)
+        v_z = v_p*sin_i*sin_w + v_q*sin_i*cos_w
+        return v_x, v_y, v_z
+
+
     def getXYZ(self):
         return self.x, self.y, self.z
-
-    def getTwoPositions(self, dt):
-        tnow = self.getTnow()
-        self.updateOrbitalParameters(tnow + dt)
-        x1, y1, z1 = self.getXYZ()
-        self.updateOrbitalParameters(tnow)
-        x0, y0, z0 = self.getXYZ()
-        return x0, y0, z0, x1, y1, z1
 
     def getDMY(self):
         Y = int(self.epoch_year) + 2000                                                         # Year
@@ -210,8 +218,8 @@ class Sat(Node):
 
     def getLocation(self, tf, dt):
         tnow = self.getTnow()
-        lat = []
-        lng = []
+        self.tray_lat[:] = []
+        self.tray_lng[:] = []
         rad2deg = 180/pi                             # Radian to degrees
         twopi = 2*pi                                 # Two times pi
         aux = self.n*(self.P_r**2/self.p**2)*self.J2 # Calculate only one time
@@ -244,12 +252,12 @@ class Sat(Node):
             decl_s = arcsin(r_vectf.item(2)/r_s)
             RAAN_s = arctan2(r_vectf.item(1),r_vectf.item(0))
 
-            lat.append(arctan(self.Er_Pr2*tan(decl_s)) % pi)
-            lng.append((RAAN_s - self.GST0 - self.P_w*t)  % twopi)
+            lat = arctan(self.Er_Pr2*tan(decl_s)) % pi
+            lng = (RAAN_s - self.GST0 - self.P_w*t)  % twopi
 
-            lat[j] = ((lat[j] > pi/2)*(lat[j] - pi) + (lat[j] <= pi/2)*(lat[j]))*rad2deg
-            lng[j] = ((lng[j] > pi)*(lng[j] - twopi) + (lng[j] <= pi)*(lng[j]))*rad2deg
-        return lat, lng
+            self.tray_lat.append(((lat > pi/2)*(lat - pi) + (lat <= pi/2)*lat)*rad2deg)
+            self.tray_lng.append(((lng > pi)*(lng - twopi) + (lng <= pi)*lng)*rad2deg)
+        return self.tray_lat, self.tray_lng
 
     def changePlanet(self, M=5.9722*10**24, P_r=6371000, Eq_r=6378000, Po_r=6356000, J2=0.00108263, P_w=7.29211505*10**(-5)):
         G = 6.67408*10**(-11)                       # Gravitational constant
@@ -294,8 +302,8 @@ class Sat(Node):
         self.x = r_vectf.item(0)
         self.y = r_vectf.item(1)
         self.z = r_vectf.item(2)
-        r_s = sqrt(self.x**2 + self.y**2 + self.z**2)
-        decl_s = arcsin(self.z/r_s)
+        self.r = sqrt(self.x**2 + self.y**2 + self.z**2)
+        decl_s = arcsin(self.z/self.r)
         RAAN_s = arctan2(self.y, self.x)
 
         lat = arctan(self.Er_Pr2*tan(decl_s)) % pi
@@ -303,4 +311,21 @@ class Sat(Node):
 
         self.lat = ((lat > pi/2)*(lat - pi) + (lat <= pi/2)*lat)*rad2deg
         self.lng = ((lng > pi)*(lng - twopi) + (lng <= pi)*lng)*rad2deg
-        self.alt = r_s - self.getPlanetRadius()
+        self.alt = self.r - self.getPlanetRadius()
+        self.h = sqrt(self.p*self.mu)
+        self.vt = self.h/self.r
+        self.vr = self.mu*self.e*sin(self.theta)/self.h
+        self.v = sqrt(self.vt**2 + self.vr**2)
+
+    def updateGST0(self):
+        D, Month, Y = self.getDMY()
+        self.GST0 = self.getGST(int(D), Month, Y)
+
+    def updateEpoch(self):
+        date = datetime.utcnow()                        # Use current time in UTC.
+        tnow = self.getCurrentTimeInSeconds(date)       # Current time in seconds
+        days = self.month2days(date.month) + date.day   # Days in current time
+        self.epoch_day = days
+        self.t0 = (days - int(days))*86400
+        self.epoch_year = date.year - 2000
+
