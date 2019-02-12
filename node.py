@@ -1,6 +1,6 @@
 
-class Node:
-
+class Node(object):
+    __slots__ = ["name", "lat", "lng", "alt", "freq"]
     def __init__(self, name="", lat=0, lng=0, alt=0, freq=437225000):
         self.name = name
         self.lat = lat
