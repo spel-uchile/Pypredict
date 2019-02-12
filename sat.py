@@ -65,7 +65,7 @@ class Sat(Node):
         self.RAAN = RAAN
 
     def setRAAN0(self, RAAN0):
-        self.RAAN0
+        self.RAAN0 = RAAN0
 
     def setArgPerigee(self, w):
         self.w = w
@@ -80,7 +80,7 @@ class Sat(Node):
         self.MA = MA
 
     def setMeanAnomaly0(self, MA0):
-        self:MA0 = self.MA0
+        self.MA0 = MA0
 
     def setTrueAnomaly(self, theta):
         self.theta = theta
@@ -325,7 +325,7 @@ class Sat(Node):
         date = datetime.utcnow()                        # Use current time in UTC.
         tnow = self.getCurrentTimeInSeconds(date)       # Current time in seconds
         days = self.month2days(date.month) + date.day   # Days in current time
-        self.epoch_day = days
-        self.t0 = (days - int(days))*86400
+        self.epoch_day = days + tnow/86400
+        self.t0 = tnow
         self.epoch_year = date.year - 2000
 
