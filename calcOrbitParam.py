@@ -15,19 +15,27 @@ class Calc():
         if (dt is not None and r2 is not None):
             self.dt = dt
             self.r2 = r2
+            self.i = 0 # Default value
             self.getVelocities()
+            self.getOrbitalParameters(self.r1, self.v1)
+            if (self.i >= pi/2):
+                self.getVelocities()
+                self.getOrbitalParameters(self.r1, self.v1)
         elif (v is not None):
             self.v1 = v
+            self.getOrbitalParameters(self.r1, self.v1)
         else:
             print("Two positions and time or a position and a velocity are needed.")
-        self.getOrbitalParameters(self.r1, self.v1)
         
     def getdtheta(self):
         r1xr2 = cross(self.r1, self.r2)
+        r1dotr2 = dot(self.r1, self.r2)
         if (r1xr2[2] >= 0):
-            dtheta = arccos(dot(self.r1, self.r2)/(self.r1_scalar*self.r2_scalar))
+            dtheta = arccos(r1dotr2/(self.r1_scalar*self.r2_scalar))
         elif (r1xr2[2] < 0):
-            dtheta = 2*pi - arccos(dot(self.r1, self.r2)/(self.r1_scalar*self.r2_scalar))
+            dtheta = 2*pi - arccos(r1dotr2/(self.r1_scalar*self.r2_scalar))
+        if (self.i >= pi/2 or (self.dt < 2000 and dtheta > pi)):
+            dtheta = 2*pi - dtheta
         return dtheta
         
     def getA(self, dtheta):
@@ -35,8 +43,11 @@ class Calc():
         return A
         
     def gety(self, A, C, S, z):
-        y = self.r1_scalar + self.r2_scalar + A*(z*S - 1)/sqrt(C)
-        return y
+        r1_km = self.r1_scalar/1000
+        r2_km = self.r1_scalar/1000
+        A_km = A/1000
+        y = r1_km + r2_km + A_km*(z*S - 1)/sqrt(C)
+        return y*1000
         
     def getyp(self, A, c):
         yp = A/4*sqrt(C)
@@ -83,10 +94,10 @@ class Calc():
         return z
         
     def getz0(self, A):
-        F_array = zeros(30)
-        z_array = zeros(30)
-        for i in range(0, 30, 1):
-            z_array[i] = i/10
+        F_array = zeros(3000)
+        z_array = zeros(3000)
+        for i in range(0, 3000, 1):
+            z_array[i] = i/1000
             C = 1/2 - z_array[i]/24
             S = 1/6 - z_array[i]/120
             y = self.gety(A, C, S, z_array[i])
@@ -131,16 +142,19 @@ class Calc():
     def getExcentricity(self, r, v):
         r_scalar = self.getMagnitude(r)
         v_scalar = self.getMagnitude(v)
+        arg1 = dot(v, v) - self.mu/r_scalar
+        arg2 = r_scalar*self.vr
         self.e = [0, 0, 0]
         for i in range(3):
-            self.e[i] = 1/self.mu*((v_scalar**2 - self.mu/r_scalar)*r[i] - r_scalar*self.vr*v[i])
+            self.e[i] = (arg1*r[i] - arg2*v[i])/self.mu
         
     def getArgOfPerigee(self, N, N_scalar):
-        arg = 1/(N_scalar*self.e_scalar)*dot(N, self.e)
+        arg = dot(N, self.e)/(N_scalar*self.e_scalar)
         if (self.e[2] >= 0):
             self.w = arccos(arg)
         else:
             self.w = 2*pi - arccos(arg)
+        self.w = self.w % (2*pi)
         
     def getTrueAnomaly(self, r, r_scalar):
         arg = 1/(self.e_scalar*r_scalar)*dot(self.e, r)
@@ -150,11 +164,11 @@ class Calc():
             self.theta = 2*pi - arccos(arg)
 
     def theta2E(self):
-        return 2*tan(sqrt((1 - self.e_scalar)/(1 + self.e_scalar))*tan(self.theta/2))
+        return 2*arctan(sqrt((1 - self.e_scalar)/(1 + self.e_scalar))*tan(self.theta/2))
 
     def getMeanAnomaly(self):
         E = self.theta2E()
-        self.MA = E - self.e_scalar*sin(E)
+        self.MA = (E - self.e_scalar*sin(E)) % (2*pi)
         
     def getSemimajorAxis(self):
         rp = self.h_scalar**2/self.mu*(1/(1 + self.e_scalar*cos(0)))
@@ -188,7 +202,6 @@ class Calc():
         self.getMeanVelocity()
         self.getMeanMotion()
         self.getPeriod()
-
 
     def getTLE(self):
         self.TLE1 = "{} {}{} {}{}{} {}{} {} {} {} {} {}{}".format("1",
