@@ -35,7 +35,11 @@ class Map(object):
         sec_since_midnight = (date - datetime(date.year, date.month, date.day)).seconds
         self.sun_lng = -(sec_since_midnight/seconds_per_day - 0.5)*360
         self.dark_lat = -self.sun_lat
-        self.dark_lng = (((self.sun_lng + 180) + 180) % 360) - 180
+        if (self.sun_lng > 0):
+            self.dark_lng = (((self.sun_lng - 180) + 180) % 360) - 180
+        else:
+            self.dark_lng = (((self.sun_lng + 180) + 180) % 360) - 180
+        print(self.dark_lng)
 
     def getSunCoordinates2(self, date=None):
         deg2rad = pi/180
@@ -136,10 +140,16 @@ class Map(object):
 
         z = empty(360)
         transformed = rotated_pole.transform_points(PlateCarree(), x, y)
-        for i in range(0, 360):
-            self.lng[i], self.lat[i], z[i] = transformed[i]
-            self.lat[i] = 90 - self.lat[i] 
-            self.lng[i] += 180
+        if (center_lng < 0):
+            for i in range(0, 360):
+                self.lng[i], self.lat[i], z[i] = transformed[i]
+                self.lat[i] += 90
+                self.lng[i] += 180
+        else:
+            for i in range(0, 360):
+                self.lng[i], self.lat[i], z[i] = transformed[i]
+                self.lat[i] = 90 - self.lat[i] 
+                self.lng[i] += 180
 
     def coord2pixels(self, ang, center_lat, center_lng):
         self.getCoverageCoordinates(ang, center_lat, center_lng)
