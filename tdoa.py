@@ -1,8 +1,8 @@
-import numpy as np
+from numpy import matrix, sqrt
 from sat import Sat
 
-class TDOA():
-
+class TDOA(object):
+    __slots__ = ["c"]
     def __init__(self, c=299792458):
         self.c = c
 
@@ -37,12 +37,12 @@ class TDOA():
             print("a: " + str(a))
             print("b: " + str(b))
             print("c: " + str(c))
-            d1 = (-b + np.sqrt(b**2 - 4*a*c))/(2*a)
+            d1 = (-b + sqrt(b**2 - 4*a*c))/(2*a)
             print("d1 real: " + str(self.getDistance(r0, r1)) + "    d1 calculated: " + str(d1))
-            #M = np.matrix(((x21, y21),
+            #M = matrix(((x21, y21),
             #               (x31, y31)))
             #H = self.getH(r0, r1, r2, r3)
-            #x, y = -M.I*(np.matrix(((d21), (d31))).transpose()*d1 + H)
+            #x, y = -M.I*(matrix(((d21), (d31))).transpose()*d1 + H)
             x = -y21/(x31*y21 - x21*y31)*(d31*d1 + 1/2*(d31**2 - C3 + C1))
             x = x + y31/(x31*y21 - x21*y31)*(d21*d1 + 1/2*(d21**2 - C2 + C1))
             y = -x31/(x31*y21 - x21*y31)*(d21*d1 + 1/2*(d21**2 - C2 + C1))
@@ -91,12 +91,12 @@ class TDOA():
             print("a: " + str(a))
             print("b: " + str(b))
             print("c: " + str(c))
-            d1 = (-b + np.sqrt(b**2 - 4*a*c))/(2*a)
-            M = np.matrix(((x21, y21, z21),
+            d1 = (-b + sqrt(b**2 - 4*a*c))/(2*a)
+            M = matrix(((x21, y21, z21),
                            (x31, y31, z31),
                            (x41, y41, z41)))
             H = self.getH(r0, r1, r2, r3, r4)
-            x, y, z = -M.I*(np.matrix(((d21), (d31), (d41))).transpose()*d1 + H)
+            x, y, z = -M.I*(matrix(((d21), (d31), (d41))).transpose()*d1 + H)
         return x, y, z
 
     def getdt(self, r0, r1, r2):
@@ -111,10 +111,10 @@ class TDOA():
         xb = rb[0]
         yb = rb[1]
         zb = rb[2]
-        return np.sqrt((xa - xb)**2 + (ya - yb)**2 + (za -  zb)**2)
+        return sqrt((xa - xb)**2 + (ya - yb)**2 + (za -  zb)**2)
 
     def getC(self, r):
-        return np.sqrt(r[0]**2 + r[1]**2 + r[2]**2)
+        return sqrt(r[0]**2 + r[1]**2 + r[2]**2)
 
     def getH(self, r0, r1, r2, r3, r4=None):
         d21 = self.c*self.getdt(r0, r1, r2)
@@ -123,12 +123,12 @@ class TDOA():
         C2 = self.getC(r2)
         C3 = self.getC(r3)
         if (r4 is None):
-            H = 1/2*np.matrix(((d21**2 - (C2 - C1)),
+            H = 1/2*matrix(((d21**2 - (C2 - C1)),
                                (d31**2 - (C3 - C1))))
         else:
             d41 = self.c*self.getdt(r0, r1, r4)
             C4 = self.getC(r4)
-            H = 1/2*np.matrix(((d21**2 - (C2 - C1)),
+            H = 1/2*matrix(((d21**2 - (C2 - C1)),
                                (d31**2 - (C3 - C1)),
                                (d41**2 - (C4 - C1))))
         return H.transpose()
@@ -140,7 +140,7 @@ class TDOA():
         x31 = r3[0] - r1[0]
         y21 = r2[1] - r1[1]
         y31 = r3[1] - r1[1]
-        G = np.matrix(((x21, y21, d21),
+        G = matrix(((x21, y21, d21),
                        (x31, y31, d31)))
         return G
 
@@ -152,4 +152,4 @@ class TDOA():
         c = c + C1*(x31*y21 - x21*y31)**4
         c = c + 2*x1*(x31*y21 - x21*y31)**2*(y21/2*(d31**2 - C3 + C1) - y31/2*(d21**2 - C2 + C1))
         c = c + 2*y1*(x31*y21 - x21*y31)**2*(x31/2*(d21**2 - C2 + C1) - x21/2*(d31**2 - C3 + C1))
-        return (-b + np.sqrt(b**2 - 4*a*c))/(2*a)
+        return (-b + sqrt(b**2 - 4*a*c))/(2*a)
