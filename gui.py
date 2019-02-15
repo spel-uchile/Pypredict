@@ -1,4 +1,5 @@
 from cartopy.crs import Geodetic, PlateCarree, RotatedPole
+from dayNightMap import Map
 from matplotlib.ticker import FixedLocator
 from numpy import abs, arange, array, cos, empty, log, pi, sin, tan
 from matplotlib.animation import FuncAnimation
@@ -12,12 +13,28 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from sat import Sat
 from warnings import filterwarnings
 import ssl
+#from pympler import tracker, refbrowser
 
 filterwarnings("ignore", category=RuntimeWarning)
 ssl._create_default_https_context = ssl._create_unverified_context
+#tr = tracker.SummaryTracker()
 
-class GUI():
+class GUI(object):
     #@profile
+    __slots__ = ["Sats", "root", "img", "mainSat", "dt", "mainSat_lats",
+                 "mainSat_lngs", "ax_dark_side", "fig", "ax", "ax_tray",
+                 "ax_sat", "ax_cov", "sat_txt", "bg", "fg", "active_bg",
+                 "night_alpha", "cov_alpha", "top_index", "bottom_index",
+                 "name_bt", "cat_lbl", "lat_lbl", "lng_lbl", "alt_lbl",
+                 "a_lbl", "e_lbl", "raan_lbl", "i_lbl", "w_lbl",
+                 "theta_lbl", "ma_lbl", "up_bt", "down_bt", "popup",
+                 "srch_lbl", "ent", "srch_box", "match", "avail_sats",
+                 "argos", "cubesat", "dmc", "goes", "intelsat",
+                 "iridium", "iridium_next", "noaa", "planet", "resource",
+                 "sarsat", "spire", "tdrss", "tle_new", "weather",
+                 "avail_sats_lst", "curr_lbl", "curr_sats_lst",
+                 "add_sat_bt", "remove_sat_bt", "editmenu", "viewmenu",
+                 "planetmenu", "map", "ani"]
     def __init__(self, Sats):
         self.Sats = Sats
         self.sortSats()
@@ -38,7 +55,7 @@ class GUI():
         self.setTableTitles()
         self.setTableContent()
         self.tableRefresher()
-        ani = FuncAnimation(self.fig, self.update, self.data_gen(),
+        self.ani = FuncAnimation(self.fig, self.update, self.data_gen(),
                             interval=self.dt*964, blit=True, repeat=False)
         self.root.bind("<F11>", self.fullscreen)
         self.root.bind("<Escape>", self.exitFullscreen)
@@ -129,8 +146,11 @@ class GUI():
             self.fig, self.ax = subplots(figsize=(18, 9),
                                     subplot_kw={'projection': PlateCarree()})
         img_extent = (-180, 180, -90, 90)
-        self.map = self.ax.imshow(imread("img/earth_nasa_day.png"), origin='upper',
-                       extent=img_extent, transform=PlateCarree())
+        #self.map = self.ax.imshow(imread("img/earth_nasa_day.png"), origin='upper',
+        #               extent=img_extent, transform=PlateCarree())
+        world_map = Map("img/earth_nasa_day.png", "img/earth_nasa_night.png")
+        self.map = self.ax.imshow(world_map.fillDarkSideFromPicture(90), origin='upper',
+                                  extent=img_extent, transform=PlateCarree())
         self.gridAndFormat()
         tight_layout(pad=-0.26)
 
@@ -195,28 +215,29 @@ class GUI():
             self.plotCoverage(sats_angs[i], sats_lats[i], sats_lngs[i], i)
         return [self.ax_dark_side] + [self.ax_tray] + [self.ax_sat] + self.sat_txt + self.ax_cov
 
+
     def plotCoverage(self, ang, sat_lat, sat_lng, n):
         deg2rad = pi/180
         rad2deg = 180/pi
-        lng = empty(360)
-        lat = empty(360)
-        for i in range(0, 360):
-            theta = i*deg2rad
+        lng = empty(180)
+        lat = empty(180)
+        for i in range(0, 180):
+            theta = (2*i + 1)*deg2rad
             dlat = ang*deg2rad * cos(theta)
-            lat[359 - i] = sat_lat*deg2rad + dlat
-            dpsi = log(tan(lat[359 - i]/2 + pi/4)/tan(sat_lat*deg2rad/2 + pi/4))
+            lat[179 - i] = sat_lat*deg2rad + dlat
+            dpsi = log(tan(lat[179 - i]/2 + pi/4)/tan(sat_lat*deg2rad/2 + pi/4))
             if (abs(dpsi) > 10e-12):
                 q = dlat / dpsi
             else:
                 q = cos(sat_lat*deg2rad)
             dlng = ang*deg2rad*sin(theta)/q
-            lng[359 - i] = sat_lng*deg2rad + dlng
-            if (abs(lat[359 - i]) > (6*deg2rad + pi - ang*deg2rad - abs(sat_lat*deg2rad))):
-                lat[359 - i] = (2*(sat_lat > 0) - 1)*(6*deg2rad + pi - ang*deg2rad - abs(sat_lat*deg2rad))
-                lng[359 - i] = sat_lng*deg2rad + ((sat_lng*deg2rad - pi) > 0)*(-pi) + ((sat_lng*deg2rad - pi) <= 0)*pi
-            lat[359 - i] = lat[359 - i]*rad2deg
-            lng[359 - i] = lng[359 - i]*rad2deg
-        self.ax_cov[n].set_alpha(self.cov_alpha)    
+            lng[179 - i] = sat_lng*deg2rad + dlng
+            if (abs(lat[179 - i]) > (6*deg2rad + pi - ang*deg2rad - abs(sat_lat*deg2rad))):
+                lat[179 - i] = (2*(sat_lat > 0) - 1)*(6*deg2rad + pi - ang*deg2rad - abs(sat_lat*deg2rad))
+                lng[179 - i] = sat_lng*deg2rad + ((sat_lng*deg2rad - pi) > 0)*(-pi) + ((sat_lng*deg2rad - pi) <= 0)*pi
+            lat[179 - i] = lat[179 - i]*rad2deg
+            lng[179 - i] = lng[179 - i]*rad2deg
+        self.ax_cov[n].set_alpha(self.cov_alpha) 
         self.ax_cov[n].set_xy(array((lng, lat)).transpose())
 
     def setTheme(self, bg, fg, active_bg):
@@ -270,7 +291,6 @@ class GUI():
         Label(self.root, text="M. Anom.", font="TkDefaultFont 10 bold", bg=self.bg, fg=self.fg).grid(row=1, column=11)
 
     def setTableContent(self):
-        rad2deg = 180/pi
         self.name_bt = []
         self.cat_lbl = []
         self.lat_lbl = []
@@ -379,49 +399,6 @@ class GUI():
         self.w_lbl[r].grid_forget()
         self.theta_lbl[r].grid_forget()
         self.ma_lbl[r].grid_forget()
-
-    def setTableContent3(self, root, Sats):
-        rad2deg = 180/pi
-        self.scrollbar = Scrollbar(root)
-        self.scrollbar.grid(row=2, column=10)
-        self.table_lst = Listbox(root, yscrollcommand = self.scrollbar.set, width=100)
-        for i in range(0, 10):
-            root.columnconfigure(i, weight=1)
-        for Sat in Sats:
-            Sat.updateOrbitalParameters()
-            data = '{} {:f}{} {:f}{} {:0.1f} {:0.2f} {:0.4f} {:0.2f}{} {:0.2f}{} {:0.2f}{} {:0.2f}{}'.format(Sat.name,
-                                                                                           Sat.getLat(), '°',
-                                                                                           Sat.getLng(), '°',
-                                                                                           (Sat.getAlt()/1000),
-                                                                                           (Sat.getSemiMajorAxis()/1000),
-                                                                                           Sat.getEccentricity(),
-                                                                                           (Sat.getRAAN()*rad2deg), '°',
-                                                                                           (Sat.getInclination()*rad2deg), '°',
-                                                                                           (Sat.getArgPerigee()*rad2deg), '°',
-                                                                                           (Sat.getAnomaly()*rad2deg % 360), '°')
-            
-            self.table_lst.insert(END, data)
-            i += 1
-        self.table_lst.grid(row=2, column=1, columnspan=10)
-    
-    def updateTableContent3(self, root, Sats):
-        rad2deg = 180/pi
-        i = 0
-        for Sat in Sats:
-            Sat.updateOrbitalParameters()
-            data = '{} {:f}{} {:f}{} {:0.1f} {:0.2f} {:0.4f} {:0.2f}{} {:0.2f}{} {:0.2f}{} {:0.2f}{}'.format(Sat.name,
-                                                                                           Sat.getLat(), '°',
-                                                                                           Sat.getLng(), '°',
-                                                                                           (Sat.getAlt()/1000),
-                                                                                           (Sat.getSemiMajorAxis()/1000),
-                                                                                           Sat.getEccentricity(),
-                                                                                           (Sat.getRAAN()*rad2deg), '°',
-                                                                                           (Sat.getInclination()*rad2deg), '°',
-                                                                                           (Sat.getArgPerigee()*rad2deg), '°',
-                                                                                           (Sat.getAnomaly()*rad2deg % 360), '°')
-            self.table_lst.insert(i, data)
-            self.table_lst.delete(i+1)
-            i += 1
 
     def tableRefresher(self):
         self.updateTableContent()
@@ -591,17 +568,20 @@ class GUI():
         else:
             self.Sats.append(Sat(add_sat, tle=tlefile.read(add_sat)))
         self.curr_sats_lst.insert(END, add_sat)
-        self.srch_box.focus()
         self.sortSats()
+        self.srch_box.focus()
+        for i, sat in enumerate(self.Sats):
+            self.curr_sats_lst.delete(i)
+            self.curr_sats_lst.insert(i, sat.name)
         
 
     def removeSat(self):
         del_sat = self.curr_sats_lst.get(self.curr_sats_lst.curselection())
         self.ax_cov.pop()
         self.sat_txt.pop()
-        for i, Sat in enumerate(self.Sats):
-            if (del_sat == Sat.name):
-                self.Sats.remove(Sat)
+        for i, sat in enumerate(self.Sats):
+            if (del_sat == sat.name):
+                self.Sats.remove(sat)
                 self.curr_sats_lst.delete(i)
         
     def addRemoveSat(self):
@@ -663,17 +643,22 @@ class GUI():
         tlefile.fetch("TLE/weather.txt")
 
     def earth(self):
-        img_extent = (-180, 180, -90, 90)
         self.map.set_data(imread("img/earth_nasa_day.png"))
         self.fig.canvas.draw_idle()
+        self.ani._blit_cache.clear()
         mu = 5.9722*6.67408*10**13
         for sat in self.Sats:
             sat.changePlanet()
 
     def mars(self):
-        img_extent = (-180, 180, -90, 90) 
+        #self.ani._stop()
+        #del self.ax.images[0]
         self.map.set_data(imread("img/mars_nasa_day.png"))
         self.fig.canvas.draw_idle()
+        #self.ani._init_draw()
+        self.ani._blit_cache.clear()
+        #self.ani = FuncAnimation(self.fig, self.update, self.data_gen(),
+        #                    interval=self.dt*964, blit=True, repeat=False) 
         mu = 0.64171*6.67408*10**13
         for sat in self.Sats:
             sat.changePlanet(M=0.64171*10**24, P_r=3389500, Eq_r=3396200, 
