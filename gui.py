@@ -48,7 +48,7 @@ class GUI(object):
         self.mainSat = self.Sats[0]
         tf = int(self.mainSat.getPeriod()*3)           # Total duration in seconds
         self.dt = 1                                    # Step's length in seconds
-        self.mainSat_lats, self.mainSat_lngs = self.mainSat.getLocation(tf, self.dt)
+        self.mainSat_lats, self.mainSat_lngs = self.mainSat.getLocation(tf, 50)
         self.plotData()
         self.setCanvas()
         self.setMenu()
@@ -254,7 +254,7 @@ class GUI(object):
     def changeMainSat(self, Sat):
         self.mainSat = Sat
         tf = int(self.mainSat.getPeriod()*3)
-        self.mainSat_lats, self.mainSat_lngs = self.mainSat.getLocation(tf, self.dt)
+        self.mainSat_lats, self.mainSat_lngs = self.mainSat.getLocation(tf, 50)
    
     def up(self):
         if (self.top_index > 0):
