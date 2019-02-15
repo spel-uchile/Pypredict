@@ -41,7 +41,7 @@ class Map(object):
             self.dark_lng = (((self.sun_lng + 180) + 180) % 360) - 180
 
     def getCoverageCoordinates(self, ang, center_lat, center_lng):
-        pole_lng = center_lng
+        pole_lng = 0#center_lng
         if center_lat > 0:
             pole_lat = -90 + center_lat
             central_rot_lng = 180
@@ -62,16 +62,10 @@ class Map(object):
 
         z = empty(360)
         transformed = rotated_pole.transform_points(PlateCarree(), x, y)
-        if (center_lng < 0):
-            for i in range(0, 360):
-                self.lng[i], self.lat[i], z[i] = transformed[i]
-                self.lat[i] += 90
-                self.lng[i] += 180
-        else:
-            for i in range(0, 360):
-                self.lng[i], self.lat[i], z[i] = transformed[i]
-                self.lat[i] = 90 - self.lat[i] 
-                self.lng[i] += 180
+        for i in range(0, 360):
+            self.lng[i], self.lat[i], z[i] = transformed[i]
+            self.lat[i] += 90
+            self.lng[i] = (self.lng[i] + 180 + center_lng) % 360
 
     def coord2pixels(self, ang, center_lat, center_lng):
         self.getCoverageCoordinates(ang, center_lat, center_lng)
