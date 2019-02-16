@@ -1,3 +1,4 @@
+from calcOrbitParam import Calc
 from cartopy.crs import Geodetic, PlateCarree, RotatedPole
 from dayNightMap import Map
 from matplotlib.ticker import FixedLocator
@@ -34,7 +35,8 @@ class GUI(object):
                  "sarsat", "spire", "tdrss", "tle_new", "weather",
                  "avail_sats_lst", "curr_lbl", "curr_sats_lst",
                  "add_sat_bt", "remove_sat_bt", "editmenu", "viewmenu",
-                 "planetmenu", "map", "ani"]
+                 "planetmenu", "map", "ani", "spd_lbl", "dpl_bt",
+                 "deploy_now_bt", "loc_bt", "dpl_img", "tdoa_img"]
     def __init__(self, Sats):
         self.Sats = Sats
         self.sortSats()
@@ -50,6 +52,7 @@ class GUI(object):
         self.dt = 1                                    # Step's length in seconds
         self.mainSat_lats, self.mainSat_lngs = self.mainSat.getLocation(tf, 50)
         self.plotData()
+        self.setButtons()
         self.setCanvas()
         self.setMenu()
         self.setTableTitles()
@@ -266,29 +269,97 @@ class GUI(object):
             self.top_index += 1
             self.bottom_index += 1
 
+    def setButtons(self):
+        self.dpl_img = Image("photo", file="img/deploy.png")
+        self.dpl_bt = ttk.Button(self.root, text="Simulate deployment",
+                style = "BW.TLabel", image=self.dpl_img, compound="bottom",
+                command=self.deployPopup)
+        self.dpl_bt.grid(row=0, column=0, sticky="NESW")
+        self.tdoa_img = Image("photo", file="img/TDOA.png")
+        self.loc_bt = ttk.Button(self.root, text="Simulate localization",
+                style="BW.TLabel", image=self.tdoa_img, compound="bottom",
+                command=self.notAvailable)
+        self.loc_bt.grid(row=1, column=0, sticky="NESW")
+
+    def deployPopup(self):
+        self.popup = Tk()
+        self.popup.title("Deployment settings")
+        self.showCurrentSats(0)
+        self.deploy_now_bt = Button(self.popup, text="Deploy",
+                                 command=self.deploySat)
+        self.deploy_now_bt.grid(row=3, column=2)
+        self.popup.protocol("WM_DELETE_WINDOW", self.popup.destroy)
+        self.popup.mainloop()
+
+    def deploySat(self):
+        dpl_name = self.curr_sats_lst.get(self.curr_sats_lst.curselection())
+        for sat in self.Sats:
+            if (sat.name == dpl_name):
+                deployer = sat
+                break
+        [x, y, z] = deployer.getXYZ()
+        r = [x, y, z]
+        [v_x, v_y, v_z] = deployer.getVelocityVector()
+        v = [v_x, v_y, v_z]
+        calc = Calc(r, v=v)
+        FE1 = Sat(name="FE1", tle=tlefile.read(dpl_name, "TLE/cubesat.txt"),
+                cat="Femto-satellite")
+        FE1.updateEpoch()
+        FE1.updateGST0()
+        FE1.setInclination(calc.i)
+        FE1.setRAAN0(calc.RAAN)
+        FE1.setArgPerigee0(calc.w)
+        FE1.setEccentricity(calc.e_scalar)
+        FE1.setMeanAnomaly0(calc.MA)
+        FE1.setTrueAnomaly(calc.theta)
+        FE1.setSemiMajorAxis(calc.a)
+        FE1.setSemilatusRectum(calc.a*(1 - calc.e_scalar**2))
+        FE1.setMeanVelocity(calc.n)
+        FE1.p = calc.a*(1 - calc.e_scalar**2)
+        FE1.updateOrbitalParameters()
+        self.ax_cov.append(self.ax.fill([0,0], [0,0], transform=Geodetic(),
+                           color='white', alpha=self.cov_alpha)[0])
+        self.sat_txt.append(self.ax.text([], [], "", color='yellow', size=8,
+                            transform=Geodetic(), ha="center"))
+        self.Sats.append(FE1)
+        self.sortSats()
+        self.popup.destroy()
+
     def setCanvas(self):
         canvas = FigureCanvasTkAgg(self.fig, master=self.root)
         #self.root.rowconfigure(0, weight=1)
         #self.root.columnconfigure(0, weight=1)
-        canvas.get_tk_widget().grid(row=0, column=0, columnspan=13, sticky="NES")
+        canvas.get_tk_widget().grid(row=0, column=1, rowspan=2, columnspan=13, sticky="NES")
         canvas.draw()
 
     def setTableTitles(self):
         #self.root.rowconfigure(1, weight=1)
         Label(self.root, text="Satellite", font="TkDefaultFont 10 bold", 
-                bg=self.bg, fg=self.fg, width=18, anchor='w').grid(row=1, column=0, sticky="W")
+                bg=self.bg, fg=self.fg, width=18, anchor='w').grid(row=2, column=0, sticky="W")
         Label(self.root, text="Category", font="TkDefaultFont 10 bold",
-                bg=self.bg, fg=self.fg, width=24, anchor='w').grid(row=1, column=1, sticky="W")
-        Label(self.root, text="Latitude", font="TkDefaultFont 10 bold", bg=self.bg, fg=self.fg).grid(row=1, column=2)
-        Label(self.root, text="Longitude", font="TkDefaultFont 10 bold", bg=self.bg, fg=self.fg).grid(row=1, column=3)
-        Label(self.root, text="Alt. [km]", font="TkDefaultFont 10 bold", bg=self.bg, fg=self.fg).grid(row=1, column=4)
-        Label(self.root, text="a [km]", font="TkDefaultFont 10 bold", bg=self.bg, fg=self.fg).grid(row=1, column=5)
-        Label(self.root, text="e", font="TkDefaultFont 10 bold", bg=self.bg, fg=self.fg).grid(row=1, column=6)
-        Label(self.root, text="Ω", font="TkDefaultFont 10 bold", bg=self.bg, fg=self.fg).grid(row=1, column=7)
-        Label(self.root, text="i", font="TkDefaultFont 10 bold", bg=self.bg, fg=self.fg).grid(row=1, column=8)
-        Label(self.root, text="ω", font="TkDefaultFont 10 bold", bg=self.bg, fg=self.fg).grid(row=1, column=9)
-        Label(self.root, text="T. Anom.", font="TkDefaultFont 10 bold", bg=self.bg, fg=self.fg).grid(row=1, column=10)
-        Label(self.root, text="M. Anom.", font="TkDefaultFont 10 bold", bg=self.bg, fg=self.fg).grid(row=1, column=11)
+                bg=self.bg, fg=self.fg, width=24, anchor='w').grid(row=2, column=1, sticky="W")
+        Label(self.root, text="Latitude", font="TkDefaultFont 10 bold",
+                bg=self.bg, fg=self.fg).grid(row=2, column=2)
+        Label(self.root, text="Longitude", font="TkDefaultFont 10 bold",
+                bg=self.bg, fg=self.fg).grid(row=2, column=3)
+        Label(self.root, text="Alt. [km]", font="TkDefaultFont 10 bold",
+                bg=self.bg, fg=self.fg).grid(row=2, column=4)
+        Label(self.root, text="Spd. [m/s]", font="TkDefaultFont 10 bold",
+                bg=self.bg, fg=self.fg).grid(row=2, column=5)
+        Label(self.root, text="a [km]", font="TkDefaultFont 10 bold",
+                bg=self.bg, fg=self.fg).grid(row=2, column=6)
+        Label(self.root, text="e", font="TkDefaultFont 10 bold",
+                bg=self.bg, fg=self.fg).grid(row=2, column=7)
+        Label(self.root, text="Ω", font="TkDefaultFont 10 bold",
+                bg=self.bg, fg=self.fg).grid(row=2, column=8)
+        Label(self.root, text="i", font="TkDefaultFont 10 bold",
+                bg=self.bg, fg=self.fg).grid(row=2, column=9)
+        Label(self.root, text="ω", font="TkDefaultFont 10 bold",
+                bg=self.bg, fg=self.fg).grid(row=2, column=10)
+        Label(self.root, text="T. Anom.", font="TkDefaultFont 10 bold",
+                bg=self.bg, fg=self.fg).grid(row=2, column=11)
+        Label(self.root, text="M. Anom.", font="TkDefaultFont 10 bold",
+                bg=self.bg, fg=self.fg).grid(row=2, column=12)
 
     def setTableContent(self):
         self.name_bt = []
@@ -296,6 +367,7 @@ class GUI(object):
         self.lat_lbl = []
         self.lng_lbl = []
         self.alt_lbl = []
+        self.spd_lbl = []
         self.a_lbl = []
         self.e_lbl = []
         self.raan_lbl = []
@@ -305,7 +377,7 @@ class GUI(object):
         self.ma_lbl = []
         self.top_index = 0
         self.bottom_index = 4*(len(self.Sats) > 4) + len(self.Sats)*(len(self.Sats) <= 4)
-        for i in range(0, 12):
+        for i in range(0, 13):
             self.root.columnconfigure(i, weight=1)
         for i in range(0, 6):
             self.name_bt.append(ttk.Button(self.root, style = "BW.TLabel"))
@@ -313,6 +385,7 @@ class GUI(object):
             self.lat_lbl.append(Label(self.root, bg=self.bg, fg=self.fg,  width=9, anchor='e'))
             self.lng_lbl.append(Label(self.root, bg=self.bg, fg=self.fg, width=10, anchor='e'))
             self.alt_lbl.append(Label(self.root, bg=self.bg, fg=self.fg, width=9, anchor='e'))
+            self.spd_lbl.append(Label(self.root, bg=self.bg, fg=self.fg, width=10, anchor='e'))
             self.a_lbl.append(Label(self.root, bg=self.bg, fg=self.fg, width=7, anchor='e'))
             self.e_lbl.append(Label(self.root, bg=self.bg, fg=self.fg))
             self.raan_lbl.append(Label(self.root, bg=self.bg, fg=self.fg, width=7, anchor='e'))
@@ -322,12 +395,12 @@ class GUI(object):
             self.ma_lbl.append(Label(self.root, bg=self.bg, fg=self.fg, width=7, anchor='e'))
         self.updateTableContent()
         for i in range(self.top_index, self.bottom_index):
-            self.root.rowconfigure(i+2, weight=1)
+            self.root.rowconfigure(i+3, weight=1)
             self.rememberRow(i+1)
         self.up_bt = ttk.Button(self.root, text="▲", style = "BW.TLabel", command=self.up)
-        self.up_bt.grid(row=2, column=11, rowspan=2, sticky="NESW")
+        self.up_bt.grid(row=3, column=13, rowspan=2, sticky="NESW")
         self.down_bt = ttk.Button(self.root, text="▼", style = "BW.TLabel", command=self.down)
-        self.down_bt.grid(row=4, column=11, rowspan=2, sticky="NESW")
+        self.down_bt.grid(row=5, column=13, rowspan=2, sticky="NESW")
         self.forgetLastRows()
 
     def updateTableContent(self):
@@ -341,6 +414,7 @@ class GUI(object):
             self.lat_lbl[i]['text'] = "{:0.4f}{}".format(Sat.getLat(), "°")
             self.lng_lbl[i]['text'] = "{:0.4f}{}".format(Sat.getLng(), "°")
             self.alt_lbl[i]['text'] = "{:0.1f}".format((Sat.getAlt()/1000))
+            self.spd_lbl[i]['text'] = "{}".format(int(Sat.getSpeed()))
             self.a_lbl[i]['text'] = "{:0.2f}".format((Sat.getSemiMajorAxis()/1000))
             self.e_lbl[i]['text'] = "{:0.4f}".format(Sat.getEccentricity())
             self.raan_lbl[i]['text'] = "{:0.2f}{}".format((Sat.getRAAN()*rad2deg), "°")
@@ -358,29 +432,30 @@ class GUI(object):
             if (len(self.Sats) >= 6):
                 self.bottom_index = 6
                 self.rememberRow(self.bottom_index)
-                self.up_bt.grid(row=2, column=12, rowspan=3, sticky="NESW")
-                self.down_bt.grid(row=5, column=12, rowspan=3, sticky="NESW")
+                self.up_bt.grid(row=3, column=13, rowspan=3, sticky="NESW")
+                self.down_bt.grid(row=6, column=13, rowspan=3, sticky="NESW")
 
     def rememberRow(self, r):
         self.root.rowconfigure(r+1, weight=1)
-        self.name_bt[r-1].grid(row=r+1, column=0, sticky="W")
-        self.cat_lbl[r-1].grid(row=r+1, column=1, sticky="W")
-        self.lat_lbl[r-1].grid(row=r+1, column=2)
-        self.lng_lbl[r-1].grid(row=r+1, column=3)
-        self.alt_lbl[r-1].grid(row=r+1, column=4)
-        self.a_lbl[r-1].grid(row=r+1, column=5)
-        self.e_lbl[r-1].grid(row=r+1, column=6)
-        self.raan_lbl[r-1].grid(row=r+1, column=7)
-        self.i_lbl[r-1].grid(row=r+1, column=8)
-        self.w_lbl[r-1].grid(row=r+1, column=9)
-        self.theta_lbl[r-1].grid(row=r+1, column=10)
-        self.ma_lbl[r-1].grid(row=r+1, column=11)
+        self.name_bt[r-1].grid(row=r+2, column=0, sticky="W")
+        self.cat_lbl[r-1].grid(row=r+2, column=1, sticky="W")
+        self.lat_lbl[r-1].grid(row=r+2, column=2)
+        self.lng_lbl[r-1].grid(row=r+2, column=3)
+        self.alt_lbl[r-1].grid(row=r+2, column=4)
+        self.spd_lbl[r-1].grid(row=r+2, column=5)
+        self.a_lbl[r-1].grid(row=r+2, column=6)
+        self.e_lbl[r-1].grid(row=r+2, column=7)
+        self.raan_lbl[r-1].grid(row=r+2, column=8)
+        self.i_lbl[r-1].grid(row=r+2, column=9)
+        self.w_lbl[r-1].grid(row=r+2, column=10)
+        self.theta_lbl[r-1].grid(row=r+2, column=11)
+        self.ma_lbl[r-1].grid(row=r+2, column=12)
 
     def forgetLastRows(self):
         self.top_index = 0
         self.bottom_index = 4*(len(self.Sats) > 4) + len(self.Sats)*(len(self.Sats) <= 4)
-        self.up_bt.grid(row=2, column=12, rowspan=2, sticky="NESW")
-        self.down_bt.grid(row=4, column=12, rowspan=2, sticky="NESW")
+        self.up_bt.grid(row=3, column=13, rowspan=2, sticky="NESW")
+        self.down_bt.grid(row=5, column=13, rowspan=2, sticky="NESW")
         if (len(self.Sats) > 4):
             self.forgetRow(self.bottom_index)
             if (len(self.Sats) >= 6):
@@ -392,6 +467,7 @@ class GUI(object):
         self.lat_lbl[r].grid_forget()
         self.lng_lbl[r].grid_forget()
         self.alt_lbl[r].grid_forget()
+        self.spd_lbl[r].grid_forget()
         self.a_lbl[r].grid_forget()
         self.e_lbl[r].grid_forget()
         self.raan_lbl[r].grid_forget()
@@ -510,13 +586,13 @@ class GUI(object):
         self.avail_sats_lst.grid(row=1, column=0, rowspan=2, columnspan=2)
         self.popup.columnconfigure(0, weight=1)
 
-    def showCurrentSats(self):
+    def showCurrentSats(self, col):
         self.curr_lbl = Label(self.popup, text="Current satellites:", anchor='w')
-        self.curr_lbl.grid(row=0, column=3, sticky="W")
+        self.curr_lbl.grid(row=0, column=col, sticky="W")
         self.curr_sats_lst = Listbox(self.popup, width=28)
-        for Sat in self.Sats:
-            self.curr_sats_lst.insert(END, Sat.name)
-        self.curr_sats_lst.grid(row=1, column=3, rowspan=2)
+        for sat in self.Sats:
+            self.curr_sats_lst.insert(END, sat.name)
+        self.curr_sats_lst.grid(row=1, column=col, rowspan=2)
 
     def addRemoveButtons(self):
         self.add_sat_bt = Button(self.popup, text="→",
@@ -591,7 +667,7 @@ class GUI(object):
         self.showAvailSats()
         self.setSearchBox()
         self.addRemoveButtons()
-        self.showCurrentSats()
+        self.showCurrentSats(3)
         self.popup.bind("<Key>", self.searchSat)
         self.popup.protocol("WM_DELETE_WINDOW", self.popup.destroy)
         self.popup.mainloop()
