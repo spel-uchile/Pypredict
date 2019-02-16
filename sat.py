@@ -93,6 +93,9 @@ class Sat(Node):
 
     def setMeanVelocity(self, n):
         self.n = n
+
+    def setName(self, name):
+        self.name = name
     
     def setCategory(self, cat):
         self.cat = cat
@@ -123,6 +126,9 @@ class Sat(Node):
 
     def getSpecAngMomentum(self):
         return self.h
+
+    def getSpeed(self):
+        return self.v
 
     # Calculates the velocity relative to its Perifocal Frame and
     # transforms it to the Geocentric Equatorial Frame
