@@ -7,7 +7,7 @@ class Sat(Node):
     __slots__ = ["cat", "incl", "RAAN0", "RAAN", "e", "w0", "w", "MA0", "MA", "n",
                  "epoch_year", "epoch_day", "theta", "GST0", "a", "mu", "t0", "p", 
                  "x", "y", "z", "Eq_r", "Po_r", "P_r", "Er_Pr2", "J2", "P_w", "r",
-                 "h", "vt", "vr", "v", "tray_lat", "tray_lng"]
+                 "h", "vt", "vr", "v", "tray_lat", "tray_lng", "tlast", "B", "bstar"]
     def __init__(self, name="", lat=0, lng=0, alt=0, freq=437225000, tle=None, cat=""):
         deg2rad = pi/180
         self.name = name
@@ -29,6 +29,8 @@ class Sat(Node):
             self.n = tle.mean_motion*rpd2radps                    # Radians per second
             self.epoch_year = tle.epoch_year
             self.epoch_day = tle.epoch_day
+            self.bstar = tle.bstar
+            self.B = 2*self.bstar/(2.461*10**(-5)*6371)
             print(self.name + " TLE found!")
         else:
             self.incl = 97.39*deg2rad
@@ -39,6 +41,7 @@ class Sat(Node):
             self.n = 0.0011
             self.epoch_year = 18
             self.epoch_day = 222.64
+            self.B = 2.2*0.0025*0.0085/0.08
             print("No TLE found, used default parameters instead")
         self.RAAN = self.RAAN0
         self.w = self.w0
@@ -47,6 +50,7 @@ class Sat(Node):
         G = 6.67408*10**(-11)                                     # Gravitational constant
         Mt = 5.9722*10**24                                        # Earth mass
         self.t0 = (self.epoch_day - int(self.epoch_day))*dayinsec # Initial time in seconds
+        self.tlast = self.t0
         D, Month, Y = self.getDMY()                               # Get day, month and year from TLE data
         self.GST0 = self.getGST(int(D), Month, Y)                 # Get Greenwich sideral time
         self.a = (G*Mt/self.n**2)**(1/3)                          # Semi-major axis
@@ -94,6 +98,9 @@ class Sat(Node):
     def setMeanVelocity(self, n):
         self.n = n
 
+    def setBallisticCoeff(self, B):
+        self.B = B
+
     def setName(self, name):
         self.name = name
     
@@ -130,11 +137,15 @@ class Sat(Node):
     def getSpeed(self):
         return self.v
 
-    # Calculates the velocity relative to its Perifocal Frame and
-    # transforms it to the Geocentric Equatorial Frame
-    def getVelocityVector(self):
+    def getPerifocalVel(self):
         v_p = -self.mu*sin(self.theta)/self.h
         v_q = self.mu*(self.e + cos(self.theta))/self.h
+        return v_p, v_q
+
+    # Calculates the velocity relative to its Perifocal Frame and
+    # transforms it to the Geocentric Equatorial Frame
+    def getInertialVel(self):
+        v_p, v_q = self.getPerifocalVel()
         sin_RAAN = sin(self.RAAN)
         cos_RAAN = cos(self.RAAN)
         sin_i = sin(self.incl)
@@ -150,7 +161,7 @@ class Sat(Node):
 
 
     def getXYZ(self):
-        return self.x, self.y, self.z
+        return matrix([[self.x], [self.y], [self.z]])
 
     def getDMY(self):
         Y = int(self.epoch_year) + 2000                                                         # Year
@@ -222,6 +233,46 @@ class Sat(Node):
         daysdiff = days - int(self.epoch_day)           # Difference between  TLE date and current date in days
         return tnow + daysdiff*dayinsec                 # Time in seconds from TLE to present time
 
+    def getDrag(self):
+        if (self.alt < 11000):
+            T = 15.04 - 0.00649*self.alt
+            P = 101.29*((T + 273.1)/288.08)**5.256
+        elif (self.alt < 25000):
+            T = -56.46
+            P = 22.65*exp(1.73 - 0.000157*self.alt)
+        elif (self.alt >= 25000):
+            T = -131.21 + 0.00299*self.alt
+            P = 2.488*((T + 273.1)/216.6)**-11.388
+        else:
+            print("{}{:0.2f}".format("Invalid altitude: ", self.alt))
+            P = 0
+            T = 0
+        return P/(0.2869*(T - 273.1))
+
+    def updateWithDragEffect(self, tnow=None):
+        if (tnow is None):
+            tnow = self.getTnow()
+        dt = tnow - self.tlast
+        while (dt > self.getPeriod()):
+            dt = dt - self.getPeriod()
+            drag = self.getDrag()
+            da = -2*pi*self.B*drag*self.a**2
+            self.a = self.a + da
+            self.n = sqrt(self.mu/(self.a**3))
+            self.p = self.a*(1 - self.e**2)
+            self.h = sqrt(self.p*self.mu)
+            self.e = sqrt(1 - self.h**2/(self.a*self.mu))
+            self.updateOrbitalParameters(tnow - dt)
+        drag = self.getDrag()
+        da = -2*pi*self.B*drag*self.a**2*dt/self.getPeriod()
+        self.a = self.a + da
+        self.n = sqrt(self.mu/(self.a**3))
+        self.p = self.a*(1 - self.e**2)
+        self.h = sqrt(self.p*self.mu)
+        self.e = sqrt(1 - self.h**2/(self.a*self.mu))
+        self.updateOrbitalParameters(tnow)
+        self.tlast = tnow
+
     def getLocation(self, tf, dt):
         tnow = self.getTnow()
         self.tray_lat[:] = []
@@ -270,13 +321,16 @@ class Sat(Node):
         self.mu = G*M                               # Gravitational parameter
         self.n = sqrt(self.mu/(self.a**3))          # Mean motion
         self.p = self.a*(1 - self.e**2)
+        self.h = sqrt(self.p*self.mu)
         self.P_r = P_r                              # Planet radius
         self.Eq_r = Eq_r                            # Equatorial radius
         self.Po_r = Po_r                            # Polar radius
         self.Er_Pr2 = (Eq_r/Po_r)**2                # (Equatorial radius/Polar radius)^2
         self.J2 = J2                                # The planet's second degree harmonic model
         self.P_w = P_w                              # The planet's angular velocity
-        self.updateOrbitalParameters()
+        if (self.tlast == self.t0):
+            self.updateOrbitalParameters(self.t0)
+        self.updateWithDragEffect()
 
     def updateOrbitalParameters(self, tnow=None):
         if (tnow is None):
@@ -318,7 +372,6 @@ class Sat(Node):
         self.lat = ((lat > pi/2)*(lat - pi) + (lat <= pi/2)*lat)*rad2deg
         self.lng = ((lng > pi)*(lng - twopi) + (lng <= pi)*lng)*rad2deg
         self.alt = self.r - self.getPlanetRadius()
-        self.h = sqrt(self.p*self.mu)
         self.vt = self.h/self.r
         self.vr = self.mu*self.e*sin(self.theta)/self.h
         self.v = sqrt(self.vt**2 + self.vr**2)
@@ -333,5 +386,6 @@ class Sat(Node):
         days = self.month2days(date.month) + date.day   # Days in current time
         self.epoch_day = days + tnow/86400
         self.t0 = tnow
+        self.tlast = self.t0
         self.epoch_year = date.year - 2000
 
