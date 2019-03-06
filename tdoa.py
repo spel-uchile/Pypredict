@@ -1,5 +1,4 @@
-from numpy import matrix, sqrt
-from sat import Sat
+from numpy import asscalar, matrix, sqrt
 
 class TDOA(object):
     __slots__ = ["c"]
@@ -9,20 +8,16 @@ class TDOA(object):
     def __call__(self):
         return self
 
-    def calculateLocation(self, Sat0, Sat1, Sat2, Sat3, Sat4=None):
-        x1 = Sat1.x
-        y1 = Sat1.y
-        x21 = Sat2.x - x1
-        y21 = Sat2.y - y1
-        x31 = Sat3.x - x1
-        y31 = Sat3.y - y1
-        r0 = Sat0.getXYZ()
-        r1 = Sat1.getXYZ()
-        r2 = Sat2.getXYZ()
-        r3 = Sat3.getXYZ()
+    def calculateLocation(self, r0, r1, r2, r3, r4=None):
+        x1 = r1[0]
+        y1 = r1[1]
+        x21 = r2[0] - x1
+        y21 = r2[1] - y1
+        x31 = r3[0] - x1
+        y31 = r3[1] - y1
         d21 = self.c*self.getdt(r0, r1, r2)
         d31 = self.c*self.getdt(r0, r1, r3)
-        if (Sat4 is None):
+        if (r4 is None):
             print("This result is not valid for 3D coordinates, one more satellite is needed")
             C1 = x1**2 + y1**2
             C2 = r2[0]**2 + r2[1]**2
@@ -50,21 +45,20 @@ class TDOA(object):
             z = r1[2]
         else:
             print("This result is valid for 3D coordinates")
-            z1 = Sat1.z
-            C1 = self.getC(Sat1.getXYZ())
-            C2 = self.getC(Sat2.getXYZ())
-            C3 = self.getC(Sat3.getXYZ())
-            C4 = self.getC(Sat4.getXYZ())
-            z21 = Sat2.z - z1
-            z31 = Sat3.z - z1
-            x41 = Sat4.x - x1
-            y41 = Sat4.y - y1
-            z41 = Sat4.z - z1
-            r4 = Sat4.getXYZ()
+            z1 = r1[2]
+            C1 = self.getC(r1)
+            C2 = self.getC(r2)
+            C3 = self.getC(r3)
+            C4 = self.getC(r4)
+            z21 = r2[2] - z1
+            z31 = r3[2] - z1
+            x41 = r4[0] - x1
+            y41 = r4[1] - y1
+            z41 = r4[2] - z1
             d41 = self.c*self.getdt(r0, r1, r4)
             D = (x31*y41 - x41*y31)*z21 + (x41*y21 - x21*y41)*z31 + (x21*y31 - x31*y21)*z41
             a1 = (y31*z41 - y41*z31)*d21 - (y21*z41 - y41*z21)*d31 - (y31*z21 - y21*z31)*d41
-            a2 = (x31*z41 - x41*x31)*d21 - (x21*z41 - x41*z21)*d31 + (x21*z31 - x31*z21)*d41
+            a2 = (x31*z41 - x41*z31)*d21 - (x21*z41 - x41*z21)*d31 + (x21*z31 - x31*z21)*d41
             a3 = (x31*y41 - x41*y31)*d21 - (x21*y41 - x41*y21)*d31 - (x31*y21 - x21*y31)*d41
             a = a1**2 + a2**2 + a3**2 - D
             b = a1*(2*x1*D + (y31*z41 - y41*z31)*(d21**2 - C2 + C1) - (y21*z41 - y41*z21)*(d31**2 - C3 + C1) - (y31*z21 - y21*z31)*(d41**2 - C4 + C1))
@@ -88,16 +82,13 @@ class TDOA(object):
             c += -1/2*(x21*y41 - x41*y21)*(x31*y41 - x41*y31)*(d21**2 - C2 +C1)*(d31**2 - C3 + C1)
             c += -1/2*(x31*y21 - x21*y31)*(x31*y41 - x41*y31)*(d21**2 - C2 + C1)*(d41**2 - C4 + C1)
             c += 1/2*(x21*y41 - x41*y21)*(x31*y21 - x21*y31)*(d31**2 - C3 + C1)*(d41**2 - C4 + C1)
-            print("a: " + str(a))
-            print("b: " + str(b))
-            print("c: " + str(c))
             d1 = (-b + sqrt(b**2 - 4*a*c))/(2*a)
             M = matrix(((x21, y21, z21),
                            (x31, y31, z31),
                            (x41, y41, z41)))
             H = self.getH(r0, r1, r2, r3, r4)
             x, y, z = -M.I*(matrix(((d21), (d31), (d41))).transpose()*d1 + H)
-        return x, y, z
+        return matrix([[asscalar(x)], [asscalar(y)], [asscalar(z)]])
 
     def getdt(self, r0, r1, r2):
         d1 = self.getDistance(r0, r1)
