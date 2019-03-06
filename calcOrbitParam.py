@@ -2,9 +2,10 @@ from numpy import abs, arccos, arctan, argmin, cos, cross, dot, pi, sin, sqrt, t
 
 class Calc():
 
-    def __init__(self, r1, dt=None, r2=None, v=None, Mt=5.9722*10**24):
+    def __init__(self, r1=None, dt=None, r2=None, v=None, Mt=5.9722*10**24):
         self.G = 6.67408*10**(-11)
-        self.newCalc(r1, dt=dt, r2=r2, v=v, Mt=Mt)
+        if (r1 is not None):
+            self.newCalc(r1, dt=dt, r2=r2, v=v, Mt=Mt)
     
     def __call__(self):
         return self
