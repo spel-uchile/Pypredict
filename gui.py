@@ -1,6 +1,6 @@
-from calcOrbitParam import Calc
 from cartopy.crs import Geodetic, PlateCarree, RotatedPole
 from dayNightMap import Map
+from dpl import Dpl
 from matplotlib.ticker import FixedLocator
 from numpy import abs, arange, array, cos, empty, log, pi, sin, tan
 from matplotlib.animation import FuncAnimation
@@ -8,17 +8,15 @@ from pyorbital import tlefile
 from matplotlib.pyplot import imread, subplots, tight_layout
 from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
 from datetime import datetime
-from tkinter import Button, Entry, END, Image, Label, Listbox, Menu, StringVar, ttk, Tk
+from tkinter import Button, Entry, END, Image, IntVar, Label, Listbox, Menu, StringVar, ttk, Tk
 from tkinter.filedialog import asksaveasfilename
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from sat import Sat
 from warnings import filterwarnings
 import ssl
-#from pympler import tracker, refbrowser
 
 filterwarnings("ignore", category=RuntimeWarning)
 ssl._create_default_https_context = ssl._create_unverified_context
-#tr = tracker.SummaryTracker()
 
 class GUI(object):
     #@profile
@@ -36,7 +34,12 @@ class GUI(object):
                  "avail_sats_lst", "curr_lbl", "curr_sats_lst",
                  "add_sat_bt", "remove_sat_bt", "editmenu", "viewmenu",
                  "planetmenu", "map", "ani", "spd_lbl", "dpl_bt",
-                 "deploy_now_bt", "loc_bt", "dpl_img", "tdoa_img"]
+                 "deploy_now_bt", "loc_bt", "dpl_img", "tdoa_img",
+                 "world_map", "dpl_mass_lbl1", "dpl_mass_lbl2",
+                 "dpl_spdx_lbl", "dpl_spdy_lbl", "dpl_spdz_lbl",
+                 "mass_box1", "mass_box2", "spdx_box", "spdy_box",
+                 "spdz_box", "dpl_name_lbl", "name_box", "dpl_cat_lbl",
+                 "cat_box", "deployer_lbl", "deployer_name_lbl", "dpl"]
     def __init__(self, Sats):
         self.Sats = Sats
         self.sortSats()
@@ -151,9 +154,9 @@ class GUI(object):
         img_extent = (-180, 180, -90, 90)
         #self.map = self.ax.imshow(imread("img/earth_nasa_day.png"), origin='upper',
         #               extent=img_extent, transform=PlateCarree())
-        world_map = Map("img/earth_nasa_day.png", "img/earth_nasa_night.png")
-        self.map = self.ax.imshow(world_map.fillDarkSideFromPicture(90), origin='upper',
-                                  extent=img_extent, transform=PlateCarree())
+        self.world_map = Map("img/earth_nasa_day.png", "img/earth_nasa_night.png")
+        self.map = self.ax.imshow(self.world_map.fillDarkSideFromPicture(90),
+                origin='upper', extent=img_extent, transform=PlateCarree())
         self.gridAndFormat()
         tight_layout(pad=-0.26)
 
@@ -198,7 +201,6 @@ class GUI(object):
             sats_angs[:] = []
             sats_names[:] = []
             for Sat in self.Sats:
-                Sat.updateOrbitalParameters()
                 sats_lngs.append(Sat.getLng())
                 sats_lats.append(Sat.getLat())
                 sats_angs.append(Sat.getCoverage())
@@ -251,7 +253,7 @@ class GUI(object):
         style = ttk.Style()
         style.configure("BW.TLabel", foreground=self.fg, background=self.bg)
         style.map("BW.TLabel", background=[("active", self.active_bg)])
-        self.night_alpha = 0.7
+        self.night_alpha = 0#0.7
         self.cov_alpha = 0.2
 
     def changeMainSat(self, Sat):
@@ -280,48 +282,91 @@ class GUI(object):
                 style="BW.TLabel", image=self.tdoa_img, compound="bottom",
                 command=self.notAvailable)
         self.loc_bt.grid(row=1, column=0, sticky="NESW")
+        self.dpl = Dpl()
 
     def deployPopup(self):
         self.popup = Tk()
         self.popup.title("Deployment settings")
-        self.showCurrentSats(0)
+        self.showCurrentSats(0, rowspan=7)
+        self.deployer_lbl = Label(self.popup,
+                text="Satellite deployer:")
+        self.deployer_lbl.grid(row=0, column=1, sticky="W")
+        self.deployer_name_lbl = Label(self.popup,
+                text="No sat selected")
+        self.deployer_name_lbl.grid(row=0, column=2, sticky="W")
+        self.dpl_mass_lbl1 = Label(self.popup,
+                text="Deployer's mass [kg]:")
+        self.dpl_mass_lbl1.grid(row=1, column=1, sticky="W")
+        self.mass_box1 = Entry(self.popup)
+        self.mass_box1.grid(row=1, column=2)
+        self.dpl_name_lbl = Label(self.popup,
+                text="New sat's name:")
+        self.dpl_name_lbl.grid(row=2, column=1, sticky="W")
+        self.name_box = Entry(self.popup)
+        self.name_box.grid(row=2, column=2)
+        self.dpl_cat_lbl = Label(self.popup,
+                text="New sat's category:")
+        self.dpl_cat_lbl.grid(row=3, column=1, sticky="W")
+        self.cat_box = Entry(self.popup)
+        self.cat_box.grid(row=3, column=2)
+        self.dpl_mass_lbl2 = Label(self.popup,
+                text="New sat's mass [kg]:")
+        self.dpl_mass_lbl2.grid(row=4, column=1, sticky="W")
+        self.mass_box2 = Entry(self.popup)
+        self.mass_box2.grid(row=4, column=2)
+        self.dpl_spdx_lbl = Label(self.popup,
+                text="Deployment speed x [m/s]:")
+        self.dpl_spdx_lbl.grid(row=5, column=1, sticky="W")
+        self.spdx_box = Entry(self.popup)
+        self.spdx_box.grid(row=5, column=2)
+        self.dpl_spdy_lbl = Label(self.popup,
+                text="Deployment speed y [m/s]:")
+        self.dpl_spdy_lbl.grid(row=6, column=1, sticky="W")
+        self.spdy_box = Entry(self.popup)
+        self.spdy_box.grid(row=6, column=2)
+        self.dpl_spdz_lbl = Label(self.popup,
+                text="Deployment speed z [m/s]:")
+        self.dpl_spdz_lbl.grid(row=7, column=1, sticky="W")
+        self.spdz_box = Entry(self.popup)
+        self.spdz_box.grid(row=7, column=2)
         self.deploy_now_bt = Button(self.popup, text="Deploy",
                                  command=self.deploySat)
-        self.deploy_now_bt.grid(row=3, column=2)
+        self.deploy_now_bt.grid(row=8, column=0,
+                columnspan=3, sticky="NESW")
+        self.popup.bind("<Button-1>", self.selectDeployer)
+        self.popup.bind("<Return>", self.selectDeployer)
         self.popup.protocol("WM_DELETE_WINDOW", self.popup.destroy)
         self.popup.mainloop()
 
+    def selectDeployer(self, event):
+        #select = self.curr_sats_lst.curselection()
+        if (event.widget == self.curr_sats_lst):
+            select = self.curr_sats_lst.curselection()
+            deployer_name = self.curr_sats_lst.get(select)
+            self.deployer_name_lbl['text'] = deployer_name
+        elif (event.widget == self.deploy_now_bt):
+            self.deploySat()
+
     def deploySat(self):
-        dpl_name = self.curr_sats_lst.get(self.curr_sats_lst.curselection())
+        deployer_name = self.deployer_name_lbl['text']
+        dplyr_mass = float(self.mass_box1.get())
+        dplyd_mass = float(self.mass_box2.get())
+        spdx = int(self.spdx_box.get())
+        spdy = int(self.spdy_box.get())
+        spdz = int(self.spdz_box.get())
+        name = self.name_box.get()
+        cat = self.cat_box.get()
         for sat in self.Sats:
-            if (sat.name == dpl_name):
+            if (sat.name == deployer_name):
                 deployer = sat
                 break
-        [x, y, z] = deployer.getXYZ()
-        r = [x, y, z]
-        [v_x, v_y, v_z] = deployer.getVelocityVector()
-        v = [v_x, v_y, v_z]
-        calc = Calc(r, v=v)
-        FE1 = Sat(name="FE1", tle=tlefile.read(dpl_name, "TLE/cubesat.txt"),
-                cat="Femto-satellite")
-        FE1.updateEpoch()
-        FE1.updateGST0()
-        FE1.setInclination(calc.i)
-        FE1.setRAAN0(calc.RAAN)
-        FE1.setArgPerigee0(calc.w)
-        FE1.setEccentricity(calc.e_scalar)
-        FE1.setMeanAnomaly0(calc.MA)
-        FE1.setTrueAnomaly(calc.theta)
-        FE1.setSemiMajorAxis(calc.a)
-        FE1.setSemilatusRectum(calc.a*(1 - calc.e_scalar**2))
-        FE1.setMeanVelocity(calc.n)
-        FE1.p = calc.a*(1 - calc.e_scalar**2)
-        FE1.updateOrbitalParameters()
+        newSat = self.dpl.deploy(cat, deployer, dplyr_mass,
+                dplyd_mass, name, [spdx, spdy, spdz])
         self.ax_cov.append(self.ax.fill([0,0], [0,0], transform=Geodetic(),
                            color='white', alpha=self.cov_alpha)[0])
         self.sat_txt.append(self.ax.text([], [], "", color='yellow', size=8,
                             transform=Geodetic(), ha="center"))
-        self.Sats.append(FE1)
+        self.Sats.append(newSat)
         self.sortSats()
         self.popup.destroy()
 
@@ -329,15 +374,18 @@ class GUI(object):
         canvas = FigureCanvasTkAgg(self.fig, master=self.root)
         #self.root.rowconfigure(0, weight=1)
         #self.root.columnconfigure(0, weight=1)
-        canvas.get_tk_widget().grid(row=0, column=1, rowspan=2, columnspan=13, sticky="NES")
+        canvas.get_tk_widget().grid(row=0, column=1, rowspan=2,
+                columnspan=13, sticky="NES")
         canvas.draw()
 
     def setTableTitles(self):
         #self.root.rowconfigure(1, weight=1)
         Label(self.root, text="Satellite", font="TkDefaultFont 10 bold", 
-                bg=self.bg, fg=self.fg, width=18, anchor='w').grid(row=2, column=0, sticky="W")
+                bg=self.bg, fg=self.fg, width=18, anchor='w').grid(row=2,
+                        column=0, sticky="W")
         Label(self.root, text="Category", font="TkDefaultFont 10 bold",
-                bg=self.bg, fg=self.fg, width=24, anchor='w').grid(row=2, column=1, sticky="W")
+                bg=self.bg, fg=self.fg, width=24, anchor='w').grid(row=2,
+                        column=1, sticky="W")
         Label(self.root, text="Latitude", font="TkDefaultFont 10 bold",
                 bg=self.bg, fg=self.fg).grid(row=2, column=2)
         Label(self.root, text="Longitude", font="TkDefaultFont 10 bold",
@@ -407,7 +455,7 @@ class GUI(object):
         rad2deg = 180/pi
         i = 0
         for Sat in self.Sats[self.top_index:self.bottom_index]:
-            Sat.updateOrbitalParameters()
+            Sat.updateWithDragEffect()
             self.name_bt[i]['text'] = Sat.name
             self.name_bt[i]['command'] = lambda Sat=Sat: self.changeMainSat(Sat)
             self.cat_lbl[i]['text'] = Sat.getCategory()
@@ -437,7 +485,7 @@ class GUI(object):
 
     def rememberRow(self, r):
         self.root.rowconfigure(r+1, weight=1)
-        self.name_bt[r-1].grid(row=r+2, column=0, sticky="W")
+        self.name_bt[r-1].grid(row=r+2, column=0, sticky="EW")
         self.cat_lbl[r-1].grid(row=r+2, column=1, sticky="W")
         self.lat_lbl[r-1].grid(row=r+2, column=2)
         self.lng_lbl[r-1].grid(row=r+2, column=3)
@@ -586,13 +634,13 @@ class GUI(object):
         self.avail_sats_lst.grid(row=1, column=0, rowspan=2, columnspan=2)
         self.popup.columnconfigure(0, weight=1)
 
-    def showCurrentSats(self, col):
+    def showCurrentSats(self, col, rowspan=2):
         self.curr_lbl = Label(self.popup, text="Current satellites:", anchor='w')
         self.curr_lbl.grid(row=0, column=col, sticky="W")
         self.curr_sats_lst = Listbox(self.popup, width=28)
         for sat in self.Sats:
             self.curr_sats_lst.insert(END, sat.name)
-        self.curr_sats_lst.grid(row=1, column=col, rowspan=2)
+        self.curr_sats_lst.grid(row=1, column=col, rowspan=rowspan)
 
     def addRemoveButtons(self):
         self.add_sat_bt = Button(self.popup, text="→",
@@ -719,22 +767,23 @@ class GUI(object):
         tlefile.fetch("TLE/weather.txt")
 
     def earth(self):
-        self.map.set_data(imread("img/earth_nasa_day.png"))
+        self.map.set_data(self.world_map.fillDarkSideFromPicture(90))
+        self.ani._stop()
+        self.ani._blit_clear(self.ani._drawn_artists, self.ani._blit_cache)
         self.fig.canvas.draw_idle()
-        self.ani._blit_cache.clear()
+        self.ani.__init__(self.fig, self.update, self.data_gen(),
+                            interval=self.dt*964, blit=True, repeat=False)
         mu = 5.9722*6.67408*10**13
         for sat in self.Sats:
             sat.changePlanet()
 
     def mars(self):
-        #self.ani._stop()
-        #del self.ax.images[0]
         self.map.set_data(imread("img/mars_nasa_day.png"))
+        self.ani._stop()
+        self.ani._blit_clear(self.ani._drawn_artists, self.ani._blit_cache)
         self.fig.canvas.draw_idle()
-        #self.ani._init_draw()
-        self.ani._blit_cache.clear()
-        #self.ani = FuncAnimation(self.fig, self.update, self.data_gen(),
-        #                    interval=self.dt*964, blit=True, repeat=False) 
+        self.ani.__init__(self.fig, self.update, self.data_gen(),
+                            interval=self.dt*964, blit=True, repeat=False)
         mu = 0.64171*6.67408*10**13
         for sat in self.Sats:
             sat.changePlanet(M=0.64171*10**24, P_r=3389500, Eq_r=3396200, 
@@ -759,7 +808,7 @@ class GUI(object):
         self.editmenu.add_command(label="Update TLE from net", command=self.updateTLEfromNet)
         self.editmenu.add_command(label="Update TLE from file", command=self.notAvailable)
         self.editmenu.add_separator()
-        self.editmenu.add_command(label="Remove day/night terminator", command=self.removeNight)
+        self.editmenu.add_command(label="Add day/night terminator", command=self.addNight)
         self.editmenu.add_command(label="Remove coverage", command=self.removeCoverage)
         self.editmenu.add_command(label="Add/remove satellites", command=self.addRemoveSat)
         menubar.add_cascade(label="Edit", menu=self.editmenu)
