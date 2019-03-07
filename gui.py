@@ -526,7 +526,7 @@ class GUI(object):
 
     def tableRefresher(self):
         self.updateTableContent()
-        self.root.after(500, self.tableRefresher)
+        self.root.after(800, self.tableRefresher)
 
     def saveAs(self):
         file_name = asksaveasfilename()
