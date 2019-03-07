@@ -6,9 +6,9 @@ Current version: 2.1.0
 
 ### Supported software:
 
-* Python 3.6.7
+* Python 3.6, Python 3.6.7
 * Matplotlib 2.1.1
-* Ubuntu 18.04
+* Ubuntu 16.04, Ubuntu 18.04
 
 ### Installation instructions:
 
