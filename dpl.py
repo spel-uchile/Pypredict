@@ -4,7 +4,7 @@ from sat import Sat
 from numpy import asscalar, cos, matrix, pi, sin
 
 class Dpl(object):
-
+    __slots__ = ["calc", "Q_pi", "Q_po", "Q_op", "v", "r"]
     def __init__(self):
         self.calc = Calc()
 
