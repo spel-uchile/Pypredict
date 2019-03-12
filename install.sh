@@ -9,7 +9,7 @@ sudo apt-get install libproj-dev
 sudo apt-get install python3-pip
 sudo -H pip3.6 install --upgrade pip
 sudo -H pip3.6 install --upgrade pyorbital
-sudo -H pip3.6 install matplotlib==2.1.1
+sudo -H pip3.6 install matplotlib==2.2.4
 #sudo -H pip3 install --upgrade matplotlib
 sudo -H pip3.6 install --upgrade scipy
 sudo -H pip3.6 install --upgrade cython
