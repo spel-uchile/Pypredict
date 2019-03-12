@@ -1,4 +1,25 @@
+'''
+                                Pypredict
+    Orbit prediction software. Displays the satellites' position and
+    orbital parameters in real time. Simulates satellite localization
+    and deployment.
+    
+    Copyright (C) 2018-2019, Matías Vidal Valladares, matvidal.
+    Authors: Matías Vidal Valladares <matias.vidal.v@gmail.com>
 
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program. If not, see <https://www.gnu.org/licenses/>.
+'''
 __version__ = "2.2.0"
 
 from cartopy.crs import Geodetic, PlateCarree, RotatedPole
@@ -44,7 +65,7 @@ class GUI(object):
                  "spdz_box", "dpl_name_lbl", "name_box", "dpl_cat_lbl",
                  "cat_box", "deployer_lbl", "deployer_name_lbl", "dpl",
                  "prog_name_lbl", "version_lbl", "dev_lbl", "contact_lbl",
-                 "updtCnt"]
+                 "updtCnt", "warranty_lbl", "details_lbl"]
     def __init__(self, Sats):
         self.Sats = Sats
         self.sortSats()
@@ -225,7 +246,6 @@ class GUI(object):
             self.sat_txt[i].set_text(sats_names[i])
             self.plotCoverage(sats_angs[i], sats_lats[i], sats_lngs[i], i)
         return [self.ax_dark_side] + [self.ax_tray] + [self.ax_sat] + self.sat_txt + self.ax_cov
-
 
     def plotCoverage(self, ang, sat_lat, sat_lng, n):
         deg2rad = pi/180
@@ -804,17 +824,23 @@ class GUI(object):
         self.popup = Tk()
         self.popup.title("About Pypredict")
         self.prog_name_lbl = Label(self.popup,
-                text="Pypredict")
+                text="Pypredict", font="TkDefaultFont 10 bold")
         self.prog_name_lbl.grid(row=0, column=0, sticky="EW")
         self.version_lbl = Label(self.popup,
                 text=__version__)
         self.version_lbl.grid(row=1, column=0, sticky="EW")
         self.dev_lbl = Label(self.popup,
-                text="Developer: Matías Vidal Valladares")
+                text="\nCopyright (C) 2018-2019, Matías Vidal Valladares.")
         self.dev_lbl.grid(row=2, column=0, sticky="EW")
         self.contact_lbl = Label(self.popup,
                 text="E-mail: matias.vidal.v@gmail.com")
         self.contact_lbl.grid(row=3, column=0, sticky="EW")
+        self.warranty_lbl = Label(self.popup,
+                text="\nThis program comes with ABSOLUTELY NO WARRANTY.")
+        self.warranty_lbl.grid(row=4, column=0, sticky="EW")
+        self.details_lbl = Label(self.popup,
+                text="See the GNU General Public License, version 3 or later for details.")
+        self.details_lbl.grid(row=5, column=0, sticky="EW")
         self.popup.columnconfigure(0,weight=1)
         self.popup.columnconfigure(1,weight=1)
         self.popup.columnconfigure(2,weight=1)
