@@ -87,9 +87,9 @@ class Map(object):
         self.xy.append((2200, 0))
         self.xy.append((0, 0))
         img1 = Image.open(self.day).convert('RGBA')
-        drw1 = ImageDraw.Draw(img1, 'RGBA')
-        drw1.polygon(self.xy, fill=(255, 255, 255, 0))
-        del drw1
+        #drw1 = ImageDraw.Draw(img1, 'RGBA')
+        #drw1.polygon(self.xy, fill=(255, 255, 255, 0))
+        #del drw1
 
         self.xy[len(self.xy) - 1] = (0, 1100)
         self.xy[len(self.xy) - 2] = (2200, 1100)
@@ -97,4 +97,8 @@ class Map(object):
         drw2 = ImageDraw.Draw(img2, 'RGBA')
         drw2.polygon(self.xy, fill=(255, 255, 255, 0))
         del drw2
-        return Image.alpha_composite(img1, img2)
+
+        composite = Image.alpha_composite(img1, img2)
+        img1.close()
+        img2.close()
+        return composite
