@@ -1,6 +1,6 @@
 # Pypredict
 
-This software is a python version of "Gpredict". It is intended to be used to simulate range-based localization systems using TDOA and RSS.
+This software is a python version of "Gpredict". It displays any satellite's position and orbital parameters in real time. It can also simulate satellite deployments with different velocities, considering the mass of the satellites. In the near future it will be able to simulate range-based localization systems using TDOA.
 
 Current version: 2.2.0
 
@@ -32,5 +32,5 @@ python3 Pypredict.py
 
 ### Contact:
 
-* Name: Matías Vidal
+* Name: Matías Vidal Valladares
 * e-mail: matias.vidal.v@gmail.com
