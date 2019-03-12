@@ -1,3 +1,6 @@
+
+__version__ = "2.1.1"
+
 from cartopy.crs import Geodetic, PlateCarree, RotatedPole
 from dayNightMap import Map
 from dpl import Dpl
@@ -8,7 +11,7 @@ from pyorbital import tlefile
 from matplotlib.pyplot import imread, subplots, tight_layout
 from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
 from datetime import datetime
-from tkinter import Button, Entry, END, Image, IntVar, Label, Listbox, Menu, StringVar, ttk, Tk
+from tkinter import Button, Entry, END, Image, Label, Listbox, Menu, StringVar, ttk, Tk
 from tkinter.filedialog import asksaveasfilename
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from sat import Sat
@@ -39,7 +42,9 @@ class GUI(object):
                  "dpl_spdx_lbl", "dpl_spdy_lbl", "dpl_spdz_lbl",
                  "mass_box1", "mass_box2", "spdx_box", "spdy_box",
                  "spdz_box", "dpl_name_lbl", "name_box", "dpl_cat_lbl",
-                 "cat_box", "deployer_lbl", "deployer_name_lbl", "dpl"]
+                 "cat_box", "deployer_lbl", "deployer_name_lbl", "dpl",
+                 "prog_name_lbl", "version_lbl", "dev_lbl", "contact_lbl",
+                 "updtCnt"]
     def __init__(self, Sats):
         self.Sats = Sats
         self.sortSats()
@@ -53,6 +58,7 @@ class GUI(object):
         self.mainSat = self.Sats[0]
         tf = int(self.mainSat.getPeriod()*3)           # Total duration in seconds
         self.dt = 1                                    # Step's length in seconds
+        self.updtCnt = 0
         self.mainSat_lats, self.mainSat_lngs = self.mainSat.getLocation(tf, 50)
         self.plotData()
         self.setButtons()
@@ -453,6 +459,10 @@ class GUI(object):
 
     def updateTableContent(self):
         rad2deg = 180/pi
+        self.updtCnt += 1
+        if (self.updtCnt > 300):
+            self.refreshBackgroundImg()
+            self.updtCnt = 0
         i = 0
         for Sat in self.Sats[self.top_index:self.bottom_index]:
             Sat.updateWithDragEffect()
@@ -766,28 +776,51 @@ class GUI(object):
         tlefile.TLE_URLS = ("https://celestrak.com/NORAD/elements/weather.txt", )
         tlefile.fetch("TLE/weather.txt")
 
-    def earth(self):
-        self.map.set_data(self.world_map.fillDarkSideFromPicture(90))
+    def refreshBackgroundImg(self, img=None):
+        if (img is None):
+            self.map.set_data(self.world_map.fillDarkSideFromPicture(90))
+        else:
+            self.map.set_data(imread(img))
         self.ani._stop()
         self.ani._blit_clear(self.ani._drawn_artists, self.ani._blit_cache)
         self.fig.canvas.draw_idle()
         self.ani.__init__(self.fig, self.update, self.data_gen(),
                             interval=self.dt*964, blit=True, repeat=False)
+
+    def earth(self):
+        self.refreshBackgroundImg()
         mu = 5.9722*6.67408*10**13
         for sat in self.Sats:
             sat.changePlanet()
 
     def mars(self):
-        self.map.set_data(imread("img/mars_nasa_day.png"))
-        self.ani._stop()
-        self.ani._blit_clear(self.ani._drawn_artists, self.ani._blit_cache)
-        self.fig.canvas.draw_idle()
-        self.ani.__init__(self.fig, self.update, self.data_gen(),
-                            interval=self.dt*964, blit=True, repeat=False)
+        self.refreshBackgroundImg("img/mars_nasa_day.png")
         mu = 0.64171*6.67408*10**13
         for sat in self.Sats:
             sat.changePlanet(M=0.64171*10**24, P_r=3389500, Eq_r=3396200, 
                     Po_r=3376200, J2=0.00196045, P_w=7.08821812*10**(-5))
+
+    def about(self):
+        self.popup = Tk()
+        self.popup.title("About Pypredict")
+        self.prog_name_lbl = Label(self.popup,
+                text="Pypredict")
+        self.prog_name_lbl.grid(row=0, column=0, sticky="EW")
+        self.version_lbl = Label(self.popup,
+                text=__version__)
+        self.version_lbl.grid(row=1, column=0, sticky="EW")
+        self.dev_lbl = Label(self.popup,
+                text="Developer: Matías Vidal Valladares")
+        self.dev_lbl.grid(row=2, column=0, sticky="EW")
+        self.contact_lbl = Label(self.popup,
+                text="E-mail: matias.vidal.v@gmail.com")
+        self.contact_lbl.grid(row=3, column=0, sticky="EW")
+        self.popup.columnconfigure(0,weight=1)
+        self.popup.columnconfigure(1,weight=1)
+        self.popup.columnconfigure(2,weight=1)
+        self.popup.columnconfigure(3,weight=1)
+        self.popup.protocol("WM_DELETE_WINDOW", self.popup.destroy)
+        self.popup.mainloop()
 
     def setMenu(self):
         menubar = Menu(self.root, bg=self.bg, fg=self.fg, activeforeground=self.fg,
@@ -826,7 +859,7 @@ class GUI(object):
 
         helpmenu = Menu(menubar, tearoff=0, bg=self.active_bg, fg=self.fg,
                         activeforeground=self.fg, activebackground=self.bg)
-        helpmenu.add_command(label="About Pypredict", command=self.notAvailable)
+        helpmenu.add_command(label="About Pypredict", command=self.about)
         menubar.add_cascade(label="Help", menu=helpmenu)
 
         # Display the menu
