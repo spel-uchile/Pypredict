@@ -2,12 +2,12 @@
 
 This software is a python version of "Gpredict". It is intended to be used to simulate range-based localization systems using TDOA and RSS.
 
-Current version: 2.1.0
+Current version: 2.1.1
 
 ### Supported software:
 
 * Python 3.6, Python 3.6.7
-* Matplotlib 2.1.1
+* Matplotlib 2.2.4
 * Ubuntu 16.04, Ubuntu 18.04
 
 ### Installation instructions:
