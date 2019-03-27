@@ -86,7 +86,10 @@ class Map(object):
         transformed = rotated_pole.transform_points(PlateCarree(), x, y)
         for i in range(0, 360):
             self.lng[i], self.lat[i], z[i] = transformed[i]
-            self.lat[i] += 90
+            if (center_lat > 0):
+                self.lat[i] += 90
+            else:
+                self.lat[i] = 90 - self.lat[i]
             self.lng[i] = (self.lng[i] + 180 + center_lng) % 360
 
     def coord2pixels(self, ang, center_lat, center_lng):
@@ -112,9 +115,9 @@ class Map(object):
         #drw1 = ImageDraw.Draw(img1, 'RGBA')
         #drw1.polygon(self.xy, fill=(255, 255, 255, 0))
         #del drw1
-
-        self.xy[len(self.xy) - 1] = (0, 1100)
-        self.xy[len(self.xy) - 2] = (2200, 1100)
+        if (self.dark_lat > 0):
+            self.xy[len(self.xy) - 1] = (0, 1100)
+            self.xy[len(self.xy) - 2] = (2200, 1100)
         img2 = Image.open(self.night).convert('RGBA')
         drw2 = ImageDraw.Draw(img2, 'RGBA')
         drw2.polygon(self.xy, fill=(255, 255, 255, 0))
