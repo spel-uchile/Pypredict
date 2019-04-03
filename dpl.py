@@ -70,12 +70,12 @@ class Dpl(object):
         v_p, v_q = deployer.getPerifocalVel()
         v_peri = matrix([[v_p], [v_q], [0]])
         v_orb = self.perifocal2orbital(deployer.theta, v_peri)
-        v_orb[0][0] = asscalar(v_orb[0][0]) + vel[0]
-        v_orb[1][0] = asscalar(v_orb[1][0]) + vel[1]
-        v_orb[2][0] = asscalar(v_orb[2][0]) + vel[2]
+        v_orb[0,0] = v_orb[0,0] + vel[0]
+        v_orb[1,0] = v_orb[1,0] + vel[1]
+        v_orb[2,0] = v_orb[2,0] + vel[2]
         v_peri = self.orbital2perifocal(deployer.theta, v_orb)
-        v_x, v_y, v_z = self.perifocal2inertial(deployer, v_peri)
-        self.v = [asscalar(v_x), asscalar(v_y), asscalar(v_z)]
+        v = self.perifocal2inertial(deployer, v_peri)
+        self.v = [v[0,0], v[1,0], v[2,0]]
 
     def updateSat(self, sat):
         self.calc.newCalc(r1=self.r, v=self.v)

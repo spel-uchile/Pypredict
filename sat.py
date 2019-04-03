@@ -179,7 +179,7 @@ class Sat(Node):
         v_y = v_p*(cos_RAAN*cos_i*sin_w + sin_RAAN*cos_w)
         v_y += v_q*(cos_RAAN*cos_i*cos_w - sin_RAAN*sin_w)
         v_z = v_p*sin_i*sin_w + v_q*sin_i*cos_w
-        return v_x, v_y, v_z
+        return matrix([[v_x], [v_y], [v_z]])
 
 
     def getXYZ(self):
