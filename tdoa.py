@@ -1,4 +1,4 @@
-'''
+"""
                                 Pypredict
     Orbit prediction software. Displays the satellites' position and
     orbital parameters in real time. Simulates satellite localization
@@ -19,18 +19,44 @@
 
     You should have received a copy of the GNU General Public License
     along with this program. If not, see <https://www.gnu.org/licenses/>.
-'''
+"""
 from numpy import matrix, sqrt
 
 class TDOA(object):
     __slots__ = ["c"]
     def __init__(self, c=299792458):
+        """
+        Initialize the TDOA object.
+
+        Parameters
+        ----------
+        c : int, optional
+            The speed of the radio waves in m/s
+        """
         self.c = c
 
     def __call__(self):
         return self
 
     def calculateLocation(self, r0, r1, r2, r3, r4=None):
+        """
+        Simulates the localization of a point at r0, given
+        reference points at r1, r2, r3 and r4. This is
+        done using a Time Difference Of Arrival algorithm.
+
+        Parameters
+        ----------
+        r0 : matrix
+             Real position vector of an object
+        r1 : matrix
+             Reference position vector 1
+        r2 : matrix
+             Reference position vector 2
+        r3 : matrix
+             Reference position vector 3
+        r4 : matrix
+             Reference position vector 4
+        """
         if (r4 is None):
             print("This result is not valid for 3D coordinates, one more satellite is needed")
             pass
@@ -65,11 +91,36 @@ class TDOA(object):
         return matrix([[x[0,0]], [y[0,0]], [z[0,0]]])
 
     def getdt(self, r0, r1, r2):
+        """
+        Returns the difference in time between a signal
+        sent from r1 to r0, and a signal sent from r2
+        to r0.
+
+        Parameters
+        ----------
+        r0 : matrix
+             Position vector in 3D
+        r1 : matrix
+             Position vector in 3D
+        r2 : matrix
+             Position vector in 3D
+        """
         d1 = self.getDistance(r0, r1)
         d2 = self.getDistance(r0, r2)
         return (d2 - d1)/self.c
 
     def getDistance(self, ra, rb):
+        """
+        Calculates the distance between the positions
+        ra and rb.
+
+        Parameters
+        ----------
+        ra : matrix
+             Position vector in 3D
+        rb : matrix
+             Position vector in 3D
+        """
         xa = ra[0]
         ya = ra[1]
         za = ra[2]
@@ -79,9 +130,38 @@ class TDOA(object):
         return sqrt((xa - xb)**2 + (ya - yb)**2 + (za -  zb)**2)
 
     def getC(self, r):
+        """
+        Calculates the C parameter for the TDOA algorithm.
+        It is also known as K in some research papers.
+
+        Parameters
+        ----------
+        r : matrix
+            Position vector in 3D
+        """
         return r[0]**2 + r[1]**2 + r[2]**2
 
     def getH(self, C1, C2, C3, C4, d21, d31, d41):
+        """
+        Returns the H matrix for the TDOA calculation.
+
+        Parameters
+        ----------
+        C1 : float
+             C parameter for the r1 position vector
+        C2 : float
+             C parameter for the r2 position vector
+        C3 : float
+             C parameter for the r3 position vector
+        C4 : float
+             C parameter for the r4 position vector
+        d21 : float
+              Difference in length between d2 and d1
+        d31 : float
+              Difference in length between d3 and d1
+        d41 : float
+              Difference in length between d4 and d1
+        """
         H = 1/2*matrix([[d21**2 - (C2 - C1)],
                         [d31**2 - (C3 - C1)],
                         [d41**2 - (C4 - C1)]])
@@ -99,6 +179,24 @@ class TDOA(object):
         return G
 
     def getLocation(self, r0, r1, r2, r3, r4):
+        """
+        Simulates the localization of a point at r0, given
+        reference points at r1, r2, r3 and r4. This is
+        done using a Time Difference Of Arrival algorithm.
+
+        Parameters
+        ----------
+        r0 : matrix
+             Real position vector of an object
+        r1 : matrix
+             Reference position vector 1
+        r2 : matrix
+             Reference position vector 2
+        r3 : matrix
+             Reference position vector 3
+        r4 : matrix
+             Reference position vector 4
+        """
         x1 = r1[0]
         y1 = r1[1]
         x21 = r2[0] - x1
