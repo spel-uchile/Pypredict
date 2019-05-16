@@ -50,7 +50,7 @@ class GUI(object):
                  "night_alpha", "cov_alpha", "top_index", "bottom_index",
                  "name_bt", "cat_lbl", "lat_lbl", "lng_lbl", "alt_lbl",
                  "a_lbl", "e_lbl", "raan_lbl", "i_lbl", "w_lbl",
-                 "theta_lbl", "ma_lbl", "up_bt", "down_bt", "popup",
+                 "theta_lbl", "h_lbl", "up_bt", "down_bt", "popup",
                  "srch_lbl", "ent", "srch_box", "match", "avail_sats",
                  "argos", "cubesat", "dmc", "goes", "intelsat",
                  "iridium", "iridium_next", "noaa", "planet", "resource",
@@ -65,7 +65,8 @@ class GUI(object):
                  "spdz_box", "dpl_name_lbl", "name_box", "dpl_cat_lbl",
                  "cat_box", "deployer_lbl", "deployer_name_lbl", "dpl",
                  "prog_name_lbl", "version_lbl", "dev_lbl", "contact_lbl",
-                 "updtCnt", "warranty_lbl", "details_lbl"]
+                 "updtCnt", "warranty_lbl", "details_lbl", "cov_lat",
+                 "cov_lng"]
     def __init__(self, Sats):
         self.Sats = Sats
         self.sortSats()
@@ -77,10 +78,10 @@ class GUI(object):
         self.setTheme('#404040', 'white', '#303030')
         self.root.protocol("WM_DELETE_WINDOW", exit)
         self.mainSat = self.Sats[0]
-        tf = int(self.mainSat.getPeriod()*3)           # Total duration in seconds
-        self.dt = 1                                    # Step's length in seconds
+        T = int(self.mainSat.getPeriod()*3)      # Total duration in seconds
+        self.dt = 2000                           # Step length in miliseconds
         self.updtCnt = 0
-        self.mainSat_lats, self.mainSat_lngs = self.mainSat.getLocation(tf, 50)
+        self.mainSat_lats, self.mainSat_lngs = self.mainSat.getLocation(T, 50)
         self.plotData()
         self.setButtons()
         self.setCanvas()
@@ -88,8 +89,10 @@ class GUI(object):
         self.setTableTitles()
         self.setTableContent()
         self.tableRefresher()
+        self.cov_lng = empty(180)
+        self.cov_lat = empty(180)
         self.ani = FuncAnimation(self.fig, self.update, self.data_gen(),
-                            interval=self.dt*964, blit=True, repeat=False)
+                            interval=self.dt, blit=True, repeat=False)
         self.root.bind("<F11>", self.fullscreen)
         self.root.bind("<Escape>", self.exitFullscreen)
         self.run()
@@ -182,7 +185,7 @@ class GUI(object):
         #self.map = self.ax.imshow(imread("img/earth_nasa_day.png"), origin='upper',
         #               extent=img_extent, transform=PlateCarree())
         self.world_map = Map("img/earth_nasa_day.png", "img/earth_nasa_night.png")
-        self.map = self.ax.imshow(self.world_map.fillDarkSideFromPicture(90),
+        self.map = self.ax.imshow(self.world_map.fillDarkSideFromPicture(),
                 origin='upper', extent=img_extent, transform=PlateCarree())
         self.gridAndFormat()
         tight_layout(pad=-0.26)
@@ -250,26 +253,24 @@ class GUI(object):
     def plotCoverage(self, ang, sat_lat, sat_lng, n):
         deg2rad = pi/180
         rad2deg = 180/pi
-        lng = empty(180)
-        lat = empty(180)
         for i in range(0, 180):
             theta = (2*i + 1)*deg2rad
             dlat = ang*deg2rad * cos(theta)
-            lat[179 - i] = sat_lat*deg2rad + dlat
-            dpsi = log(tan(lat[179 - i]/2 + pi/4)/tan(sat_lat*deg2rad/2 + pi/4))
+            self.cov_lat[179-i] = sat_lat*deg2rad + dlat
+            dpsi = log(tan(self.cov_lat[179-i]*0.5 + pi*0.25)/tan(sat_lat*deg2rad*0.5 + pi*0.25))
             if (abs(dpsi) > 10e-12):
                 q = dlat / dpsi
             else:
                 q = cos(sat_lat*deg2rad)
             dlng = ang*deg2rad*sin(theta)/q
-            lng[179 - i] = sat_lng*deg2rad + dlng
-            if (abs(lat[179 - i]) > (6*deg2rad + pi - ang*deg2rad - abs(sat_lat*deg2rad))):
-                lat[179 - i] = (2*(sat_lat > 0) - 1)*(6*deg2rad + pi - ang*deg2rad - abs(sat_lat*deg2rad))
-                lng[179 - i] = sat_lng*deg2rad + ((sat_lng*deg2rad - pi) > 0)*(-pi) + ((sat_lng*deg2rad - pi) <= 0)*pi
-            lat[179 - i] = lat[179 - i]*rad2deg
-            lng[179 - i] = lng[179 - i]*rad2deg
+            self.cov_lng[179-i] = sat_lng*deg2rad + dlng
+            if (abs(self.cov_lat[179-i]) > (6*deg2rad + pi - ang*deg2rad - abs(sat_lat*deg2rad))):
+                self.cov_lat[179-i] = (2*(sat_lat > 0) - 1)*(6*deg2rad + pi - ang*deg2rad - abs(sat_lat*deg2rad))
+                self.cov_lng[179-i] = sat_lng*deg2rad - ((sat_lng*deg2rad - pi) > 0)*pi + ((sat_lng*deg2rad - pi) <= 0)*pi
+        self.cov_lat = self.cov_lat*rad2deg
+        self.cov_lng = self.cov_lng*rad2deg
         self.ax_cov[n].set_alpha(self.cov_alpha) 
-        self.ax_cov[n].set_xy(array((lng, lat)).transpose())
+        self.ax_cov[n].set_xy(array((self.cov_lng, self.cov_lat)).transpose())
 
     def setTheme(self, bg, fg, active_bg):
         self.bg = bg
@@ -422,17 +423,17 @@ class GUI(object):
                 bg=self.bg, fg=self.fg).grid(row=2, column=5)
         Label(self.root, text="a [km]", font="TkDefaultFont 10 bold",
                 bg=self.bg, fg=self.fg).grid(row=2, column=6)
-        Label(self.root, text="e", font="TkDefaultFont 10 bold",
+        Label(self.root, text="h [km²/s]", font="TkDefaultFont 10 bold",
                 bg=self.bg, fg=self.fg).grid(row=2, column=7)
-        Label(self.root, text="Ω", font="TkDefaultFont 10 bold",
+        Label(self.root, text="e", font="TkDefaultFont 10 bold",
                 bg=self.bg, fg=self.fg).grid(row=2, column=8)
-        Label(self.root, text="i", font="TkDefaultFont 10 bold",
+        Label(self.root, text="Ω", font="TkDefaultFont 10 bold",
                 bg=self.bg, fg=self.fg).grid(row=2, column=9)
-        Label(self.root, text="ω", font="TkDefaultFont 10 bold",
+        Label(self.root, text="i", font="TkDefaultFont 10 bold",
                 bg=self.bg, fg=self.fg).grid(row=2, column=10)
-        Label(self.root, text="T. Anom.", font="TkDefaultFont 10 bold",
+        Label(self.root, text="ω", font="TkDefaultFont 10 bold",
                 bg=self.bg, fg=self.fg).grid(row=2, column=11)
-        Label(self.root, text="M. Anom.", font="TkDefaultFont 10 bold",
+        Label(self.root, text="T. Anom.", font="TkDefaultFont 10 bold",
                 bg=self.bg, fg=self.fg).grid(row=2, column=12)
 
     def setTableContent(self):
@@ -443,12 +444,12 @@ class GUI(object):
         self.alt_lbl = []
         self.spd_lbl = []
         self.a_lbl = []
+        self.h_lbl = []
         self.e_lbl = []
         self.raan_lbl = []
         self.i_lbl = []
         self.w_lbl = []
         self.theta_lbl = []
-        self.ma_lbl = []
         self.top_index = 0
         self.bottom_index = 4*(len(self.Sats) > 4) + len(self.Sats)*(len(self.Sats) <= 4)
         for i in range(0, 13):
@@ -461,12 +462,12 @@ class GUI(object):
             self.alt_lbl.append(Label(self.root, bg=self.bg, fg=self.fg, width=9, anchor='e'))
             self.spd_lbl.append(Label(self.root, bg=self.bg, fg=self.fg, width=10, anchor='e'))
             self.a_lbl.append(Label(self.root, bg=self.bg, fg=self.fg, width=7, anchor='e'))
+            self.h_lbl.append(Label(self.root, bg=self.bg, fg=self.fg, width=8, anchor='e'))
             self.e_lbl.append(Label(self.root, bg=self.bg, fg=self.fg))
             self.raan_lbl.append(Label(self.root, bg=self.bg, fg=self.fg, width=7, anchor='e'))
             self.i_lbl.append(Label(self.root, bg=self.bg, fg=self.fg, width=7, anchor='e'))
             self.w_lbl.append(Label(self.root, bg=self.bg, fg=self.fg, width=7, anchor='e'))
             self.theta_lbl.append(Label(self.root, bg=self.bg, fg=self.fg, width=7, anchor='e'))
-            self.ma_lbl.append(Label(self.root, bg=self.bg, fg=self.fg, width=7, anchor='e'))
         self.updateTableContent()
         for i in range(self.top_index, self.bottom_index):
             self.root.rowconfigure(i+3, weight=1)
@@ -480,26 +481,29 @@ class GUI(object):
     def updateTableContent(self):
         rad2deg = 180/pi
         self.updtCnt += 1
-        if (self.updtCnt > 300):
+        if (self.updtCnt > 500):
             self.refreshBackgroundImg()
             self.updtCnt = 0
+        for Sat in self.Sats:
+            #Sat.updateWithDragEffect()
+            #Sat.updateOrbitalParameters2()
+            Sat.updateOrbitalParameters3()
         i = 0
         for Sat in self.Sats[self.top_index:self.bottom_index]:
-            Sat.updateWithDragEffect()
             self.name_bt[i]['text'] = Sat.name
             self.name_bt[i]['command'] = lambda Sat=Sat: self.changeMainSat(Sat)
             self.cat_lbl[i]['text'] = Sat.getCategory()
             self.lat_lbl[i]['text'] = "{:0.4f}{}".format(Sat.getLat(), "°")
             self.lng_lbl[i]['text'] = "{:0.4f}{}".format(Sat.getLng(), "°")
-            self.alt_lbl[i]['text'] = "{:0.1f}".format((Sat.getAlt()/1000))
+            self.alt_lbl[i]['text'] = "{:0.1f}".format((Sat.getAlt()*0.001))
             self.spd_lbl[i]['text'] = "{}".format(int(Sat.getSpeed()))
-            self.a_lbl[i]['text'] = "{:0.2f}".format((Sat.getSemiMajorAxis()/1000))
+            self.a_lbl[i]['text'] = "{:0.1f}".format((Sat.getSemiMajorAxis()*0.001))
+            self.h_lbl[i]['text'] = "{:0.1f}".format(Sat.getSpecAngMomentum()*0.000001)
             self.e_lbl[i]['text'] = "{:0.4f}".format(Sat.getEccentricity())
             self.raan_lbl[i]['text'] = "{:0.2f}{}".format((Sat.getRAAN()*rad2deg), "°")
             self.i_lbl[i]['text'] = "{:0.2f}{}".format((Sat.getInclination()*rad2deg), "°")
             self.w_lbl[i]['text'] = "{:0.2f}{}".format((Sat.getArgPerigee()*rad2deg), "°")
             self.theta_lbl[i]['text'] = "{:0.2f}{}".format((Sat.getAnomaly()*rad2deg), "°")
-            self.ma_lbl[i]['text'] = "{:0.2f}{}".format((Sat.getMeanAnomaly()*rad2deg), "°")
             i += 1
 
     def rememberLastRows(self):
@@ -522,12 +526,12 @@ class GUI(object):
         self.alt_lbl[r-1].grid(row=r+2, column=4)
         self.spd_lbl[r-1].grid(row=r+2, column=5)
         self.a_lbl[r-1].grid(row=r+2, column=6)
-        self.e_lbl[r-1].grid(row=r+2, column=7)
-        self.raan_lbl[r-1].grid(row=r+2, column=8)
-        self.i_lbl[r-1].grid(row=r+2, column=9)
-        self.w_lbl[r-1].grid(row=r+2, column=10)
-        self.theta_lbl[r-1].grid(row=r+2, column=11)
-        self.ma_lbl[r-1].grid(row=r+2, column=12)
+        self.h_lbl[r-1].grid(row=r+2, column=7)
+        self.e_lbl[r-1].grid(row=r+2, column=8)
+        self.raan_lbl[r-1].grid(row=r+2, column=9)
+        self.i_lbl[r-1].grid(row=r+2, column=10)
+        self.w_lbl[r-1].grid(row=r+2, column=11)
+        self.theta_lbl[r-1].grid(row=r+2, column=12)
 
     def forgetLastRows(self):
         self.top_index = 0
@@ -547,16 +551,16 @@ class GUI(object):
         self.alt_lbl[r].grid_forget()
         self.spd_lbl[r].grid_forget()
         self.a_lbl[r].grid_forget()
+        self.h_lbl[r].grid_forget()
         self.e_lbl[r].grid_forget()
         self.raan_lbl[r].grid_forget()
         self.i_lbl[r].grid_forget()
         self.w_lbl[r].grid_forget()
         self.theta_lbl[r].grid_forget()
-        self.ma_lbl[r].grid_forget()
 
     def tableRefresher(self):
         self.updateTableContent()
-        self.root.after(800, self.tableRefresher)
+        self.root.after(500, self.tableRefresher)
 
     def saveAs(self):
         file_name = asksaveasfilename()
@@ -798,14 +802,14 @@ class GUI(object):
 
     def refreshBackgroundImg(self, img=None):
         if (img is None):
-            self.map.set_data(self.world_map.fillDarkSideFromPicture(90))
+            self.map.set_data(self.world_map.fillDarkSideFromPicture())
         else:
             self.map.set_data(imread(img))
         self.ani._stop()
         self.ani._blit_clear(self.ani._drawn_artists, self.ani._blit_cache)
         self.fig.canvas.draw_idle()
         self.ani.__init__(self.fig, self.update, self.data_gen(),
-                            interval=self.dt*964, blit=True, repeat=False)
+                            interval=self.dt, blit=True, repeat=False)
 
     def earth(self):
         self.refreshBackgroundImg()
