@@ -66,7 +66,7 @@ class GUI(object):
                  "cat_box", "deployer_lbl", "deployer_name_lbl", "dpl",
                  "prog_name_lbl", "version_lbl", "dev_lbl", "contact_lbl",
                  "updtCnt", "warranty_lbl", "details_lbl", "cov_lat",
-                 "cov_lng"]
+                 "cov_lng", "play", "pause", "next", "previous"]
     def __init__(self, Sats):
         self.Sats = Sats
         self.sortSats()
@@ -311,6 +311,16 @@ class GUI(object):
         self.loc_bt.grid(row=1, column=0, sticky="NESW")
         self.dpl = Dpl()
 
+        self.play = ttk.Button(self.root, text="▶️",
+                style = "BW.TLabel", command=self.deployPopup)
+        self.play.grid(row=2, column=0, sticky="NESW")
+        #self.pause = ttk.Button(self.root, text="⏸️",
+        #        style = "BW.TLabel", command=self.deployPopup)
+        #self.next = ttk.Button(self.root, text="⏭️",
+        #        style = "BW.TLabel", command=self.deployPopup)
+        #self.previous = ttk.Button(self.root, text="⏮️",
+        #        style = "BW.TLabel", command=self.deployPopup)
+
     def deployPopup(self):
         self.popup = Tk()
         self.popup.title("Deployment settings")
@@ -397,44 +407,47 @@ class GUI(object):
         self.sortSats()
         self.popup.destroy()
 
+    def nextDay(self):
+        print("Nothing")
+
     def setCanvas(self):
         canvas = FigureCanvasTkAgg(self.fig, master=self.root)
         #self.root.rowconfigure(0, weight=1)
         #self.root.columnconfigure(0, weight=1)
-        canvas.get_tk_widget().grid(row=0, column=1, rowspan=2,
+        canvas.get_tk_widget().grid(row=0, column=1, rowspan=3,
                 columnspan=13, sticky="NES")
         canvas.draw()
 
     def setTableTitles(self):
         #self.root.rowconfigure(1, weight=1)
         Label(self.root, text="Satellite", font="TkDefaultFont 10 bold", 
-                bg=self.bg, fg=self.fg, width=18, anchor='w').grid(row=2,
+                bg=self.bg, fg=self.fg, width=18, anchor='w').grid(row=3,
                         column=0, sticky="W")
         Label(self.root, text="Category", font="TkDefaultFont 10 bold",
-                bg=self.bg, fg=self.fg, width=24, anchor='w').grid(row=2,
+                bg=self.bg, fg=self.fg, width=24, anchor='w').grid(row=3,
                         column=1, sticky="W")
         Label(self.root, text="Latitude", font="TkDefaultFont 10 bold",
-                bg=self.bg, fg=self.fg).grid(row=2, column=2)
+                bg=self.bg, fg=self.fg).grid(row=3, column=2)
         Label(self.root, text="Longitude", font="TkDefaultFont 10 bold",
-                bg=self.bg, fg=self.fg).grid(row=2, column=3)
+                bg=self.bg, fg=self.fg).grid(row=3, column=3)
         Label(self.root, text="Alt. [km]", font="TkDefaultFont 10 bold",
-                bg=self.bg, fg=self.fg).grid(row=2, column=4)
+                bg=self.bg, fg=self.fg).grid(row=3, column=4)
         Label(self.root, text="Spd. [m/s]", font="TkDefaultFont 10 bold",
-                bg=self.bg, fg=self.fg).grid(row=2, column=5)
+                bg=self.bg, fg=self.fg).grid(row=3, column=5)
         Label(self.root, text="a [km]", font="TkDefaultFont 10 bold",
-                bg=self.bg, fg=self.fg).grid(row=2, column=6)
+                bg=self.bg, fg=self.fg).grid(row=3, column=6)
         Label(self.root, text="h [km²/s]", font="TkDefaultFont 10 bold",
-                bg=self.bg, fg=self.fg).grid(row=2, column=7)
+                bg=self.bg, fg=self.fg).grid(row=3, column=7)
         Label(self.root, text="e", font="TkDefaultFont 10 bold",
-                bg=self.bg, fg=self.fg).grid(row=2, column=8)
+                bg=self.bg, fg=self.fg).grid(row=3, column=8)
         Label(self.root, text="Ω", font="TkDefaultFont 10 bold",
-                bg=self.bg, fg=self.fg).grid(row=2, column=9)
+                bg=self.bg, fg=self.fg).grid(row=3, column=9)
         Label(self.root, text="i", font="TkDefaultFont 10 bold",
-                bg=self.bg, fg=self.fg).grid(row=2, column=10)
+                bg=self.bg, fg=self.fg).grid(row=3, column=10)
         Label(self.root, text="ω", font="TkDefaultFont 10 bold",
-                bg=self.bg, fg=self.fg).grid(row=2, column=11)
+                bg=self.bg, fg=self.fg).grid(row=3, column=11)
         Label(self.root, text="T. Anom.", font="TkDefaultFont 10 bold",
-                bg=self.bg, fg=self.fg).grid(row=2, column=12)
+                bg=self.bg, fg=self.fg).grid(row=3, column=12)
 
     def setTableContent(self):
         self.name_bt = []
@@ -470,12 +483,12 @@ class GUI(object):
             self.theta_lbl.append(Label(self.root, bg=self.bg, fg=self.fg, width=7, anchor='e'))
         self.updateTableContent()
         for i in range(self.top_index, self.bottom_index):
-            self.root.rowconfigure(i+3, weight=1)
+            self.root.rowconfigure(i+4, weight=1)
             self.rememberRow(i+1)
         self.up_bt = ttk.Button(self.root, text="▲", style = "BW.TLabel", command=self.up)
-        self.up_bt.grid(row=3, column=13, rowspan=2, sticky="NESW")
+        self.up_bt.grid(row=4, column=13, rowspan=2, sticky="NESW")
         self.down_bt = ttk.Button(self.root, text="▼", style = "BW.TLabel", command=self.down)
-        self.down_bt.grid(row=5, column=13, rowspan=2, sticky="NESW")
+        self.down_bt.grid(row=6, column=13, rowspan=2, sticky="NESW")
         self.forgetLastRows()
 
     def updateTableContent(self):
@@ -514,30 +527,30 @@ class GUI(object):
             if (len(self.Sats) >= 6):
                 self.bottom_index = 6
                 self.rememberRow(self.bottom_index)
-                self.up_bt.grid(row=3, column=13, rowspan=3, sticky="NESW")
-                self.down_bt.grid(row=6, column=13, rowspan=3, sticky="NESW")
+                self.up_bt.grid(row=4, column=13, rowspan=3, sticky="NESW")
+                self.down_bt.grid(row=7, column=13, rowspan=3, sticky="NESW")
 
     def rememberRow(self, r):
         self.root.rowconfigure(r+1, weight=1)
-        self.name_bt[r-1].grid(row=r+2, column=0, sticky="EW")
-        self.cat_lbl[r-1].grid(row=r+2, column=1, sticky="W")
-        self.lat_lbl[r-1].grid(row=r+2, column=2)
-        self.lng_lbl[r-1].grid(row=r+2, column=3)
-        self.alt_lbl[r-1].grid(row=r+2, column=4)
-        self.spd_lbl[r-1].grid(row=r+2, column=5)
-        self.a_lbl[r-1].grid(row=r+2, column=6)
-        self.h_lbl[r-1].grid(row=r+2, column=7)
-        self.e_lbl[r-1].grid(row=r+2, column=8)
-        self.raan_lbl[r-1].grid(row=r+2, column=9)
-        self.i_lbl[r-1].grid(row=r+2, column=10)
-        self.w_lbl[r-1].grid(row=r+2, column=11)
-        self.theta_lbl[r-1].grid(row=r+2, column=12)
+        self.name_bt[r-1].grid(row=r+3, column=0, sticky="EW")
+        self.cat_lbl[r-1].grid(row=r+3, column=1, sticky="W")
+        self.lat_lbl[r-1].grid(row=r+3, column=2)
+        self.lng_lbl[r-1].grid(row=r+3, column=3)
+        self.alt_lbl[r-1].grid(row=r+3, column=4)
+        self.spd_lbl[r-1].grid(row=r+3, column=5)
+        self.a_lbl[r-1].grid(row=r+3, column=6)
+        self.h_lbl[r-1].grid(row=r+3, column=7)
+        self.e_lbl[r-1].grid(row=r+3, column=8)
+        self.raan_lbl[r-1].grid(row=r+3, column=9)
+        self.i_lbl[r-1].grid(row=r+3, column=10)
+        self.w_lbl[r-1].grid(row=r+3, column=11)
+        self.theta_lbl[r-1].grid(row=r+3, column=12)
 
     def forgetLastRows(self):
         self.top_index = 0
         self.bottom_index = 4*(len(self.Sats) > 4) + len(self.Sats)*(len(self.Sats) <= 4)
-        self.up_bt.grid(row=3, column=13, rowspan=2, sticky="NESW")
-        self.down_bt.grid(row=5, column=13, rowspan=2, sticky="NESW")
+        self.up_bt.grid(row=4, column=13, rowspan=2, sticky="NESW")
+        self.down_bt.grid(row=6, column=13, rowspan=2, sticky="NESW")
         if (len(self.Sats) > 4):
             self.forgetRow(self.bottom_index)
             if (len(self.Sats) >= 6):
