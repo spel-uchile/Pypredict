@@ -23,10 +23,11 @@
 from calcOrbitParam import Calc
 from pyorbital import tlefile
 from sat import Sat
-from numpy import asscalar, cos, matrix, pi, sin
+from numpy import asscalar, cos, matrix, pi, sin, sqrt
 
 class Dpl(object):
-    __slots__ = ["calc", "Q_pi", "Q_po", "Q_op", "v", "r"]
+    __slots__ = ["calc", "Q_pi", "Q_po",
+                 "Q_op", "v", "r"]
     def __init__(self):
         self.calc = Calc()
 
@@ -64,7 +65,8 @@ class Dpl(object):
         return self.Q_op*v
 
     def calcPosAndVel(self, deployer, vel):
-        deployer.updateWithDragEffect()
+        #deployer.updateWithDragEffect()
+        #deployer.updateOrbitalParameters3()
         aux = deployer.getXYZ()
         self.r = [aux[0,0], aux[1,0], aux[2,0]]
         v_p, v_q = deployer.getPerifocalVel()
@@ -79,33 +81,38 @@ class Dpl(object):
 
     def updateSat(self, sat):
         self.calc.newCalc(r1=self.r, v=self.v)
-        sat.updateEpoch()
-        sat.updateGST0()
         sat.setInclination(self.calc.i)
         sat.setRAAN0(self.calc.RAAN)
+        sat.setRAAN(self.calc.RAAN)
         sat.setArgPerigee0(self.calc.w)
+        sat.setArgPerigee(self.calc.w)
         sat.setEccentricity(self.calc.e_scalar)
         sat.setMeanAnomaly0(self.calc.MA)
+        sat.setMeanAnomaly(self.calc.MA)
         sat.setTrueAnomaly(self.calc.theta)
         sat.setSemiMajorAxis(self.calc.a)
-        sat.setSemilatusRectum(self.calc.a*(1 - self.calc.e_scalar**2))
+        sat.setSemilatusRectum(sat.a*(1 - sat.e**2))
         sat.setMeanVelocity(self.calc.n)
-        sat.p = self.calc.a*(1 - self.calc.e_scalar**2)
-        sat.updateWithDragEffect()
+        sat.setSpecAngMomentum(sqrt(sat.a*sat.mu*(1 - sat.e**2)))
+        sat.setMeanMotion(sqrt(sat.mu/(sat.a**3)))
+        sat.updateEpoch()
 
     def deploy(self, category, deployer, dplyr_mass, dplyd_mass, name, vel):
         self.calcPosAndVel(deployer, vel)
-        newSat = Sat(name=name,
-                tle=tlefile.read(deployer.name, "TLE/cubesat.txt"),
-                cat=category)
+        tle = tlefile.read(deployer.name, "TLE/cubesat.txt")
+        newSat = Sat(name=name, tle=tle, cat=category)
+        #newSat = Sat(name=name, cat=category)
         self.updateSat(newSat)
-        B = (2*(0.034*0.084 + 0.034*0.028 + 0.084*0.028)/dplyd_mass)/3
+        B = (2*(0.034*0.084 + 0.034*0.028 + 0.084*0.028))/6/dplyd_mass
         newSat.setBallisticCoeff(B)
+        newSat.createTLE(tle)
         dplyr_mass = dplyr_mass - dplyd_mass
         dplyr_vel = [-vel[0]*dplyd_mass/dplyr_mass,
                      -vel[1]*dplyd_mass/dplyr_mass,
                      -vel[2]*dplyd_mass/dplyr_mass]
         self.calcPosAndVel(deployer, dplyr_vel)
         self.updateSat(deployer)
-        deployer.setBallisticCoeff((2*0.1*(2*0.3 + 0.1)/dplyr_mass)/3)
+        B = (0.1*0.1*2 + 4*0.3*0.1)/6/dplyr_mass
+        deployer.setBallisticCoeff(B)
+        deployer.createTLE(tle)
         return newSat
