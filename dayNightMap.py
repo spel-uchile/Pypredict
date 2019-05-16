@@ -1,4 +1,4 @@
-'''
+"""
                                 Pypredict
     Orbit prediction software. Displays the satellites' position and
     orbital parameters in real time. Simulates satellite localization
@@ -19,7 +19,7 @@
 
     You should have received a copy of the GNU General Public License
     along with this program. If not, see <https://www.gnu.org/licenses/>.
-'''
+"""
 from cartopy.crs import Geodetic, PlateCarree, RotatedPole
 from PIL import Image, ImageDraw
 from datetime import datetime
@@ -29,18 +29,44 @@ from warnings import filterwarnings
 filterwarnings("ignore", category=RuntimeWarning)
 
 class Map(object):
-    __slots__ = ["day", "night", "lat", "lng", "xy", "sun_lat", "sun_lng", "dark_lat", "dark_lng"]
+    __slots__ = ["day", "night", "lat", "lng", "xy",
+                 "sun_lat", "sun_lng", "dark_lat",
+                 "dark_lng", "x", "y"]
     def __init__(self, day, night):
+        """
+        Initialize Map class. This class creates a composite
+        of the world map in daylight and in night, given the
+        current position of the sun.
+
+        Parameters
+        ----------
+        day : string
+              Path to the picture in png of the world at day
+        night : string
+                Path to the picture in png of the world at
+                night
+        """
         self.day = day
         self.night = night
         self.lat = empty(360)
         self.lng = empty(360)
+        self.x = empty(360)
+        self.y = empty(360)
         self.xy = []
 
     def __call__(self):
         return self
 
     def getSunCoordinates(self, date=None):
+        """
+        Calculates the latitude and longitude of the sun
+        and of the dark side.
+
+        Parameters
+        ----------
+        date : datetime.utcnow(), optional
+               Date to calculate the sun's position
+        """
         if date is None:
             date = datetime.utcnow()
         D = date.day + date.hour/24 + date.minute/(24*60) + date.second/(24*3600)
@@ -62,7 +88,15 @@ class Map(object):
         else:
             self.dark_lng = (((self.sun_lng + 180) + 180) % 360) - 180
 
-    def getCoverageCoordinates(self, ang, center_lat, center_lng):
+    def getCoverageCoordinates(self, center_lat, center_lng):
+        """
+        Returns the coordinates of the day/night terminator.
+
+        center_lat : float
+                     Center latitude of the dark side in degrees
+        center_lng : float
+                     Center longitude of the dark side in degrees
+        """
         pole_lng = 0#center_lng
         if center_lat > 0:
             pole_lat = -90 + center_lat
@@ -77,37 +111,58 @@ class Map(object):
 
         x = empty(360)
         y = empty(360)
-        x[:180] = -90
-        y[:180] = arange(-90, 90.)
-        x[180:] = 90
-        y[180:] = arange(90, -90., -1)
+        self.x[:180] = -90
+        self.y[:180] = arange(-90, 90.)
+        self.x[180:] = 90
+        self.y[180:] = arange(90, -90., -1)
 
-        z = empty(360)
-        transformed = rotated_pole.transform_points(PlateCarree(), x, y)
-        for i in range(0, 360):
-            self.lng[i], self.lat[i], z[i] = transformed[i]
-            if (center_lat > 0):
-                self.lat[i] += 90
-            else:
-                self.lat[i] = 90 - self.lat[i]
-            self.lng[i] = (self.lng[i] + 180 + center_lng) % 360
+        transformed = rotated_pole.transform_points(PlateCarree(),
+                                                    self.x, self.y)
+        self.lng = transformed[:,0]
+        self.lat = transformed[:,1]
+        if (center_lat > 0):
+            self.lat += 90
+        else:
+            self.lat = 90 - self.lat
+        self.lng = (self.lng + 180 + center_lng) % 360
 
-    def coord2pixels(self, ang, center_lat, center_lng):
-        self.getCoverageCoordinates(ang, center_lat, center_lng)
-        self.xy[:] = []
-        for i in range(0, len(self.lat)):
-            self.xy.append((int(self.lng[i]*2200/360),
-                            int(self.lat[i]*1100/180)))
-        if (max(self.lng) is not 360):
+    def coord2pixels(self, center_lat, center_lng):
+        """
+        Transforms the coordinates to pixels.
+
+        Parameters
+        ----------
+        center_lat : float
+                     Center latitude of the dark side in degrees
+        center_lng : float
+                     Center longitude of the dark side in degrees
+        """
+        self.getCoverageCoordinates(center_lat, center_lng)
+        lng2pix = 2200/360
+        lat2pix = 1100/180
+        self.lng = self.lng*lng2pix
+        self.lat = self.lat*lat2pix
+        self.xy = list(zip(self.lng.astype(int),
+                           self.lat.astype(int)))
+        if (max(self.lng) is not 2200):
             self.xy[argmax(self.lng)] = ((2200,
-                int(self.lat[argmax(self.lng)]*1100/180)))
+                self.lat[argmax(self.lng)]))
         if (min(self.lng) is not 0):
             self.xy[argmin(self.lng)] = ((0,
-                int(self.lat[argmin(self.lng)]*1100/180)))
+                self.lat[argmin(self.lng)]))
 
-    def fillDarkSideFromPicture(self, ang, date=None):
+    def fillDarkSideFromPicture(self, date=None):
+        """
+        Returns a composite of the images of the Earth at
+        day and at night, considering the sun's position.
+
+        Parameters
+        ----------
+        date : datetime.utcnow(), optional
+               Date to calculate the sun's position
+        """
         self.getSunCoordinates(date)
-        self.coord2pixels(ang, self.dark_lat, self.dark_lng)
+        self.coord2pixels(self.dark_lat, self.dark_lng)
         self.xy = sorted(self.xy, key=lambda x: x[0])
         self.xy.append((2200, 0))
         self.xy.append((0, 0))
