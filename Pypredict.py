@@ -1,4 +1,4 @@
-'''
+"""
                                 Pypredict
     Orbit prediction software. Displays the satellites' position and
     orbital parameters in real time. Simulates satellite localization
@@ -19,7 +19,7 @@
 
     You should have received a copy of the GNU General Public License
     along with this program. If not, see <https://www.gnu.org/licenses/>.
-'''
+"""
 from pyorbital import tlefile
 from sat import Sat
 from gui import GUI
