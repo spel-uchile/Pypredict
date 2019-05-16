@@ -26,6 +26,7 @@ sudo -H pip3 install --upgrade Pillow
 sudo -H pip3 install --upgrade Fiona
 sudo -H pip3 install --upgrade pykdtree
 sudo -H pip3 install --upgrade cartopy
+sudo -H pip3 install --upgrade sgp4
 #sudo apt-get install libtcmalloc-minimal4
 #export LD_PRELOAD="/usr/lib/x86_64-linux-gnu/libtcmalloc_minimal.so.4.3.0"
 
