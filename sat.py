@@ -22,7 +22,7 @@
 """
 from numpy import abs, arange, arccos, arcsin, arctan, arctan2, array, cos, matrix, pi, sin, sqrt, tan
 from node import Node
-from datetime import datetime
+from datetime import datetime, timedelta
 from pyorbital import tlefile
 from Atmospheric_data import denUSSA76
 from sgp4.earth_gravity import wgs72
@@ -34,7 +34,9 @@ class Sat(Node):
                  "epoch_year", "epoch_day", "theta", "GST0", "a", "mu", "t0", "p", 
                  "x", "y", "z", "Eq_r", "Po_r", "P_r", "Er_Pr2", "J2", "P_w", "r",
                  "h", "v", "tray_lat", "tray_lng", "tlast", "B", "bstar", "v_atm",
-                 "v_peri", "v_iner", "r_iner", "Rot_Mat", "r_vect0", "sat"]
+                 "v_peri", "v_iner", "r_iner", "Rot_Mat", "r_vect0", "sat",
+                 "mean_motion_derivative", "id_launch_year", "id_launch_number",
+                 "id_launch_piece",  "element_number", "satnumber"]
     def __init__(self, name="", lat=0, lng=0, alt=0, freq=437225000, tle=None, cat=""):
         """
         Parameters
@@ -77,6 +79,12 @@ class Sat(Node):
             self.bstar = tle.bstar
             self.B = 2*self.bstar/(2.461*10**(-5)*6378.135)
             self.sat = twoline2rv(tle.line1, tle.line2, wgs72)
+            self.mean_motion_derivative = tle.mean_motion_derivative
+            self.id_launch_year = tle.id_launch_year
+            self.id_launch_number = tle.id_launch_number
+            self.id_launch_piece = tle.id_launch_piece
+            self.element_number = tle.element_number
+            self.satnumber = tle.satnumber
             print(self.name + " TLE found!")
         else:
             self.incl = 97.39*deg2rad
@@ -254,11 +262,11 @@ class Sat(Node):
         self.lat = arcsin(self.z/self.r)*rad2deg
         return self.lat
 
-    def getLng(self, rad2deg=180/pi, twopi=2*pi):
+    def getLng(self, rad2deg=180/pi, twopi=2*pi, date=None):
         """
         Returns the last longitude of the satellite.
         """
-        tnow = self.getTnow()
+        tnow = self.getTnow(date)
         RAAN_s = arctan2(self.y, self.x)
         lng = (RAAN_s - self.GST0 - self.P_w*tnow)  % twopi
         self.lng = ((lng > pi)*(lng - twopi) + (lng <= pi)*lng)*rad2deg
@@ -390,16 +398,17 @@ class Sat(Node):
         ang = arccos((E_r**2 + (E_r + self.alt)**2 - d**2)/(2*E_r*(E_r + self.alt)))*180/pi
         return ang
 
-    def getTnow(self):
+    def getTnow(self, date=None):
         """
         Returns the number of seconds since the last TLE data.
         """
-        dayinsec = 86400                                # Day in seconds
-        date = datetime.utcnow()                        # Use current time in UTC.
-        tnow = self.getCurrentTimeInSeconds(date)       # Current time in seconds
-        days = self.month2days(date.month) + date.day   # Days in current time
-        daysdiff = days - int(self.epoch_day)           # Difference between TLE date and current date in days
-        return tnow + daysdiff*dayinsec                 # Time in seconds from TLE to present time
+        if (date is None):
+            date = datetime.utcnow()                  # Use current time in UTC.
+        dayinsec = 86400                              # Day in seconds
+        tnow = self.getCurrentTimeInSeconds(date)     # Current time in seconds
+        days = self.month2days(date.month) + date.day # Days in current time
+        daysdiff = days - int(self.epoch_day)         # Difference between TLE date and current date in days
+        return tnow + daysdiff*dayinsec               # Time in seconds from TLE to present time
 
     def getDrag(self):
         """
@@ -449,8 +458,8 @@ class Sat(Node):
         self.updateOrbitalParameters(tnow)
         self.tlast = tnow
 
-    def getLocation(self, T, dt):
-        tnow = self.getTnow()
+    def getLocation(self, T, dt, dmin=0):
+        tnow = self.getTnow() + dmin*60
         self.tray_lat[:] = []
         self.tray_lng[:] = []
         rad2deg = 180/pi                             # Radian to degrees
@@ -491,6 +500,17 @@ class Sat(Node):
             lng = (RAAN_s - self.GST0 - self.P_w*t)  % twopi
             #self.tray_lat.append(((lat > pi/2)*(lat - pi) + (lat <= pi/2)*lat)*rad2deg)
             self.tray_lng.append(((lng > pi)*(lng - twopi) + (lng <= pi)*lng)*rad2deg)
+        return self.tray_lat, self.tray_lng
+
+    def getTrayectory(self, T, dt, dmin=0):
+        self.tray_lat[:] = []
+        self.tray_lng[:] = []
+        date = datetime.utcnow() + timedelta(minutes=dmin)
+        for t in range(0, T, dt):
+            self.updateOrbitalParameters3(date)
+            date += timedelta(seconds=dt)
+            self.tray_lat.append(self.getLat())
+            self.tray_lng.append(self.getLng(date=date))
         return self.tray_lat, self.tray_lng
 
     def changePlanet(self, M=5.9722*10**24, P_r=6371000, Eq_r=6378000, Po_r=6356000, J2=0.00108263, P_w=7.29211505*10**(-5)):
@@ -665,10 +685,11 @@ class Sat(Node):
         D, Month, Y = self.getDMY()
         self.GST0 = self.getGST(int(D), Month, Y)
 
-    def updateEpoch(self):
-        date = datetime.utcnow()                        # Use current time in UTC.
-        tnow = self.getCurrentTimeInSeconds(date)       # Current time in seconds
-        days = self.month2days(date.month) + date.day   # Days in current time
+    def updateEpoch(self, date=None):
+        if (date is None):
+            date = datetime.utcnow()                  # Use current time in UTC.
+        tnow = self.getCurrentTimeInSeconds(date)     # Current time in seconds
+        days = self.month2days(date.month) + date.day # Days in current time
         self.epoch_day = days + tnow/86400
         self.t0 = tnow
         self.tlast = self.t0
@@ -723,8 +744,17 @@ class Sat(Node):
         dw = dw + dw2
         return dh, de, de2, dtheta, dRAAN, di, dw, da
 
-    def createTLE(self, tle):
-        aux="{:+.9f}".format(tle.mean_motion_derivative)
+    def checksum(self, line):
+        check = 0
+        for char in line[:-1]:
+            if char.isdigit():
+                check += int(char)
+            if char == "-":
+                check += 1
+        return check % 10
+
+    def createTLE(self):
+        aux="{:+.9f}".format(self.mean_motion_derivative)
         mean_motion_derivative = "{}{}".format(aux[0],aux[2:-1])
         #aux = "{:+.6f}".format(tle.bstar*10000)
         #BSTAR = "{}{}-4".format(aux[0],aux[3:-1])
@@ -732,14 +762,14 @@ class Sat(Node):
         BSTAR = "{}{}-2".format(aux[0],aux[3:-1])
         aux="{:.8f}".format(self.e)
         e = "{}".format(aux[2:-1])
-        aux = tle.element_number+1
+        aux = self.element_number+1
         tle_num = "{:4d}".format(aux)
-        TLE1 = "{} {}{} {}{}{} {}{:08.8f} {} +{} {} {} {}{}".format("1",
-                                tle.satnumber,
+        line1 = "{} {}{} {}{}{} {}{:08.8f} {} +{} {} {} {}{}".format("1",
+                                self.satnumber,
                                 "U",
-                                tle.id_launch_year,
-                                tle.id_launch_number,
-                                tle.id_launch_piece,
+                                self.id_launch_year,
+                                self.id_launch_number,
+                                self.id_launch_piece,
                                 self.epoch_year,
                                 self.epoch_day,
                                 mean_motion_derivative,
@@ -749,8 +779,8 @@ class Sat(Node):
                                 "0",
                                 tle_num,
                                 "7")
-        TLE2 = "{} {} {:8.4f} {:08.4f} {} {:08.4f} {:08.4f} {:02.8f}{}{}".format("2",
-                                                             tle.satnumber,
+        line2 = "{} {} {:8.4f} {:08.4f} {} {:08.4f} {:08.4f} {:02.8f}{}{}".format("2",
+                                                             self.satnumber,
                                                              self.incl*180/pi,
                                                              self.RAAN*180/pi,
                                                              e,
@@ -759,8 +789,13 @@ class Sat(Node):
                                                              86400/self.getPeriod(),
                                                              "    0",
                                                              "7")
+        checksum1 = self.checksum(line1)
+        checksum2 = self.checksum(line2)
+        line1 = "{}{}".format(line1[0:-1], checksum1)
+        line2 = "{}{}".format(line2[0:-1], checksum2)
         print(self.name)
-        print(TLE1)
-        print(TLE2)
-        self.sat = twoline2rv(TLE1, TLE2, wgs72)
+        print(line1)
+        print(line2)
+        self.sat = twoline2rv(line1, line2, wgs72)
+        return self.name, line1, line2
 
