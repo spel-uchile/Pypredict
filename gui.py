@@ -31,7 +31,7 @@ from matplotlib.animation import FuncAnimation
 from pyorbital import tlefile
 from matplotlib.pyplot import imread, subplots, tight_layout
 from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
-from datetime import datetime
+from datetime import datetime, timedelta
 from tkinter import Button, Entry, END, Image, Label, Listbox, Menu, StringVar, ttk, Tk
 from tkinter.filedialog import asksaveasfilename
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
@@ -66,7 +66,7 @@ class GUI(object):
                  "cat_box", "deployer_lbl", "deployer_name_lbl", "dpl",
                  "prog_name_lbl", "version_lbl", "dev_lbl", "contact_lbl",
                  "updtCnt", "warranty_lbl", "details_lbl", "cov_lat",
-                 "cov_lng", "play", "pause", "next", "previous"]
+                 "cov_lng", "play", "pause", "next", "previous", "dmin"]
     def __init__(self, Sats):
         self.Sats = Sats
         self.sortSats()
@@ -79,9 +79,11 @@ class GUI(object):
         self.root.protocol("WM_DELETE_WINDOW", exit)
         self.mainSat = self.Sats[0]
         T = int(self.mainSat.getPeriod()*3)      # Total duration in seconds
-        self.dt = 2000                           # Step length in miliseconds
+        self.dt = 1000                           # Step length in miliseconds
         self.updtCnt = 0
-        self.mainSat_lats, self.mainSat_lngs = self.mainSat.getLocation(T, 50)
+        self.dmin = 0
+        #self.mainSat_lats, self.mainSat_lngs = self.mainSat.getLocation(T, 50)
+        self.mainSat_lats, self.mainSat_lngs = self.mainSat.getTrayectory(T, 50)
         self.plotData()
         self.setButtons()
         self.setCanvas()
@@ -178,6 +180,9 @@ class GUI(object):
         if (screen_height < 1080):
             self.fig, self.ax = subplots(figsize=(12, 6),
                                     subplot_kw={'projection': PlateCarree()})
+        elif (screen_height == 1080):
+            self.fig, self.ax = subplots(figsize=(17.5, 8.75),
+                                    subplot_kw={'projection': PlateCarree()})
         else:
             self.fig, self.ax = subplots(figsize=(18, 9),
                                     subplot_kw={'projection': PlateCarree()})
@@ -185,7 +190,8 @@ class GUI(object):
         #self.map = self.ax.imshow(imread("img/earth_nasa_day.png"), origin='upper',
         #               extent=img_extent, transform=PlateCarree())
         self.world_map = Map("img/earth_nasa_day.png", "img/earth_nasa_night.png")
-        self.map = self.ax.imshow(self.world_map.fillDarkSideFromPicture(),
+        date = datetime.utcnow() + timedelta(minutes=self.dmin)
+        self.map = self.ax.imshow(self.world_map.fillDarkSideFromPicture(date),
                 origin='upper', extent=img_extent, transform=PlateCarree())
         self.gridAndFormat()
         tight_layout(pad=-0.26)
@@ -230,8 +236,9 @@ class GUI(object):
             sats_lats[:] = []
             sats_angs[:] = []
             sats_names[:] = []
+            date = datetime.utcnow() + timedelta(minutes=self.dmin)
             for Sat in self.Sats:
-                sats_lngs.append(Sat.getLng())
+                sats_lngs.append(Sat.getLng(date=date))
                 sats_lats.append(Sat.getLat())
                 sats_angs.append(Sat.getCoverage())
                 sats_names.append(Sat.name)
@@ -286,7 +293,8 @@ class GUI(object):
     def changeMainSat(self, Sat):
         self.mainSat = Sat
         tf = int(self.mainSat.getPeriod()*3)
-        self.mainSat_lats, self.mainSat_lngs = self.mainSat.getLocation(tf, 50)
+        #self.mainSat_lats, self.mainSat_lngs = self.mainSat.getLocation(tf, 50, self.dmin)
+        self.mainSat_lats, self.mainSat_lngs = self.mainSat.getTrayectory(tf, 50, self.dmin)
    
     def up(self):
         if (self.top_index > 0):
@@ -303,23 +311,26 @@ class GUI(object):
         self.dpl_bt = ttk.Button(self.root, text="Simulate deployment",
                 style = "BW.TLabel", image=self.dpl_img, compound="bottom",
                 command=self.deployPopup)
-        self.dpl_bt.grid(row=0, column=0, sticky="NESW")
+        self.dpl_bt.grid(row=0, column=0, columnspan=4, sticky="NESW")
         self.tdoa_img = Image("photo", file="img/TDOA.png")
         self.loc_bt = ttk.Button(self.root, text="Simulate localization",
                 style="BW.TLabel", image=self.tdoa_img, compound="bottom",
                 command=self.notAvailable)
-        self.loc_bt.grid(row=1, column=0, sticky="NESW")
+        self.loc_bt.grid(row=1, column=0, columnspan=4, sticky="NESW")
         self.dpl = Dpl()
-
-        self.play = ttk.Button(self.root, text="▶️",
+        
+        self.previous = ttk.Button(self.root, text="Prev.",#"⏮️",
+                style = "BW.TLabel", command=self.previousMinute)
+        self.previous.grid(row=2, column=0, sticky="NESW")
+        self.pause = ttk.Button(self.root, text="Pause",#"⏸️",
                 style = "BW.TLabel", command=self.deployPopup)
-        self.play.grid(row=2, column=0, sticky="NESW")
-        #self.pause = ttk.Button(self.root, text="⏸️",
-        #        style = "BW.TLabel", command=self.deployPopup)
-        #self.next = ttk.Button(self.root, text="⏭️",
-        #        style = "BW.TLabel", command=self.deployPopup)
-        #self.previous = ttk.Button(self.root, text="⏮️",
-        #        style = "BW.TLabel", command=self.deployPopup)
+        self.pause.grid(row=2, column=1, sticky="NESW")
+        self.play = ttk.Button(self.root, text="▶️",
+                style = "BW.TLabel", command=self.currentMinute)
+        self.play.grid(row=2, column=2, sticky="NESW")
+        self.next = ttk.Button(self.root, text="Next",#"⏭️",
+                style = "BW.TLabel", command=self.nextMinute)
+        self.next.grid(row=2, column=3, sticky="NESW")
 
     def deployPopup(self):
         self.popup = Tk()
@@ -397,8 +408,9 @@ class GUI(object):
             if (sat.name == deployer_name):
                 deployer = sat
                 break
+        date = datetime.utcnow() + timedelta(minutes=self.dmin)
         newSat = self.dpl.deploy(cat, deployer, dplyr_mass,
-                dplyd_mass, name, [spdx, spdy, spdz])
+                dplyd_mass, name, [spdx, spdy, spdz], date=date)
         self.ax_cov.append(self.ax.fill([0,0], [0,0], transform=Geodetic(),
                            color='white', alpha=self.cov_alpha)[0])
         self.sat_txt.append(self.ax.text([], [], "", color='yellow', size=8,
@@ -407,14 +419,20 @@ class GUI(object):
         self.sortSats()
         self.popup.destroy()
 
-    def nextDay(self):
-        print("Nothing")
+    def previousMinute(self):
+        self.dmin -= 1
+
+    def currentMinute(self):
+        self.dmin = 0
+
+    def nextMinute(self):
+        self.dmin += 1
 
     def setCanvas(self):
         canvas = FigureCanvasTkAgg(self.fig, master=self.root)
         #self.root.rowconfigure(0, weight=1)
         #self.root.columnconfigure(0, weight=1)
-        canvas.get_tk_widget().grid(row=0, column=1, rowspan=3,
+        canvas.get_tk_widget().grid(row=0, column=4, rowspan=3,
                 columnspan=13, sticky="NES")
         canvas.draw()
 
@@ -422,32 +440,32 @@ class GUI(object):
         #self.root.rowconfigure(1, weight=1)
         Label(self.root, text="Satellite", font="TkDefaultFont 10 bold", 
                 bg=self.bg, fg=self.fg, width=18, anchor='w').grid(row=3,
-                        column=0, sticky="W")
+                        column=0, columnspan=4, sticky="W")
         Label(self.root, text="Category", font="TkDefaultFont 10 bold",
-                bg=self.bg, fg=self.fg, width=24, anchor='w').grid(row=3,
-                        column=1, sticky="W")
+                bg=self.bg, fg=self.fg, width=20, anchor='w').grid(row=3,
+                        column=4, sticky="W")
         Label(self.root, text="Latitude", font="TkDefaultFont 10 bold",
-                bg=self.bg, fg=self.fg).grid(row=3, column=2)
-        Label(self.root, text="Longitude", font="TkDefaultFont 10 bold",
-                bg=self.bg, fg=self.fg).grid(row=3, column=3)
-        Label(self.root, text="Alt. [km]", font="TkDefaultFont 10 bold",
-                bg=self.bg, fg=self.fg).grid(row=3, column=4)
-        Label(self.root, text="Spd. [m/s]", font="TkDefaultFont 10 bold",
                 bg=self.bg, fg=self.fg).grid(row=3, column=5)
-        Label(self.root, text="a [km]", font="TkDefaultFont 10 bold",
+        Label(self.root, text="Longitude", font="TkDefaultFont 10 bold",
                 bg=self.bg, fg=self.fg).grid(row=3, column=6)
-        Label(self.root, text="h [km²/s]", font="TkDefaultFont 10 bold",
+        Label(self.root, text="Alt. [km]", font="TkDefaultFont 10 bold",
                 bg=self.bg, fg=self.fg).grid(row=3, column=7)
-        Label(self.root, text="e", font="TkDefaultFont 10 bold",
+        Label(self.root, text="Spd. [m/s]", font="TkDefaultFont 10 bold",
                 bg=self.bg, fg=self.fg).grid(row=3, column=8)
-        Label(self.root, text="Ω", font="TkDefaultFont 10 bold",
+        Label(self.root, text="a [km]", font="TkDefaultFont 10 bold",
                 bg=self.bg, fg=self.fg).grid(row=3, column=9)
-        Label(self.root, text="i", font="TkDefaultFont 10 bold",
+        Label(self.root, text="h [km²/s]", font="TkDefaultFont 10 bold",
                 bg=self.bg, fg=self.fg).grid(row=3, column=10)
-        Label(self.root, text="ω", font="TkDefaultFont 10 bold",
+        Label(self.root, text="e", font="TkDefaultFont 10 bold",
                 bg=self.bg, fg=self.fg).grid(row=3, column=11)
-        Label(self.root, text="T. Anom.", font="TkDefaultFont 10 bold",
+        Label(self.root, text="Ω", font="TkDefaultFont 10 bold",
                 bg=self.bg, fg=self.fg).grid(row=3, column=12)
+        Label(self.root, text="i", font="TkDefaultFont 10 bold",
+                bg=self.bg, fg=self.fg).grid(row=3, column=13)
+        Label(self.root, text="ω", font="TkDefaultFont 10 bold",
+                bg=self.bg, fg=self.fg).grid(row=3, column=14)
+        Label(self.root, text="T. Anom.", font="TkDefaultFont 10 bold",
+                bg=self.bg, fg=self.fg).grid(row=3, column=15)
 
     def setTableContent(self):
         self.name_bt = []
@@ -465,7 +483,7 @@ class GUI(object):
         self.theta_lbl = []
         self.top_index = 0
         self.bottom_index = 4*(len(self.Sats) > 4) + len(self.Sats)*(len(self.Sats) <= 4)
-        for i in range(0, 13):
+        for i in range(0, 16):
             self.root.columnconfigure(i, weight=1)
         for i in range(0, 6):
             self.name_bt.append(ttk.Button(self.root, style = "BW.TLabel"))
@@ -486,28 +504,29 @@ class GUI(object):
             self.root.rowconfigure(i+4, weight=1)
             self.rememberRow(i+1)
         self.up_bt = ttk.Button(self.root, text="▲", style = "BW.TLabel", command=self.up)
-        self.up_bt.grid(row=4, column=13, rowspan=2, sticky="NESW")
+        self.up_bt.grid(row=4, column=16, rowspan=2, sticky="NESW")
         self.down_bt = ttk.Button(self.root, text="▼", style = "BW.TLabel", command=self.down)
-        self.down_bt.grid(row=6, column=13, rowspan=2, sticky="NESW")
+        self.down_bt.grid(row=6, column=16, rowspan=2, sticky="NESW")
         self.forgetLastRows()
 
     def updateTableContent(self):
         rad2deg = 180/pi
         self.updtCnt += 1
-        if (self.updtCnt > 500):
+        if (self.updtCnt > 240):
             self.refreshBackgroundImg()
             self.updtCnt = 0
+        date = datetime.utcnow() + timedelta(minutes=self.dmin)
         for Sat in self.Sats:
             #Sat.updateWithDragEffect()
             #Sat.updateOrbitalParameters2()
-            Sat.updateOrbitalParameters3()
+            Sat.updateOrbitalParameters3(date)
         i = 0
         for Sat in self.Sats[self.top_index:self.bottom_index]:
             self.name_bt[i]['text'] = Sat.name
             self.name_bt[i]['command'] = lambda Sat=Sat: self.changeMainSat(Sat)
             self.cat_lbl[i]['text'] = Sat.getCategory()
             self.lat_lbl[i]['text'] = "{:0.4f}{}".format(Sat.getLat(), "°")
-            self.lng_lbl[i]['text'] = "{:0.4f}{}".format(Sat.getLng(), "°")
+            self.lng_lbl[i]['text'] = "{:0.4f}{}".format(Sat.getLng(date=date), "°")
             self.alt_lbl[i]['text'] = "{:0.1f}".format((Sat.getAlt()*0.001))
             self.spd_lbl[i]['text'] = "{}".format(int(Sat.getSpeed()))
             self.a_lbl[i]['text'] = "{:0.1f}".format((Sat.getSemiMajorAxis()*0.001))
@@ -527,30 +546,30 @@ class GUI(object):
             if (len(self.Sats) >= 6):
                 self.bottom_index = 6
                 self.rememberRow(self.bottom_index)
-                self.up_bt.grid(row=4, column=13, rowspan=3, sticky="NESW")
-                self.down_bt.grid(row=7, column=13, rowspan=3, sticky="NESW")
+                self.up_bt.grid(row=4, column=16, rowspan=3, sticky="NESW")
+                self.down_bt.grid(row=7, column=16, rowspan=3, sticky="NESW")
 
     def rememberRow(self, r):
         self.root.rowconfigure(r+1, weight=1)
-        self.name_bt[r-1].grid(row=r+3, column=0, sticky="EW")
-        self.cat_lbl[r-1].grid(row=r+3, column=1, sticky="W")
-        self.lat_lbl[r-1].grid(row=r+3, column=2)
-        self.lng_lbl[r-1].grid(row=r+3, column=3)
-        self.alt_lbl[r-1].grid(row=r+3, column=4)
-        self.spd_lbl[r-1].grid(row=r+3, column=5)
-        self.a_lbl[r-1].grid(row=r+3, column=6)
-        self.h_lbl[r-1].grid(row=r+3, column=7)
-        self.e_lbl[r-1].grid(row=r+3, column=8)
-        self.raan_lbl[r-1].grid(row=r+3, column=9)
-        self.i_lbl[r-1].grid(row=r+3, column=10)
-        self.w_lbl[r-1].grid(row=r+3, column=11)
-        self.theta_lbl[r-1].grid(row=r+3, column=12)
+        self.name_bt[r-1].grid(row=r+3, column=0, columnspan=4, sticky="EW")
+        self.cat_lbl[r-1].grid(row=r+3, column=4, sticky="W")
+        self.lat_lbl[r-1].grid(row=r+3, column=5)
+        self.lng_lbl[r-1].grid(row=r+3, column=6)
+        self.alt_lbl[r-1].grid(row=r+3, column=7)
+        self.spd_lbl[r-1].grid(row=r+3, column=8)
+        self.a_lbl[r-1].grid(row=r+3, column=9)
+        self.h_lbl[r-1].grid(row=r+3, column=10)
+        self.e_lbl[r-1].grid(row=r+3, column=11)
+        self.raan_lbl[r-1].grid(row=r+3, column=12)
+        self.i_lbl[r-1].grid(row=r+3, column=13)
+        self.w_lbl[r-1].grid(row=r+3, column=14)
+        self.theta_lbl[r-1].grid(row=r+3, column=15)
 
     def forgetLastRows(self):
         self.top_index = 0
         self.bottom_index = 4*(len(self.Sats) > 4) + len(self.Sats)*(len(self.Sats) <= 4)
-        self.up_bt.grid(row=4, column=13, rowspan=2, sticky="NESW")
-        self.down_bt.grid(row=6, column=13, rowspan=2, sticky="NESW")
+        self.up_bt.grid(row=4, column=16, rowspan=2, sticky="NESW")
+        self.down_bt.grid(row=6, column=16, rowspan=2, sticky="NESW")
         if (len(self.Sats) > 4):
             self.forgetRow(self.bottom_index)
             if (len(self.Sats) >= 6):
@@ -815,7 +834,8 @@ class GUI(object):
 
     def refreshBackgroundImg(self, img=None):
         if (img is None):
-            self.map.set_data(self.world_map.fillDarkSideFromPicture())
+            date = datetime.utcnow() + timedelta(minutes=self.dmin)
+            self.map.set_data(self.world_map.fillDarkSideFromPicture(date))
         else:
             self.map.set_data(imread(img))
         self.ani._stop()
