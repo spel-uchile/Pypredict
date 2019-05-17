@@ -84,6 +84,7 @@ class GUI(object):
         self.dmin = 0
         #self.mainSat_lats, self.mainSat_lngs = self.mainSat.getLocation(T, 50)
         self.mainSat_lats, self.mainSat_lngs = self.mainSat.getTrayectory(T, 50)
+        self.world_map = Map("img/earth_nasa_day.png", "img/earth_nasa_night.png")
         self.plotData()
         self.setButtons()
         self.setCanvas()
@@ -189,7 +190,6 @@ class GUI(object):
         img_extent = (-180, 180, -90, 90)
         #self.map = self.ax.imshow(imread("img/earth_nasa_day.png"), origin='upper',
         #               extent=img_extent, transform=PlateCarree())
-        self.world_map = Map("img/earth_nasa_day.png", "img/earth_nasa_night.png")
         date = datetime.utcnow() + timedelta(minutes=self.dmin)
         self.map = self.ax.imshow(self.world_map.fillDarkSideFromPicture(date),
                 origin='upper', extent=img_extent, transform=PlateCarree())
@@ -318,18 +318,29 @@ class GUI(object):
                 command=self.notAvailable)
         self.loc_bt.grid(row=1, column=0, columnspan=4, sticky="NESW")
         self.dpl = Dpl()
-        
-        self.previous = ttk.Button(self.root, text="Prev.",#"⏮️",
-                style = "BW.TLabel", command=self.previousMinute)
+
+        s = ttk.Style()
+        s.configure('nextPrev.TLabel', font=('TkDefaultFont', 10, 'bold'),
+                    foreground=self.fg, background=self.bg, anchor='center')
+        s.map("nextPrev.TLabel", background=[("active", self.active_bg)])
+        self.previous = ttk.Button(self.root, text="|◀◀",
+                style = "nextPrev.TLabel", command=self.previousMinute)
         self.previous.grid(row=2, column=0, sticky="NESW")
-        self.pause = ttk.Button(self.root, text="Pause",#"⏸️",
-                style = "BW.TLabel", command=self.deployPopup)
+        s = ttk.Style()
+        s.configure('pause.TLabel', font=('TkDefaultFont', 12, 'bold'),
+                    foreground=self.fg, background=self.bg, anchor='center')
+        s.map("pause.TLabel", background=[("active", self.active_bg)])
+        self.pause = ttk.Button(self.root, text="| |",
+                style = "pause.TLabel", command=self.notAvailable)
+        s.configure('play.TLabel', font=('TkDefaultFont', 16, 'bold'),
+                    foreground=self.fg, background=self.bg, anchor='center')
+        s.map("play.TLabel", background=[("active", self.active_bg)])
         self.pause.grid(row=2, column=1, sticky="NESW")
         self.play = ttk.Button(self.root, text="▶️",
-                style = "BW.TLabel", command=self.currentMinute)
+                style = "play.TLabel", command=self.currentMinute)
         self.play.grid(row=2, column=2, sticky="NESW")
-        self.next = ttk.Button(self.root, text="Next",#"⏭️",
-                style = "BW.TLabel", command=self.nextMinute)
+        self.next = ttk.Button(self.root, text="▶️▶️|",
+                style = "nextPrev.TLabel", command=self.nextMinute)
         self.next.grid(row=2, column=3, sticky="NESW")
 
     def deployPopup(self):
@@ -512,7 +523,7 @@ class GUI(object):
     def updateTableContent(self):
         rad2deg = 180/pi
         self.updtCnt += 1
-        if (self.updtCnt > 240):
+        if (self.updtCnt > 120):
             self.refreshBackgroundImg()
             self.updtCnt = 0
         date = datetime.utcnow() + timedelta(minutes=self.dmin)
@@ -833,6 +844,9 @@ class GUI(object):
         tlefile.fetch("TLE/weather.txt")
 
     def refreshBackgroundImg(self, img=None):
+        self.ax.clear()
+        self.plotData()
+        self.setCanvas()
         if (img is None):
             date = datetime.utcnow() + timedelta(minutes=self.dmin)
             self.map.set_data(self.world_map.fillDarkSideFromPicture(date))
