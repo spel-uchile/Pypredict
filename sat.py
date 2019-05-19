@@ -511,6 +511,7 @@ class Sat(Node):
             date += timedelta(seconds=dt)
             self.tray_lat.append(self.getLat())
             self.tray_lng.append(self.getLng(date=date))
+        self.updateOrbitalParameters3(datetime.utcnow() + timedelta(minutes=dmin))
         return self.tray_lat, self.tray_lng
 
     def changePlanet(self, M=5.9722*10**24, P_r=6371000, Eq_r=6378000, Po_r=6356000, J2=0.00108263, P_w=7.29211505*10**(-5)):
