@@ -67,7 +67,7 @@ class GUI(object):
                  "prog_name_lbl", "version_lbl", "dev_lbl", "contact_lbl",
                  "updtCnt", "warranty_lbl", "details_lbl", "cov_lat",
                  "cov_lng", "play", "pause", "next", "previous", "dmin",
-                 "dt_lbl"]
+                 "dt_lbl", "molniya"]
     def __init__(self, Sats):
         self.Sats = Sats
         self.sortSats()
@@ -680,6 +680,7 @@ class GUI(object):
         self.intelsat = []
         self.iridium = []
         self.iridium_next = []
+        self.molniya = []
         self.noaa = []
         self.planet = []
         self.resource = []
@@ -695,6 +696,7 @@ class GUI(object):
         self.readSatsFromFile("TLE/intelsat.txt", self.intelsat)
         self.readSatsFromFile("TLE/iridium.txt", self.iridium)
         self.readSatsFromFile("TLE/iridium-NEXT.txt", self.iridium_next)
+        self.readSatsFromFile("TLE/molniya.txt", self.molniya)
         self.readSatsFromFile("TLE/noaa.txt", self.noaa)
         self.readSatsFromFile("TLE/planet.txt", self.planet)
         self.readSatsFromFile("TLE/resource.txt", self.resource)
@@ -705,9 +707,9 @@ class GUI(object):
         self.readSatsFromFile("TLE/weather.txt", self.weather)
         self.avail_sats = self.argos + self.cubesat + self.dmc + self.goes
         self.avail_sats += self.intelsat + self.iridium + self.iridium_next
-        self.avail_sats += self.noaa + self.planet + self.resource
-        self.avail_sats += self.sarsat + self.spire + self.tdrss
-        self.avail_sats += self.tle_new + self.weather
+        self.avail_sats += self.molniya + self.noaa + self.planet
+        self.avail_sats += self.resource + self.sarsat + self.spire
+        self.avail_sats += self.tdrss + self.tle_new + self.weather
         self.avail_sats.sort()
 
     def showAvailSats(self):
@@ -757,6 +759,8 @@ class GUI(object):
             self.Sats.append(Sat(add_sat, tle=tlefile.read(add_sat, "TLE/iridium.txt"), cat="Iridium"))
         elif (add_sat in self.iridium_next):
             self.Sats.append(Sat(add_sat, tle=tlefile.read(add_sat, "TLE/iridium-NEXT.txt"), cat="Iridium Next"))
+        elif (add_sat in self.molniya):
+            self.Sats.append(Sat(add_sat, tle=tlefile.read(add_sat, "TLE/molniya.txt"), cat="Molniya"))
         elif (add_sat in self.noaa):
             self.Sats.append(Sat(add_sat, tle=tlefile.read(add_sat, "TLE/noaa.txt"), cat="NOAA"))
         elif (add_sat in self.planet):
@@ -831,6 +835,8 @@ class GUI(object):
         tlefile.fetch("TLE/iridium.txt")
         tlefile.TLE_URLS = ("https://celestrak.com/NORAD/elements/iridium-NEXT.txt", )
         tlefile.fetch("TLE/iridium-NEXT.txt")
+        tlefile.TLE_URLS = ("https://celestrak.com/NORAD/elements/molniya.txt", )
+        tlefile.fetch("TLE/molniya.txt")
         tlefile.TLE_URLS = ("https://celestrak.com/NORAD/elements/noaa.txt", )
         tlefile.fetch("TLE/noaa.txt")
         tlefile.TLE_URLS = ("https://celestrak.com/NORAD/elements/planet.txt", )
