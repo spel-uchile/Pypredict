@@ -342,7 +342,7 @@ class GUI(object):
         self.next_day = ttk.Button(self.root, text="▶️▶️|",
                 style = "nextPrev.TLabel", command=self.nextDay)
         self.next_day.grid(row=2, column=4, sticky="NESW")
-        self.dt_lbl = Label(self.root, text="Δt: 0 minutes",
+        self.dt_lbl = Label(self.root, text="Δt: 0 minutes", width=19,
                 font="TkDefaultFont 10 bold", bg=self.bg, fg=self.fg)
         self.dt_lbl.grid(row=3, column=0, columnspan=5)
 
@@ -470,9 +470,9 @@ class GUI(object):
         canvas.draw()
 
     def setTableTitles(self):
-        #self.root.rowconfigure(1, weight=1)
+        self.root.rowconfigure(4, weight=1)
         Label(self.root, text="Satellite", font="TkDefaultFont 10 bold", 
-                bg=self.bg, fg=self.fg, width=18, anchor='w').grid(row=4,
+                bg=self.bg, fg=self.fg, width=19, anchor='w').grid(row=4,
                         column=0, columnspan=5, sticky="W")
         Label(self.root, text="Category", font="TkDefaultFont 10 bold",
                 bg=self.bg, fg=self.fg, width=20, anchor='w').grid(row=4,
@@ -534,7 +534,7 @@ class GUI(object):
             self.theta_lbl.append(Label(self.root, bg=self.bg, fg=self.fg, width=7, anchor='e'))
         self.updateTableContent()
         for i in range(self.top_index, self.bottom_index):
-            self.root.rowconfigure(i+5, weight=1)
+            #self.root.rowconfigure(i+5, weight=1)
             self.rememberRow(i+1)
         self.up_bt = ttk.Button(self.root, text="▲", style = "BW.TLabel", command=self.up)
         self.up_bt.grid(row=5, column=17, rowspan=2, sticky="NESW")
@@ -583,7 +583,7 @@ class GUI(object):
                 self.down_bt.grid(row=8, column=17, rowspan=3, sticky="NESW")
 
     def rememberRow(self, r):
-        self.root.rowconfigure(r+1, weight=1)
+        self.root.rowconfigure(r+4, weight=1)
         self.name_bt[r-1].grid(row=r+4, column=0, columnspan=5, sticky="EW")
         self.cat_lbl[r-1].grid(row=r+4, column=5, sticky="W")
         self.lat_lbl[r-1].grid(row=r+4, column=6)
