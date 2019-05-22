@@ -66,8 +66,8 @@ class GUI(object):
                  "cat_box", "deployer_lbl", "deployer_name_lbl", "dpl",
                  "prog_name_lbl", "version_lbl", "dev_lbl", "contact_lbl",
                  "updtCnt", "warranty_lbl", "details_lbl", "cov_lat",
-                 "cov_lng", "play", "pause", "next", "previous", "dmin",
-                 "dt_lbl", "molniya"]
+                 "cov_lng", "play", "next_min", "next_day", "prev_min",
+                 "prev_day", "dmin", "dt_lbl", "molniya"]
     def __init__(self, Sats):
         self.Sats = Sats
         self.sortSats()
@@ -312,40 +312,39 @@ class GUI(object):
         self.dpl_bt = ttk.Button(self.root, text="Simulate deployment",
                 style = "BW.TLabel", image=self.dpl_img, compound="bottom",
                 command=self.deployPopup)
-        self.dpl_bt.grid(row=0, column=0, columnspan=4, sticky="NESW")
+        self.dpl_bt.grid(row=0, column=0, columnspan=5, sticky="NESW")
         self.tdoa_img = Image("photo", file="img/TDOA.png")
         self.loc_bt = ttk.Button(self.root, text="Simulate localization",
                 style="BW.TLabel", image=self.tdoa_img, compound="bottom",
                 command=self.notAvailable)
-        self.loc_bt.grid(row=1, column=0, columnspan=4, sticky="NESW")
+        self.loc_bt.grid(row=1, column=0, columnspan=5, sticky="NESW")
         self.dpl = Dpl()
 
         s = ttk.Style()
         s.configure('nextPrev.TLabel', font=('TkDefaultFont', 10, 'bold'),
                     foreground=self.fg, background=self.bg, anchor='center')
         s.map("nextPrev.TLabel", background=[("active", self.active_bg)])
-        self.previous = ttk.Button(self.root, text="|◀◀",
+        self.prev_day = ttk.Button(self.root, text="|◀◀",
+                style = "nextPrev.TLabel", command=self.previousDay)
+        self.prev_day.grid(row=2, column=0, sticky="NESW")
+        self.prev_min = ttk.Button(self.root, text="|◀",
                 style = "nextPrev.TLabel", command=self.previousMinute)
-        self.previous.grid(row=2, column=0, sticky="NESW")
-        s = ttk.Style()
-        s.configure('pause.TLabel', font=('TkDefaultFont', 12, 'bold'),
-                    foreground=self.fg, background=self.bg, anchor='center')
-        s.map("pause.TLabel", background=[("active", self.active_bg)])
-        self.pause = ttk.Button(self.root, text="| |",
-                style = "pause.TLabel", command=self.notAvailable)
         s.configure('play.TLabel', font=('TkDefaultFont', 16, 'bold'),
                     foreground=self.fg, background=self.bg, anchor='center')
         s.map("play.TLabel", background=[("active", self.active_bg)])
-        self.pause.grid(row=2, column=1, sticky="NESW")
+        self.prev_min.grid(row=2, column=1, sticky="NESW")
         self.play = ttk.Button(self.root, text="▶️",
                 style = "play.TLabel", command=self.currentMinute)
         self.play.grid(row=2, column=2, sticky="NESW")
-        self.next = ttk.Button(self.root, text="▶️▶️|",
+        self.next_min = ttk.Button(self.root, text="▶️|",
                 style = "nextPrev.TLabel", command=self.nextMinute)
-        self.next.grid(row=2, column=3, sticky="NESW")
+        self.next_min.grid(row=2, column=3, sticky="NESW")
+        self.next_day = ttk.Button(self.root, text="▶️▶️|",
+                style = "nextPrev.TLabel", command=self.nextDay)
+        self.next_day.grid(row=2, column=4, sticky="NESW")
         self.dt_lbl = Label(self.root, text="Δt: 0 minutes",
                 font="TkDefaultFont 10 bold", bg=self.bg, fg=self.fg)
-        self.dt_lbl.grid(row=3, column=0, columnspan=4)
+        self.dt_lbl.grid(row=3, column=0, columnspan=5)
 
     def deployPopup(self):
         self.popup = Tk()
@@ -434,9 +433,13 @@ class GUI(object):
         self.sortSats()
         self.popup.destroy()
 
+    def previousDay(self):
+        self.dmin -= 1440
+        self.format_dt()
+
     def previousMinute(self):
         self.dmin -= 1
-        self.dt_lbl['text'] = "Δt: {:+d} minutes".format(self.dmin)
+        self.format_dt()
 
     def currentMinute(self):
         self.dmin = 0
@@ -444,13 +447,25 @@ class GUI(object):
 
     def nextMinute(self):
         self.dmin += 1
-        self.dt_lbl['text'] = "Δt: {:+d} minutes".format(self.dmin)
+        self.format_dt()
+
+    def nextDay(self):
+        self.dmin += 1440
+        self.format_dt()
+
+    def format_dt(self):
+        if (abs(self.dmin) > 1439):
+            self.dt_lbl['text'] = "Δt: {:+.2f} days".format(self.dmin/1440)
+        elif (abs(self.dmin) > 59):
+            self.dt_lbl['text'] = "Δt: {:+.2f} hours".format(self.dmin/60)
+        else:
+            self.dt_lbl['text'] = "Δt: {:+d} minutes".format(self.dmin)
 
     def setCanvas(self):
         canvas = FigureCanvasTkAgg(self.fig, master=self.root)
         #self.root.rowconfigure(0, weight=1)
         #self.root.columnconfigure(0, weight=1)
-        canvas.get_tk_widget().grid(row=0, column=4, rowspan=4,
+        canvas.get_tk_widget().grid(row=0, column=5, rowspan=4,
                 columnspan=13, sticky="NES")
         canvas.draw()
 
@@ -458,32 +473,32 @@ class GUI(object):
         #self.root.rowconfigure(1, weight=1)
         Label(self.root, text="Satellite", font="TkDefaultFont 10 bold", 
                 bg=self.bg, fg=self.fg, width=18, anchor='w').grid(row=4,
-                        column=0, columnspan=4, sticky="W")
+                        column=0, columnspan=5, sticky="W")
         Label(self.root, text="Category", font="TkDefaultFont 10 bold",
                 bg=self.bg, fg=self.fg, width=20, anchor='w').grid(row=4,
-                        column=4, sticky="W")
+                        column=5, sticky="W")
         Label(self.root, text="Latitude", font="TkDefaultFont 10 bold",
-                bg=self.bg, fg=self.fg).grid(row=4, column=5)
-        Label(self.root, text="Longitude", font="TkDefaultFont 10 bold",
                 bg=self.bg, fg=self.fg).grid(row=4, column=6)
-        Label(self.root, text="Alt. [km]", font="TkDefaultFont 10 bold",
+        Label(self.root, text="Longitude", font="TkDefaultFont 10 bold",
                 bg=self.bg, fg=self.fg).grid(row=4, column=7)
-        Label(self.root, text="Spd. [m/s]", font="TkDefaultFont 10 bold",
+        Label(self.root, text="Alt. [km]", font="TkDefaultFont 10 bold",
                 bg=self.bg, fg=self.fg).grid(row=4, column=8)
-        Label(self.root, text="a [km]", font="TkDefaultFont 10 bold",
+        Label(self.root, text="Spd. [m/s]", font="TkDefaultFont 10 bold",
                 bg=self.bg, fg=self.fg).grid(row=4, column=9)
-        Label(self.root, text="h [km²/s]", font="TkDefaultFont 10 bold",
+        Label(self.root, text="a [km]", font="TkDefaultFont 10 bold",
                 bg=self.bg, fg=self.fg).grid(row=4, column=10)
-        Label(self.root, text="e", font="TkDefaultFont 10 bold",
+        Label(self.root, text="h [km²/s]", font="TkDefaultFont 10 bold",
                 bg=self.bg, fg=self.fg).grid(row=4, column=11)
-        Label(self.root, text="Ω", font="TkDefaultFont 10 bold",
+        Label(self.root, text="e", font="TkDefaultFont 10 bold",
                 bg=self.bg, fg=self.fg).grid(row=4, column=12)
-        Label(self.root, text="i", font="TkDefaultFont 10 bold",
+        Label(self.root, text="Ω", font="TkDefaultFont 10 bold",
                 bg=self.bg, fg=self.fg).grid(row=4, column=13)
-        Label(self.root, text="ω", font="TkDefaultFont 10 bold",
+        Label(self.root, text="i", font="TkDefaultFont 10 bold",
                 bg=self.bg, fg=self.fg).grid(row=4, column=14)
-        Label(self.root, text="T. Anom.", font="TkDefaultFont 10 bold",
+        Label(self.root, text="ω", font="TkDefaultFont 10 bold",
                 bg=self.bg, fg=self.fg).grid(row=4, column=15)
+        Label(self.root, text="T. Anom.", font="TkDefaultFont 10 bold",
+                bg=self.bg, fg=self.fg).grid(row=4, column=16)
 
     def setTableContent(self):
         self.name_bt = []
@@ -501,7 +516,7 @@ class GUI(object):
         self.theta_lbl = []
         self.top_index = 0
         self.bottom_index = 4*(len(self.Sats) > 4) + len(self.Sats)*(len(self.Sats) <= 4)
-        for i in range(0, 16):
+        for i in range(0, 17):
             self.root.columnconfigure(i, weight=1)
         for i in range(0, 6):
             self.name_bt.append(ttk.Button(self.root, style = "BW.TLabel"))
@@ -522,9 +537,9 @@ class GUI(object):
             self.root.rowconfigure(i+5, weight=1)
             self.rememberRow(i+1)
         self.up_bt = ttk.Button(self.root, text="▲", style = "BW.TLabel", command=self.up)
-        self.up_bt.grid(row=5, column=16, rowspan=2, sticky="NESW")
+        self.up_bt.grid(row=5, column=17, rowspan=2, sticky="NESW")
         self.down_bt = ttk.Button(self.root, text="▼", style = "BW.TLabel", command=self.down)
-        self.down_bt.grid(row=7, column=16, rowspan=2, sticky="NESW")
+        self.down_bt.grid(row=7, column=17, rowspan=2, sticky="NESW")
         self.forgetLastRows()
 
     def updateTableContent(self):
@@ -564,30 +579,30 @@ class GUI(object):
             if (len(self.Sats) >= 6):
                 self.bottom_index = 6
                 self.rememberRow(self.bottom_index)
-                self.up_bt.grid(row=5, column=16, rowspan=3, sticky="NESW")
-                self.down_bt.grid(row=8, column=16, rowspan=3, sticky="NESW")
+                self.up_bt.grid(row=5, column=17, rowspan=3, sticky="NESW")
+                self.down_bt.grid(row=8, column=17, rowspan=3, sticky="NESW")
 
     def rememberRow(self, r):
         self.root.rowconfigure(r+1, weight=1)
-        self.name_bt[r-1].grid(row=r+4, column=0, columnspan=4, sticky="EW")
-        self.cat_lbl[r-1].grid(row=r+4, column=4, sticky="W")
-        self.lat_lbl[r-1].grid(row=r+4, column=5)
-        self.lng_lbl[r-1].grid(row=r+4, column=6)
-        self.alt_lbl[r-1].grid(row=r+4, column=7)
-        self.spd_lbl[r-1].grid(row=r+4, column=8)
-        self.a_lbl[r-1].grid(row=r+4, column=9)
-        self.h_lbl[r-1].grid(row=r+4, column=10)
-        self.e_lbl[r-1].grid(row=r+4, column=11)
-        self.raan_lbl[r-1].grid(row=r+4, column=12)
-        self.i_lbl[r-1].grid(row=r+4, column=13)
-        self.w_lbl[r-1].grid(row=r+4, column=14)
-        self.theta_lbl[r-1].grid(row=r+4, column=15)
+        self.name_bt[r-1].grid(row=r+4, column=0, columnspan=5, sticky="EW")
+        self.cat_lbl[r-1].grid(row=r+4, column=5, sticky="W")
+        self.lat_lbl[r-1].grid(row=r+4, column=6)
+        self.lng_lbl[r-1].grid(row=r+4, column=7)
+        self.alt_lbl[r-1].grid(row=r+4, column=8)
+        self.spd_lbl[r-1].grid(row=r+4, column=9)
+        self.a_lbl[r-1].grid(row=r+4, column=10)
+        self.h_lbl[r-1].grid(row=r+4, column=11)
+        self.e_lbl[r-1].grid(row=r+4, column=12)
+        self.raan_lbl[r-1].grid(row=r+4, column=13)
+        self.i_lbl[r-1].grid(row=r+4, column=14)
+        self.w_lbl[r-1].grid(row=r+4, column=15)
+        self.theta_lbl[r-1].grid(row=r+4, column=16)
 
     def forgetLastRows(self):
         self.top_index = 0
         self.bottom_index = 4*(len(self.Sats) > 4) + len(self.Sats)*(len(self.Sats) <= 4)
-        self.up_bt.grid(row=5, column=16, rowspan=2, sticky="NESW")
-        self.down_bt.grid(row=7, column=16, rowspan=2, sticky="NESW")
+        self.up_bt.grid(row=5, column=17, rowspan=2, sticky="NESW")
+        self.down_bt.grid(row=7, column=17, rowspan=2, sticky="NESW")
         if (len(self.Sats) > 4):
             self.forgetRow(self.bottom_index)
             if (len(self.Sats) >= 6):
