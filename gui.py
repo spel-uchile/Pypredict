@@ -1,4 +1,4 @@
-'''
+"""
                                 Pypredict
     Orbit prediction software. Displays the satellites' position and
     orbital parameters in real time. Simulates satellite localization
@@ -19,7 +19,7 @@
 
     You should have received a copy of the GNU General Public License
     along with this program. If not, see <https://www.gnu.org/licenses/>.
-'''
+"""
 __version__ = "2.2.0"
 
 from cartopy.crs import Geodetic, PlateCarree, RotatedPole
@@ -67,7 +67,7 @@ class GUI(object):
                  "prog_name_lbl", "version_lbl", "dev_lbl", "contact_lbl",
                  "updtCnt", "warranty_lbl", "details_lbl", "cov_lat",
                  "cov_lng", "play", "next_min", "next_day", "prev_min",
-                 "prev_day", "dmin", "dt_lbl", "molniya"]
+                 "prev_day", "dmin", "dt_lbl", "molniya", "canvas"]
     def __init__(self, Sats):
         self.Sats = Sats
         self.sortSats()
@@ -177,7 +177,7 @@ class GUI(object):
         self.ax_dark_side.set_transform(rotated_pole)
         self.ax_dark_side.set_alpha(self.night_alpha)
 
-    def plotData(self):
+    def plotData(self, init=True):
         screen_height = self.root.winfo_screenheight()
         if (screen_height < 1080):
             self.fig, self.ax = subplots(figsize=(12, 6),
@@ -192,10 +192,15 @@ class GUI(object):
         #self.map = self.ax.imshow(imread("img/earth_nasa_day.png"), origin='upper',
         #               extent=img_extent, transform=PlateCarree())
         date = datetime.utcnow() + timedelta(minutes=self.dmin)
-        self.map = self.ax.imshow(self.world_map.fillDarkSideFromPicture(date),
+        if (init):
+            self.map = self.ax.imshow(self.world_map.fillDarkSideFromPicture(date),
                 origin='upper', extent=img_extent, transform=PlateCarree())
-        self.gridAndFormat()
-        tight_layout(pad=-0.26)
+            self.gridAndFormat()
+            tight_layout(pad=-0.26)
+        else:
+            self.map.set_data(self.world_map.fillDarkSideFromPicture(date))
+        #self.gridAndFormat()
+        #tight_layout(pad=-0.26)
 
     def gridAndFormat(self):
         gl = self.ax.gridlines(crs=PlateCarree(), draw_labels=True,
@@ -462,12 +467,12 @@ class GUI(object):
             self.dt_lbl['text'] = "Δt: {:+d} minutes".format(self.dmin)
 
     def setCanvas(self):
-        canvas = FigureCanvasTkAgg(self.fig, master=self.root)
+        self.canvas = FigureCanvasTkAgg(self.fig, master=self.root)
         #self.root.rowconfigure(0, weight=1)
         #self.root.columnconfigure(0, weight=1)
-        canvas.get_tk_widget().grid(row=0, column=5, rowspan=4,
+        self.canvas.get_tk_widget().grid(row=0, column=5, rowspan=4,
                 columnspan=13, sticky="NES")
-        canvas.draw()
+        self.canvas.draw()
 
     def setTableTitles(self):
         self.root.rowconfigure(4, weight=1)
@@ -873,12 +878,14 @@ class GUI(object):
 
     def refreshBackgroundImg(self, img=None):
         self.ax.clear()
-        self.plotData()
+        #self.ax.cla()
+        self.plotData(init=True)
         self.setCanvas()
-        if (img is None):
-            date = datetime.utcnow() + timedelta(minutes=self.dmin)
-            self.map.set_data(self.world_map.fillDarkSideFromPicture(date))
-        else:
+        #img_extent = (-180, 180, -90, 90)
+        #date = datetime.utcnow() + timedelta(minutes=self.dmin)
+        #self.map.set_data(self.world_map.fillDarkSideFromPicture(date))
+        #self.canvas.draw()
+        if (img is not None):
             self.map.set_data(imread(img))
         self.ani._stop()
         self.ani._blit_clear(self.ani._drawn_artists, self.ani._blit_cache)
