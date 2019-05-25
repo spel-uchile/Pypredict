@@ -763,37 +763,37 @@ class GUI(object):
         self.sat_txt.append(self.ax.text([], [], "", color='yellow', size=8,
                             transform=Geodetic(), ha="center"))
         if (add_sat in self.argos):
-            self.Sats.append(Sat(add_sat, tle=tlefile.read(add_sat, "TLE/argos.txt"), cat="Argos Data Collection System"))
+            self.createSatFromFile(add_sat, "TLE/argos.txt", "Argos Data Collection System")
         elif (add_sat in self.cubesat):
-            self.Sats.append(Sat(add_sat, tle=tlefile.read(add_sat, "TLE/cubesat.txt"), cat="CubeSat"))
+            self.createSatFromFile(add_sat, "TLE/cubesat.txt", "CubeSat")
         elif (add_sat in self.dmc):
-            self.Sats.append(Sat(add_sat, tle=tlefile.read(add_sat, "TLE/dmc.txt"), cat="Disaster Monitoring"))
+            self.createSatFromFile(add_sat, "TLE/dmc.txt", "Disaster Monitoring")
         elif (add_sat in self.goes):
-            self.Sats.append(Sat(add_sat, tle=tlefile.read(add_sat, "TLE/goes.txt"), cat="GOES"))
+            self.createSatFromFile(add_sat, "TLE/goes.txt", "GOES")
         elif (add_sat in self.intelsat):
-            self.Sats.append(Sat(add_sat, tle=tlefile.read(add_sat, "TLE/intelsat.txt"), cat="Intelsat"))
+            self.createSatFromFile(add_sat, "TLE/intelsat.txt", "Intelsat")
         elif (add_sat in self.iridium):
-            self.Sats.append(Sat(add_sat, tle=tlefile.read(add_sat, "TLE/iridium.txt"), cat="Iridium"))
+            self.createSatFromFile(add_sat, "TLE/iridium.txt", "Iridium")
         elif (add_sat in self.iridium_next):
-            self.Sats.append(Sat(add_sat, tle=tlefile.read(add_sat, "TLE/iridium-NEXT.txt"), cat="Iridium Next"))
+            self.createSatFromFile(add_sat, "TLE/iridium-NEXT.txt", "Iridium Next")
         elif (add_sat in self.molniya):
-            self.Sats.append(Sat(add_sat, tle=tlefile.read(add_sat, "TLE/molniya.txt"), cat="Molniya"))
+            self.createSatFromFile(add_sat, "TLE/molniya.txt", "Molniya")
         elif (add_sat in self.noaa):
-            self.Sats.append(Sat(add_sat, tle=tlefile.read(add_sat, "TLE/noaa.txt"), cat="NOAA"))
+            self.createSatFromFile(add_sat, "TLE/noaa.txt", "NOAA")
         elif (add_sat in self.planet):
-            self.Sats.append(Sat(add_sat, tle=tlefile.read(add_sat, "TLE/planet.txt"), cat="Planet"))
+            self.createSatFromFile(add_sat, "TLE/planet.txt", "Planet")
         elif (add_sat in self.resource):
-            self.Sats.append(Sat(add_sat, tle=tlefile.read(add_sat, "TLE/resource.txt"), cat="Earth Resources"))
+            self.createSatFromFile(add_sat, "TLE/resource.txt", "Earth Resources")
         elif (add_sat in self.sarsat):
-            self.Sats.append(Sat(add_sat, tle=tlefile.read(add_sat, "TLE/sarsat.txt"), cat="Search & Rescue"))
+            self.createSatFromFile(add_sat, "TLE/sarsat.txt", "Search & Rescue")
         elif (add_sat in self.spire):
-            self.Sats.append(Sat(add_sat, tle=tlefile.read(add_sat, "TLE/spire.txt"), cat="Spire"))
+            self.createSatFromFile(add_sat, "TLE/spire.txt", "Spire")
         elif (add_sat in self.tdrss):
-            self.Sats.append(Sat(add_sat, tle=tlefile.read(add_sat, "TLE/tdrss.txt"), cat="Tracking and Data Relay"))
+            self.createSatFromFile(add_sat, "TLE/tdrss.txt", "Tracking and Data Relay")
         elif (add_sat in self.tle_new):
-            self.Sats.append(Sat(add_sat, tle=tlefile.read(add_sat, "TLE/tle-new.txt"), cat="Last 30 Days' Launches"))
+            self.createSatFromFile(add_sat, "TLE/tle-new.txt", "Last 30 Days' Launches")
         elif (add_sat in self.weather):
-            self.Sats.append(Sat(add_sat, tle=tlefile.read(add_sat, "TLE/weather.txt"), cat="Weather"))
+            self.createSatFromFile(add_sat, "TLE/weather.txt", "Weather")
         else:
             self.Sats.append(Sat(add_sat, tle=tlefile.read(add_sat)))
         self.curr_sats_lst.insert(END, add_sat)
@@ -802,7 +802,9 @@ class GUI(object):
         for i, sat in enumerate(self.Sats):
             self.curr_sats_lst.delete(i)
             self.curr_sats_lst.insert(i, sat.name)
-        
+
+    def createSatFromFile(self, sat_name, file_name, category):
+        self.Sats.append(Sat(sat_name, tle=tlefile.read(sat_name, file_name), cat=category))
 
     def removeSat(self):
         del_sat = self.curr_sats_lst.get(self.curr_sats_lst.curselection())
