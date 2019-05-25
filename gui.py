@@ -205,7 +205,8 @@ class GUI(object):
     def gridAndFormat(self):
         gl = self.ax.gridlines(crs=PlateCarree(), draw_labels=True,
                                linewidth=1, color='gray', alpha=0.5, linestyle='-')
-        gl.xlabels_top = False
+        gl.xlabels_top = True
+        gl.xlabels_bottom = False
         gl.ylabels_right = False
         gl.ylabels_left = True
         gl.xlines = True
@@ -213,7 +214,7 @@ class GUI(object):
         gl.ylocator = FixedLocator([-90, -60, -30, 0, 30, 60, 90])
         gl.xformatter = LONGITUDE_FORMATTER
         gl.yformatter = LATITUDE_FORMATTER
-        gl.xlabel_style = {'size': 9, 'color': 'black'}
+        gl.xlabel_style = {'size': 9, 'color': 'white'}
         gl.ylabel_style = {'size': 9, 'color': 'white'}
         gl.xpadding = -10
         gl.ypadding = -25
@@ -347,7 +348,7 @@ class GUI(object):
         self.next_day = ttk.Button(self.root, text="▶️▶️|",
                 style = "nextPrev.TLabel", command=self.nextDay)
         self.next_day.grid(row=2, column=4, sticky="NESW")
-        self.dt_lbl = Label(self.root, text="Δt: 0 minutes", width=19,
+        self.dt_lbl = Label(self.root, text="Δt: 0", width=19,
                 font="TkDefaultFont 10 bold", bg=self.bg, fg=self.fg)
         self.dt_lbl.grid(row=3, column=0, columnspan=5)
 
@@ -448,7 +449,7 @@ class GUI(object):
 
     def currentMinute(self):
         self.dmin = 0
-        self.dt_lbl['text'] = "Δt: 0 minutes".format(self.dmin)
+        self.format_dt()
 
     def nextMinute(self):
         self.dmin += 1
@@ -459,12 +460,9 @@ class GUI(object):
         self.format_dt()
 
     def format_dt(self):
-        if (abs(self.dmin) > 1439):
-            self.dt_lbl['text'] = "Δt: {:+.2f} days".format(self.dmin/1440)
-        elif (abs(self.dmin) > 59):
-            self.dt_lbl['text'] = "Δt: {:+.2f} hours".format(self.dmin/60)
-        else:
-            self.dt_lbl['text'] = "Δt: {:+d} minutes".format(self.dmin)
+        date = datetime.utcnow() + timedelta(minutes=self.dmin)
+        self.dt_lbl['text'] = "{}/{}/{} {}:{}:{}".format(date.day, date.month, date.year,
+                                                         date.hour, date.minute, date.second)
 
     def setCanvas(self):
         self.canvas = FigureCanvasTkAgg(self.fig, master=self.root)
@@ -554,9 +552,9 @@ class GUI(object):
             self.refreshBackgroundImg()
             self.updtCnt = 0
         date = datetime.utcnow() + timedelta(minutes=self.dmin)
+        self.dt_lbl['text'] = "{}/{}/{} {}:{}:{}".format(date.day, date.month, date.year,
+                                                         date.hour, date.minute, date.second)
         for Sat in self.Sats:
-            #Sat.updateWithDragEffect()
-            #Sat.updateOrbitalParameters2()
             Sat.updateOrbitalParameters3(date)
         i = 0
         for Sat in self.Sats[self.top_index:self.bottom_index]:
