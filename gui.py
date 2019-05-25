@@ -294,6 +294,12 @@ class GUI(object):
         style = ttk.Style()
         style.configure("BW.TLabel", foreground=self.fg, background=self.bg)
         style.map("BW.TLabel", background=[("active", self.active_bg)])
+        style.configure('play.TLabel', font=('TkDefaultFont', 16, 'bold'),
+                    foreground=self.fg, background=self.bg, anchor='center')
+        style.map("play.TLabel", background=[("active", self.active_bg)])
+        style.configure('nextPrev.TLabel', font=('TkDefaultFont', 10, 'bold'),
+                    foreground=self.fg, background=self.bg, anchor='center')
+        style.map("nextPrev.TLabel", background=[("active", self.active_bg)])
         self.night_alpha = 0#0.7
         self.cov_alpha = 0.2
 
@@ -316,28 +322,21 @@ class GUI(object):
     def setButtons(self):
         self.dpl_img = Image("photo", file="img/deploy.png")
         self.dpl_bt = ttk.Button(self.root, text="Simulate deployment",
-                style = "BW.TLabel", image=self.dpl_img, compound="bottom",
+                style = "nextPrev.TLabel", image=self.dpl_img, compound="bottom",
                 command=self.deployPopup)
         self.dpl_bt.grid(row=0, column=0, columnspan=5, sticky="NESW")
         self.tdoa_img = Image("photo", file="img/TDOA.png")
         self.loc_bt = ttk.Button(self.root, text="Simulate localization",
-                style="BW.TLabel", image=self.tdoa_img, compound="bottom",
+                style="nextPrev.TLabel", image=self.tdoa_img, compound="bottom",
                 command=self.notAvailable)
         self.loc_bt.grid(row=1, column=0, columnspan=5, sticky="NESW")
         self.dpl = Dpl()
 
-        s = ttk.Style()
-        s.configure('nextPrev.TLabel', font=('TkDefaultFont', 10, 'bold'),
-                    foreground=self.fg, background=self.bg, anchor='center')
-        s.map("nextPrev.TLabel", background=[("active", self.active_bg)])
         self.prev_day = ttk.Button(self.root, text="|◀◀",
                 style = "nextPrev.TLabel", command=self.previousDay)
         self.prev_day.grid(row=2, column=0, sticky="NESW")
         self.prev_min = ttk.Button(self.root, text="|◀",
                 style = "nextPrev.TLabel", command=self.previousMinute)
-        s.configure('play.TLabel', font=('TkDefaultFont', 16, 'bold'),
-                    foreground=self.fg, background=self.bg, anchor='center')
-        s.map("play.TLabel", background=[("active", self.active_bg)])
         self.prev_min.grid(row=2, column=1, sticky="NESW")
         self.play = ttk.Button(self.root, text="▶️",
                 style = "play.TLabel", command=self.currentMinute)
