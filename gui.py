@@ -67,7 +67,7 @@ class GUI(object):
                  "prog_name_lbl", "version_lbl", "dev_lbl", "contact_lbl",
                  "updtCnt", "warranty_lbl", "details_lbl", "cov_lat",
                  "cov_lng", "play", "next_min", "next_day", "prev_min",
-                 "prev_day", "dmin", "dt_lbl", "molniya", "canvas"]
+                 "prev_day", "dmin", "dt_box", "molniya", "canvas", "date"]
     def __init__(self, Sats):
         self.Sats = Sats
         self.sortSats()
@@ -99,6 +99,7 @@ class GUI(object):
                             interval=self.dt, blit=True, repeat=False)
         self.root.bind("<F11>", self.fullscreen)
         self.root.bind("<Escape>", self.exitFullscreen)
+        self.root.bind("<Return>", self.changeDate)
         self.run()
 
     def __call__(self):
@@ -191,14 +192,14 @@ class GUI(object):
         img_extent = (-180, 180, -90, 90)
         #self.map = self.ax.imshow(imread("img/earth_nasa_day.png"), origin='upper',
         #               extent=img_extent, transform=PlateCarree())
-        date = datetime.utcnow() + timedelta(minutes=self.dmin)
+        self.date = datetime.utcnow() + timedelta(minutes=self.dmin)
         if (init):
-            self.map = self.ax.imshow(self.world_map.fillDarkSideFromPicture(date),
+            self.map = self.ax.imshow(self.world_map.fillDarkSideFromPicture(self.date),
                 origin='upper', extent=img_extent, transform=PlateCarree())
             self.gridAndFormat()
             tight_layout(pad=-0.26)
         else:
-            self.map.set_data(self.world_map.fillDarkSideFromPicture(date))
+            self.map.set_data(self.world_map.fillDarkSideFromPicture(self.date))
         #self.gridAndFormat()
         #tight_layout(pad=-0.26)
 
@@ -243,9 +244,8 @@ class GUI(object):
             sats_lats[:] = []
             sats_angs[:] = []
             sats_names[:] = []
-            date = datetime.utcnow() + timedelta(minutes=self.dmin)
             for Sat in self.Sats:
-                sats_lngs.append(Sat.getLng(date=date))
+                sats_lngs.append(Sat.getLng(date=self.date))
                 sats_lats.append(Sat.getLat())
                 sats_angs.append(Sat.getCoverage())
                 sats_names.append(Sat.name)
@@ -347,9 +347,10 @@ class GUI(object):
         self.next_day = ttk.Button(self.root, text="▶️▶️|",
                 style = "nextPrev.TLabel", command=self.nextDay)
         self.next_day.grid(row=2, column=4, sticky="NESW")
-        self.dt_lbl = Label(self.root, text="Δt: 0", width=19,
-                font="TkDefaultFont 10 bold", bg=self.bg, fg=self.fg)
-        self.dt_lbl.grid(row=3, column=0, columnspan=5)
+        self.dt_box = Entry(self.root)#, bg=self.bg, fg=self.fg)
+        self.dt_box.configure({"background": self.bg})
+        self.dt_box.configure({"foreground": self.fg})
+        self.dt_box.grid(row=3, column=0, columnspan=5)
 
     def deployPopup(self):
         self.popup = Tk()
@@ -427,9 +428,8 @@ class GUI(object):
             if (sat.name == deployer_name):
                 deployer = sat
                 break
-        date = datetime.utcnow() + timedelta(minutes=self.dmin)
         newSat = self.dpl.deploy(cat, deployer, dplyr_mass,
-                dplyd_mass, name, [spdx, spdy, spdz], date=date)
+                dplyd_mass, name, [spdx, spdy, spdz], date=self.date)
         self.ax_cov.append(self.ax.fill([0,0], [0,0], transform=Geodetic(),
                            color='white', alpha=self.cov_alpha)[0])
         self.sat_txt.append(self.ax.text([], [], "", color='yellow', size=8,
@@ -459,9 +459,15 @@ class GUI(object):
         self.format_dt()
 
     def format_dt(self):
-        date = datetime.utcnow() + timedelta(minutes=self.dmin)
-        self.dt_lbl['text'] = "{}/{}/{} {}:{}:{}".format(date.day, date.month, date.year,
-                                                         date.hour, date.minute, date.second)
+        self.date = datetime.utcnow() + timedelta(minutes=self.dmin)
+        self.dt_box.delete(0, END)
+        self.dt_box.insert(0, self.date.strftime("%d %b %Y, %H:%M:%S"))
+
+    def changeDate(self, event):
+        date = datetime.strptime(self.dt_box.get(), "%d %b %Y, %H:%M:%S")
+        self.dmin += (date - self.date).total_seconds()/60.0
+        self.date = datetime.utcnow() + timedelta(minutes=self.dmin)
+        
 
     def setCanvas(self):
         self.canvas = FigureCanvasTkAgg(self.fig, master=self.root)
@@ -550,18 +556,17 @@ class GUI(object):
         if (self.updtCnt > 120):
             self.refreshBackgroundImg()
             self.updtCnt = 0
-        date = datetime.utcnow() + timedelta(minutes=self.dmin)
-        self.dt_lbl['text'] = "{}/{}/{} {}:{}:{}".format(date.day, date.month, date.year,
-                                                         date.hour, date.minute, date.second)
+        if (self.root.focus_get() is not self.dt_box):
+            self.format_dt()
         for Sat in self.Sats:
-            Sat.updateOrbitalParameters3(date)
+            Sat.updateOrbitalParameters3(self.date)
         i = 0
         for Sat in self.Sats[self.top_index:self.bottom_index]:
             self.name_bt[i]['text'] = Sat.name
             self.name_bt[i]['command'] = lambda Sat=Sat: self.changeMainSat(Sat)
             self.cat_lbl[i]['text'] = Sat.getCategory()
             self.lat_lbl[i]['text'] = "{:0.4f}{}".format(Sat.getLat(), "°")
-            self.lng_lbl[i]['text'] = "{:0.4f}{}".format(Sat.getLng(date=date), "°")
+            self.lng_lbl[i]['text'] = "{:0.4f}{}".format(Sat.getLng(date=self.date), "°")
             self.alt_lbl[i]['text'] = "{:0.1f}".format((Sat.getAlt()*0.001))
             self.spd_lbl[i]['text'] = "{}".format(int(Sat.getSpeed()))
             self.a_lbl[i]['text'] = "{:0.1f}".format((Sat.getSemiMajorAxis()*0.001))
@@ -804,7 +809,9 @@ class GUI(object):
             self.curr_sats_lst.insert(i, sat.name)
 
     def createSatFromFile(self, sat_name, file_name, category):
-        self.Sats.append(Sat(sat_name, tle=tlefile.read(sat_name, file_name), cat=category))
+        newSat = Sat(sat_name, tle=tlefile.read(sat_name, file_name), cat=category)
+        newSat.updateOrbitalParameters3(self.date)
+        self.Sats.append(newSat)
 
     def removeSat(self):
         del_sat = self.curr_sats_lst.get(self.curr_sats_lst.curselection())
@@ -882,7 +889,7 @@ class GUI(object):
         self.setCanvas()
         #img_extent = (-180, 180, -90, 90)
         #date = datetime.utcnow() + timedelta(minutes=self.dmin)
-        #self.map.set_data(self.world_map.fillDarkSideFromPicture(date))
+        #self.map.set_data(self.world_map.fillDarkSideFromPicture(self.date))
         #self.canvas.draw()
         if (img is not None):
             self.map.set_data(imread(img))
