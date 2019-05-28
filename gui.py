@@ -556,7 +556,10 @@ class GUI(object):
         if (self.updtCnt > 120):
             self.refreshBackgroundImg()
             self.updtCnt = 0
-        if (self.root.focus_get() is not self.dt_box):
+        try:
+            if (self.root.focus_get() is not self.dt_box):
+                self.format_dt()
+        except KeyError:
             self.format_dt()
         for Sat in self.Sats:
             Sat.updateOrbitalParameters3(self.date)
