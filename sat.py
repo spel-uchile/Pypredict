@@ -315,7 +315,8 @@ class Sat(Node):
         date : datetime.utcnow()
             Current date
         """
-        return date.hour*3600 + date.minute*60 + date.second
+        seconds = date.hour*3600 + date.minute*60 + date.second
+        return seconds + date.microsecond*0.000001
 
     def month2days(self, month):
         """
