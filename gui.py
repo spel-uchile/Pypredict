@@ -38,6 +38,7 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from sat import Sat
 from warnings import filterwarnings
 import ssl
+from SAA import SAA
 
 filterwarnings("ignore", category=RuntimeWarning)
 ssl._create_default_https_context = ssl._create_unverified_context
@@ -45,9 +46,9 @@ ssl._create_default_https_context = ssl._create_unverified_context
 class GUI(object):
     #@profile
     __slots__ = ["Sats", "root", "img", "mainSat", "dt", "mainSat_lats",
-                 "mainSat_lngs", "ax_dark_side", "fig", "ax", "ax_tray",
+                 "mainSat_lngs", "ax_saa", "fig", "ax", "ax_tray",
                  "ax_sat", "ax_cov", "sat_txt", "bg", "fg", "active_bg",
-                 "night_alpha", "cov_alpha", "top_index", "bottom_index",
+                 "saa_alpha", "cov_alpha", "top_index", "bottom_index",
                  "name_bt", "cat_lbl", "lat_lbl", "lng_lbl", "alt_lbl",
                  "a_lbl", "e_lbl", "raan_lbl", "i_lbl", "w_lbl",
                  "theta_lbl", "h_lbl", "up_bt", "down_bt", "popup",
@@ -67,7 +68,8 @@ class GUI(object):
                  "prog_name_lbl", "version_lbl", "dev_lbl", "contact_lbl",
                  "updtCnt", "warranty_lbl", "details_lbl", "cov_lat",
                  "cov_lng", "play", "next_min", "next_day", "prev_min",
-                 "prev_day", "dmin", "dt_box", "molniya", "canvas", "date"]
+                 "prev_day", "dmin", "dt_box", "molniya", "canvas",
+                 "saa", "date"]
     def __init__(self, Sats):
         self.Sats = Sats
         self.sortSats()
@@ -78,6 +80,7 @@ class GUI(object):
         self.root.title('Pypredict')
         self.setTheme('#404040', 'white', '#303030')
         self.root.protocol("WM_DELETE_WINDOW", exit)
+        self.saa = SAA()
         self.mainSat = self.Sats[0]
         T = int(self.mainSat.getPeriod()*3)      # Total duration in seconds
         self.dt = 1000                           # Step length in miliseconds
@@ -105,78 +108,12 @@ class GUI(object):
     def __call__(self):
         return self
 
-    def sun_pos(self, dt=None):
-        """This function computes a rough estimate of the coordinates for
-        the point on the surface of the Earth where the Sun is directly
-        overhead at the time dt. Precision is down to a few degrees. This
-        means that the equinoxes (when the sign of the latitude changes)
-        will be off by a few days.
-
-        The function is intended only for visualization. For more precise
-        calculations consider for example the PyEphem package.
-
-        Parameters
-        ----------
-            dt: datetime
-                Defaults to datetime.utcnow()
-
-        Returns
-        -------
-            lat, lng: tuple of floats
-                Approximate coordinates of the point where the sun is
-                in zenith at the time dt.
+    def fillSAA(self):
         """
-        if dt is None:
-            dt = datetime.utcnow()
-
-        axial_tilt = 23.4
-        ref_solstice = datetime(2016, 6, 21, 22, 22)
-        days_per_year = 365.2425
-        seconds_per_day = 24*3600.0
-
-        days_since_ref = (dt - ref_solstice).total_seconds()/seconds_per_day
-        lat = axial_tilt*cos(2*pi*days_since_ref/days_per_year)
-        sec_since_midnight = (dt - datetime(dt.year, dt.month, dt.day)).seconds
-        lng = -(sec_since_midnight/seconds_per_day - 0.5)*360
-        return lat, lng
-
-    def fill_dark_side(self, time=None):
+        Plot a fill on the south atlantic anomaly (3 sigma).
         """
-        Plot a fill on the dark side of the planet (without refraction).
-
-        Parameters
-        ----------
-            ax : matplotlib axes
-                The axes to plot on.
-            time : datetime
-                The time to calculate terminator for. Defaults to datetime.utcnow()
-            **kwargs :
-                Passed on to Matplotlib's ax.fill()
-
-        """
-        lat, lng = self.sun_pos(time)
-        pole_lng = lng
-        if lat > 0:
-            pole_lat = -90 + lat
-            central_rot_lng = 180
-        else:
-            pole_lat = 90 + lat
-            central_rot_lng = 0
-
-        rotated_pole = RotatedPole(pole_latitude=pole_lat,
-                                   pole_longitude=pole_lng,
-                                   central_rotated_longitude=central_rot_lng)
-
-        x = empty(360)
-        y = empty(360)
-        x[:180] = -90
-        y[:180] = arange(-90, 90.)
-        x[180:] = 90
-        y[180:] = arange(90, -90., -1)
-
-        self.ax_dark_side.set_xy(array((x,y)).transpose())
-        self.ax_dark_side.set_transform(rotated_pole)
-        self.ax_dark_side.set_alpha(self.night_alpha)
+        self.ax_saa.set_xy(self.saa.vertices)
+        self.ax_saa.set_alpha(self.saa_alpha)
 
     def plotData(self, init=True):
         screen_height = self.root.winfo_screenheight()
@@ -222,8 +159,8 @@ class GUI(object):
         return gl
 
     def data_gen(self):
-        self.ax_dark_side, = self.ax.fill([0,0], [0,0], color='black',
-                                          alpha=self.night_alpha)
+        self.ax_saa, = self.ax.fill([0,0], [0,0], color='green',
+                                          alpha=self.saa_alpha)
         self.ax_tray, = self.ax.plot([], [], color='green',
                                      linewidth=1.5, linestyle='--',
                                      transform=Geodetic())
@@ -253,7 +190,7 @@ class GUI(object):
     #@profile
     def update(self, data):
         sats_lngs, sats_lats, sats_angs, sats_names, = data
-        self.fill_dark_side()
+        self.fillSAA()
         self.ax_tray.set_data(self.mainSat_lngs, self.mainSat_lats)
         self.ax_sat.set_data(sats_lngs, sats_lats)
         for i in range(0, len(self.Sats)):
@@ -262,7 +199,7 @@ class GUI(object):
             self.sat_txt[i].set_position(array((lng, lat)))
             self.sat_txt[i].set_text(sats_names[i])
             self.plotCoverage(sats_angs[i], sats_lats[i], sats_lngs[i], i)
-        return [self.ax_dark_side] + [self.ax_tray] + [self.ax_sat] + self.sat_txt + self.ax_cov
+        return [self.ax_saa] + [self.ax_tray] + [self.ax_sat] + self.sat_txt + self.ax_cov
 
     def plotCoverage(self, ang, sat_lat, sat_lng, n):
         deg2rad = pi/180
@@ -300,7 +237,7 @@ class GUI(object):
         style.configure('nextPrev.TLabel', font=('TkDefaultFont', 10, 'bold'),
                     foreground=self.fg, background=self.bg, anchor='center')
         style.map("nextPrev.TLabel", background=[("active", self.active_bg)])
-        self.night_alpha = 0#0.7
+        self.saa_alpha = 0
         self.cov_alpha = 0.2
 
     def changeMainSat(self, Sat):
@@ -654,15 +591,15 @@ class GUI(object):
                                             str(screen_height))
         self.root.geometry(screen_resolution)
 
-    def removeNight(self):
-        self.night_alpha = 0
-        self.editmenu.entryconfigure(3, label="Add day/night terminator",
-                                     command=self.addNight)
+    def removeSAA(self):
+        self.saa_alpha = 0
+        self.editmenu.entryconfigure(3, label="Add south atlantic anomaly",
+                                     command=self.addSAA)
 
-    def addNight(self):
-        self.night_alpha = 0.7
-        self.editmenu.entryconfigure(3, label="Remove day/night terminator",
-                                     command=self.removeNight)
+    def addSAA(self):
+        self.saa_alpha = 0.2
+        self.editmenu.entryconfigure(3, label="Remove south atlantic anomaly",
+                                     command=self.removeSAA)
 
     def removeCoverage(self):
         self.cov_alpha = 0
@@ -962,7 +899,7 @@ class GUI(object):
         self.editmenu.add_command(label="Update TLE from net", command=self.updateTLEfromNet)
         self.editmenu.add_command(label="Update TLE from file", command=self.notAvailable)
         self.editmenu.add_separator()
-        self.editmenu.add_command(label="Add day/night terminator", command=self.addNight)
+        self.editmenu.add_command(label="Add south atlantic anomaly", command=self.addSAA)
         self.editmenu.add_command(label="Remove coverage", command=self.removeCoverage)
         self.editmenu.add_command(label="Add/remove satellites", command=self.addRemoveSat)
         menubar.add_cascade(label="Edit", menu=self.editmenu)
