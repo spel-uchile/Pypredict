@@ -38,6 +38,7 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from sat import Sat
 from warnings import filterwarnings
 import ssl
+import json
 from SAA import SAA
 
 filterwarnings("ignore", category=RuntimeWarning)
@@ -69,7 +70,7 @@ class GUI(object):
                  "updtCnt", "warranty_lbl", "details_lbl", "cov_lat",
                  "cov_lng", "play", "next_min", "next_day", "prev_min",
                  "prev_day", "dmin", "dt_box", "molniya", "canvas",
-                 "saa", "date"]
+                 "saa", "date", "dump_file"]
     def __init__(self, Sats):
         self.Sats = Sats
         self.sortSats()
@@ -79,8 +80,9 @@ class GUI(object):
         self.geometry()
         self.root.title('Pypredict')
         self.setTheme('#404040', 'white', '#303030')
-        self.root.protocol("WM_DELETE_WINDOW", exit)
+        self.root.protocol("WM_DELETE_WINDOW", quit)
         self.saa = SAA()
+        self.dump_file = open("satellite.json", "a+")
         self.mainSat = self.Sats[0]
         T = int(self.mainSat.getPeriod()*3)      # Total duration in seconds
         self.dt = 1000                           # Step length in miliseconds
@@ -500,6 +502,8 @@ class GUI(object):
             self.format_dt()
         for Sat in self.Sats:
             Sat.updateOrbitalParameters3(self.date)
+            data = self.formatDump(Sat)
+            json.dump(data, self.dump_file)
         i = 0
         for Sat in self.Sats[self.top_index:self.bottom_index]:
             self.name_bt[i]['text'] = Sat.name
@@ -573,6 +577,21 @@ class GUI(object):
     def tableRefresher(self):
         self.updateTableContent()
         self.root.after(500, self.tableRefresher)
+
+    def formatDump(self, Sat):
+        dump = {
+                "id": Sat.satnumber,
+                "name": Sat.name,
+                "obc": {
+                    "datetime": self.date.strftime("%F %H:%M:%S.%f")
+                        },
+                "orbit": {
+                    "lat": Sat.getLat(),
+                    "lon": Sat.getLng(date=self.date),
+                    "alt": Sat.getAlt()
+                        }
+                }
+        return dump
 
     def saveAs(self):
         file_name = asksaveasfilename()
@@ -890,7 +909,7 @@ class GUI(object):
         filemenu.add_command(label="Open", command=self.notAvailable)
         filemenu.add_command(label="Save as", command=self.saveAs)
         filemenu.add_separator()
-        filemenu.add_command(label="Exit", command=exit)
+        filemenu.add_command(label="Exit", command=quit)
         menubar.add_cascade(label="File", menu=filemenu)
 
         # Create more pulldown menus
@@ -922,6 +941,10 @@ class GUI(object):
 
         # Display the menu
         self.root.config(menu=menubar)
+
+    def quit(self):
+        self.dump_file.close()
+        self.root.destroy()
 
     def run(self):
         self.root.mainloop()
