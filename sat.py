@@ -696,6 +696,7 @@ class Sat(Node):
         self.t0 = tnow
         self.tlast = self.t0
         self.epoch_year = date.year - 2000
+        self.updateGST0()
 
     def J2_effect(self):
         u = self.w + self.theta
