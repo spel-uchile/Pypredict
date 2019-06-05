@@ -35,10 +35,11 @@ from tkinter import Button, Entry, END, Image, Label, Listbox, Menu, StringVar, 
 from tkinter.filedialog import asksaveasfilename
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from sat import Sat
+from SAA import SAA
 from warnings import filterwarnings
+from pymongo import MongoClient
 import ssl
 import json
-from SAA import SAA
 
 filterwarnings("ignore", category=RuntimeWarning)
 ssl._create_default_https_context = ssl._create_unverified_context
@@ -69,7 +70,7 @@ class GUI(object):
                  "updtCnt", "warranty_lbl", "details_lbl", "cov_lat",
                  "cov_lng", "play", "next_min", "next_day", "prev_min",
                  "prev_day", "dmin", "dt_box", "molniya", "canvas",
-                 "saa", "date", "dump_file"]
+                 "saa", "date", "db"]
     def __init__(self, Sats):
         self.Sats = Sats
         self.sortSats()
@@ -81,7 +82,6 @@ class GUI(object):
         self.setTheme('#404040', 'white', '#303030')
         self.root.protocol("WM_DELETE_WINDOW", quit)
         self.saa = SAA()
-        self.dump_file = open("satellite.json", "a+")
         self.mainSat = self.Sats[0]
         T = int(self.mainSat.getPeriod()*3)      # Total duration in seconds
         self.updtCnt = 0
@@ -97,14 +97,35 @@ class GUI(object):
         self.cov_lat = empty(180)
         self.setTableTitles()
         self.setTableContent()
+        client = MongoClient("localhost", 27017)
+        self.db = client["SatConstellation"]
         self.tableRefresher()
         self.root.bind("<F11>", self.fullscreen)
         self.root.bind("<Escape>", self.exitFullscreen)
         self.root.bind("<Return>", self.changeDate)
+        self.root.bind("<MouseWheel>", self.zoom)
+        self.root.bind("<Button-4>", self.zoom)
+        self.root.bind("<Button-5>", self.zoom)
         self.run()
 
     def __call__(self):
         return self
+
+    def zoom(self, event):
+        if (event.num == 5 or event.delta == -120):
+            self.ax.set_extent([-180, 180, -90, 90],
+                           crs=PlateCarree())
+        elif (event.num == 4 or event.delta == 120):
+            x, y = self.ax.transAxes.inverted().transform((event.x,
+                                                           event.y))
+            lng = x*360 - 180
+            lng_min = (-90+lng)*(-90+lng >= -180) - 180*(-90+lng < -180)
+            lng_max = (90+lng)*(90+lng <= 180) + 180*(90+lng > 180)
+            lat = (1 - y)*180 - 90
+            lat_min = (-45+lat)*(-45+lat >= -90) - 90*(-45+lat < -90)
+            lat_max = (45+lat)*(45+lat <= 90) + 90*(45+lat > 90)
+            self.ax.set_extent([lng_min, lng_max, lat_min, lat_max],
+                           crs=PlateCarree())
 
     def fillSAA(self):
         """
@@ -279,6 +300,7 @@ class GUI(object):
         self.dt_box.configure({"background": self.bg})
         self.dt_box.configure({"foreground": self.fg})
         self.dt_box.grid(row=3, column=0, columnspan=5)
+        self.format_dt()
 
     def deployPopup(self):
         self.popup = Tk()
@@ -468,7 +490,6 @@ class GUI(object):
             self.i_lbl.append(Label(self.root, bg=self.bg, fg=self.fg, width=7, anchor='e'))
             self.w_lbl.append(Label(self.root, bg=self.bg, fg=self.fg, width=7, anchor='e'))
             self.theta_lbl.append(Label(self.root, bg=self.bg, fg=self.fg, width=7, anchor='e'))
-        self.updateTableContent()
         for i in range(self.top_index, self.bottom_index):
             #self.root.rowconfigure(i+5, weight=1)
             self.rememberRow(i+1)
@@ -492,10 +513,9 @@ class GUI(object):
             self.format_dt()
         for Sat in self.Sats:
             Sat.updateOrbitalParameters3(self.date)
-            data = self.formatDump(Sat)
-            json.dump(data, self.dump_file)
-        i = 0
-        for Sat in self.Sats[self.top_index:self.bottom_index]:
+            col = self.db[Sat.name]
+            col.insert_one(self.formatDump(Sat))
+        for i, Sat in enumerate(self.Sats[self.top_index:self.bottom_index]):
             self.name_bt[i]['text'] = Sat.name
             self.name_bt[i]['command'] = lambda Sat=Sat: self.changeMainSat(Sat)
             self.cat_lbl[i]['text'] = Sat.getCategory()
@@ -510,7 +530,6 @@ class GUI(object):
             self.i_lbl[i]['text'] = "{:0.2f}{}".format((Sat.getInclination()*rad2deg), "°")
             self.w_lbl[i]['text'] = "{:0.2f}{}".format((Sat.getArgPerigee()*rad2deg), "°")
             self.theta_lbl[i]['text'] = "{:0.2f}{}".format((Sat.getAnomaly()*rad2deg), "°")
-            i += 1
 
     def rememberLastRows(self):
         if (len(self.Sats) > 4):
@@ -923,7 +942,6 @@ class GUI(object):
         self.root.config(menu=menubar)
 
     def quit(self):
-        self.dump_file.close()
         self.root.destroy()
 
     def run(self):
