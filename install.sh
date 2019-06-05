@@ -11,6 +11,7 @@ sudo apt-get install python3-cairocffi
 sudo apt-get install libatlas-base-dev
 sudo apt-get install libgeos-dev
 sudo apt-get install python3-pip
+sudo apt-get install mongodb
 sudo -H pip3 install --upgrade pip
 sudo -H pip3 install --upgrade pyorbital
 sudo -H pip3 install matplotlib==2.2.4
@@ -27,6 +28,7 @@ sudo -H pip3 install --upgrade Fiona
 sudo -H pip3 install --upgrade pykdtree
 sudo -H pip3 install --upgrade cartopy
 sudo -H pip3 install --upgrade sgp4
+sudo -H pip3 install --upgrade pymongo
 #sudo apt-get install libtcmalloc-minimal4
 #export LD_PRELOAD="/usr/lib/x86_64-linux-gnu/libtcmalloc_minimal.so.4.3.0"
 
