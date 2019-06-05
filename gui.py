@@ -27,7 +27,6 @@ from dayNightMap import Map
 from dpl import Dpl
 from matplotlib.ticker import FixedLocator
 from numpy import abs, arange, array, cos, empty, log, pi, sin, tan
-from matplotlib.animation import FuncAnimation
 from pyorbital import tlefile
 from matplotlib.pyplot import imread, subplots, tight_layout
 from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
@@ -46,7 +45,7 @@ ssl._create_default_https_context = ssl._create_unverified_context
 
 class GUI(object):
     #@profile
-    __slots__ = ["Sats", "root", "img", "mainSat", "dt", "mainSat_lats",
+    __slots__ = ["Sats", "root", "img", "mainSat", "mainSat_lats",
                  "mainSat_lngs", "ax_saa", "fig", "ax", "ax_tray",
                  "ax_sat", "ax_cov", "sat_txt", "bg", "fg", "active_bg",
                  "saa_alpha", "cov_alpha", "top_index", "bottom_index",
@@ -59,7 +58,7 @@ class GUI(object):
                  "sarsat", "spire", "tdrss", "tle_new", "weather",
                  "avail_sats_lst", "curr_lbl", "curr_sats_lst",
                  "add_sat_bt", "remove_sat_bt", "editmenu", "viewmenu",
-                 "planetmenu", "map", "ani", "spd_lbl", "dpl_bt",
+                 "planetmenu", "map", "spd_lbl", "dpl_bt", 
                  "deploy_now_bt", "loc_bt", "dpl_img", "tdoa_img",
                  "world_map", "dpl_mass_lbl1", "dpl_mass_lbl2",
                  "dpl_spdx_lbl", "dpl_spdy_lbl", "dpl_spdz_lbl",
@@ -85,23 +84,20 @@ class GUI(object):
         self.dump_file = open("satellite.json", "a+")
         self.mainSat = self.Sats[0]
         T = int(self.mainSat.getPeriod()*3)      # Total duration in seconds
-        self.dt = 1000                           # Step length in miliseconds
         self.updtCnt = 0
         self.dmin = 0
-        #self.mainSat_lats, self.mainSat_lngs = self.mainSat.getLocation(T, 50)
         self.mainSat_lats, self.mainSat_lngs = self.mainSat.getTrayectory(T, 50)
         self.world_map = Map("img/earth_nasa_day.png", "img/earth_nasa_night.png")
         self.plotData()
         self.setButtons()
         self.setCanvas()
         self.setMenu()
+        self.data_gen()
+        self.cov_lng = empty(180)
+        self.cov_lat = empty(180)
         self.setTableTitles()
         self.setTableContent()
         self.tableRefresher()
-        self.cov_lng = empty(180)
-        self.cov_lat = empty(180)
-        self.ani = FuncAnimation(self.fig, self.update, self.data_gen(),
-                            interval=self.dt, blit=True, repeat=False)
         self.root.bind("<F11>", self.fullscreen)
         self.root.bind("<Escape>", self.exitFullscreen)
         self.root.bind("<Return>", self.changeDate)
@@ -169,43 +165,37 @@ class GUI(object):
         self.ax_sat, = self.ax.plot([], [], 'yo', ms=6)
         self.ax_cov = []
         self.sat_txt = []
-        sats_lngs = []
-        sats_lats = []
-        sats_angs = []
-        sats_names = []
+        self.resetCov()
+
+    def resetCov(self):
+        for i in range(0, len(self.sat_txt)):
+            self.ax_cov[i].remove()
+            self.sat_txt[i].remove()
+        self.ax_cov = []
+        self.sat_txt = []
         for i in range(0, len(self.Sats)):
             self.ax_cov.append(self.ax.fill([0,0], [0,0], transform=Geodetic(),
                                color='white', alpha=self.cov_alpha)[0])
             self.sat_txt.append(self.ax.text([], [], "", color='yellow', size=8,
-                                        transform=Geodetic(), ha="center"))
-        while True:
-            sats_lngs[:] = []
-            sats_lats[:] = []
-            sats_angs[:] = []
-            sats_names[:] = []
-            for Sat in self.Sats:
-                sats_lngs.append(Sat.getLng(date=self.date))
-                sats_lats.append(Sat.getLat())
-                sats_angs.append(Sat.getCoverage())
-                sats_names.append(Sat.name)
-            yield sats_lngs, sats_lats, sats_angs, sats_names,
-    #@profile
-    def update(self, data):
-        sats_lngs, sats_lats, sats_angs, sats_names, = data
+                                transform=Geodetic(), ha="center"))
+
+    def updateCanvas(self):
         self.fillSAA()
         self.ax_tray.set_data(self.mainSat_lngs, self.mainSat_lats)
-        self.ax_sat.set_data(sats_lngs, sats_lats)
-        for i in range(0, len(self.Sats)):
+        sats_lngs = []
+        sats_lats = []
+        for i, Sat in enumerate(self.Sats):
+            sats_lngs.append(Sat.getLng(date=self.date))
             lng = sats_lngs[i] - 5*(sats_lngs[i] > 174) + 5*(sats_lngs[i] < -174)
-            lat = sats_lats[i]-(1 - 2*(sats_lats[i] < -85))*4
+            sats_lats.append(Sat.getLat())
+            lat = sats_lats[i] - (1 - 2*(sats_lats[i] < -85))*4
             self.sat_txt[i].set_position(array((lng, lat)))
-            self.sat_txt[i].set_text(sats_names[i])
-            self.plotCoverage(sats_angs[i], sats_lats[i], sats_lngs[i], i)
-        return [self.ax_saa] + [self.ax_tray] + [self.ax_sat] + self.sat_txt + self.ax_cov
+            self.sat_txt[i].set_text(Sat.name)
+            self.plotCoverage(Sat.getCoverage(), lat, lng, i)
+        self.ax_sat.set_data(sats_lngs, sats_lats)
+        self.canvas.draw_idle()
 
-    def plotCoverage(self, ang, sat_lat, sat_lng, n):
-        deg2rad = pi/180
-        rad2deg = 180/pi
+    def plotCoverage(self, ang, sat_lat, sat_lng, n, deg2rad=pi/180, rad2deg=180/pi):
         for i in range(0, 180):
             theta = (2*i + 1)*deg2rad
             dlat = ang*deg2rad * cos(theta)
@@ -245,7 +235,6 @@ class GUI(object):
     def changeMainSat(self, Sat):
         self.mainSat = Sat
         tf = int(self.mainSat.getPeriod()*3)
-        #self.mainSat_lats, self.mainSat_lngs = self.mainSat.getLocation(tf, 50, self.dmin)
         self.mainSat_lats, self.mainSat_lngs = self.mainSat.getTrayectory(tf, 50, self.dmin)
    
     def up(self):
@@ -286,7 +275,7 @@ class GUI(object):
         self.next_day = ttk.Button(self.root, text="▶️▶️|",
                 style = "nextPrev.TLabel", command=self.nextDay)
         self.next_day.grid(row=2, column=4, sticky="NESW")
-        self.dt_box = Entry(self.root)#, bg=self.bg, fg=self.fg)
+        self.dt_box = Entry(self.root)
         self.dt_box.configure({"background": self.bg})
         self.dt_box.configure({"foreground": self.fg})
         self.dt_box.grid(row=3, column=0, columnspan=5)
@@ -492,7 +481,8 @@ class GUI(object):
     def updateTableContent(self):
         rad2deg = 180/pi
         self.updtCnt += 1
-        if (self.updtCnt > 120):
+        self.updateCanvas()
+        if (self.updtCnt > 20):
             self.refreshBackgroundImg()
             self.updtCnt = 0
         try:
@@ -774,12 +764,11 @@ class GUI(object):
 
     def removeSat(self):
         del_sat = self.curr_sats_lst.get(self.curr_sats_lst.curselection())
-        self.ax_cov.pop()
-        self.sat_txt.pop()
         for i, sat in enumerate(self.Sats):
             if (del_sat == sat.name):
                 self.Sats.remove(sat)
                 self.curr_sats_lst.delete(i)
+        self.resetCov()
         
     def addRemoveSat(self):
         self.popup = Tk()
@@ -842,21 +831,12 @@ class GUI(object):
         tlefile.fetch("TLE/weather.txt")
 
     def refreshBackgroundImg(self, img=None):
-        self.ax.clear()
-        #self.ax.cla()
-        self.plotData(init=True)
-        self.setCanvas()
-        #img_extent = (-180, 180, -90, 90)
-        #date = datetime.utcnow() + timedelta(minutes=self.dmin)
-        #self.map.set_data(self.world_map.fillDarkSideFromPicture(self.date))
-        #self.canvas.draw()
-        if (img is not None):
+        if (img is None):
+            self.map.set_data(self.world_map.fillDarkSideFromPicture(self.date))
+        else:
             self.map.set_data(imread(img))
-        self.ani._stop()
-        self.ani._blit_clear(self.ani._drawn_artists, self.ani._blit_cache)
+        self.canvas.draw_idle()
         self.fig.canvas.draw_idle()
-        self.ani.__init__(self.fig, self.update, self.data_gen(),
-                            interval=self.dt, blit=True, repeat=False)
 
     def earth(self):
         self.refreshBackgroundImg()
