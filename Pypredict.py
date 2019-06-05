@@ -30,5 +30,5 @@ HODOYOSHI4 = Sat(name="HODOYOSHI-4", tle=tlefile.read("HODOYOSHI-4", "TLE/resour
 CUBESATXI_IV = Sat(name="CUBESAT XI-IV (CO-57)", tle=tlefile.read("CUBESAT XI-IV (CO-57)", "TLE/cubesat.txt"), cat="CubeSat")
 ISS = Sat(name="ISS (ZARYA)", tle=tlefile.read("ISS (ZARYA)", "TLE/tdrss.txt"), cat="Tracking and Data Relay")
 
-Sats = [SUCHAI, HODOYOSHI3, HODOYOSHI4, CUBESATXI_IV, ISS]
+Sats = [CUBESATXI_IV, HODOYOSHI3, HODOYOSHI4, ISS, SUCHAI]
 GUI = GUI(Sats=Sats)
