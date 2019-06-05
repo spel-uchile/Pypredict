@@ -100,16 +100,19 @@ class GUI(object):
         client = MongoClient("localhost", 27017)
         self.db = client["SatConstellation"]
         self.tableRefresher()
+        self.setRootBindings()
+        self.run()
+
+    def __call__(self):
+        return self
+
+    def setRootBindings(self):
         self.root.bind("<F11>", self.fullscreen)
         self.root.bind("<Escape>", self.exitFullscreen)
         self.root.bind("<Return>", self.changeDate)
         self.root.bind("<MouseWheel>", self.zoom)
         self.root.bind("<Button-4>", self.zoom)
         self.root.bind("<Button-5>", self.zoom)
-        self.run()
-
-    def __call__(self):
-        return self
 
     def zoom(self, event):
         if (event.num == 5 or event.delta == -120):
