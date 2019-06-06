@@ -36,7 +36,7 @@ class Sat(Node):
                  "h", "v", "tray_lat", "tray_lng", "tlast", "B", "bstar", "v_atm",
                  "v_peri", "v_iner", "r_iner", "Rot_Mat", "r_vect0", "sat",
                  "mean_motion_derivative", "id_launch_year", "id_launch_number",
-                 "id_launch_piece",  "element_number", "satnumber"]
+                 "id_launch_piece",  "element_number", "satnumber", "tray_alt"]
     def __init__(self, name="", lat=0, lng=0, alt=0, freq=437225000, tle=None, cat=""):
         """
         Parameters
@@ -65,6 +65,7 @@ class Sat(Node):
         self.cat = cat
         self.tray_lat = []
         self.tray_lng = []
+        self.tray_alt = []
         dayinsec = 24*3600                                        # Day in seconds
         if (tle is not None):
             self.incl = tle.inclination*deg2rad
@@ -503,16 +504,20 @@ class Sat(Node):
             self.tray_lng.append(((lng > pi)*(lng - twopi) + (lng <= pi)*lng)*rad2deg)
         return self.tray_lat, self.tray_lng
 
-    def getTrayectory(self, T, dt, dmin=0):
+    def getTrayectory(self, T, dt, date=None):
         self.tray_lat[:] = []
         self.tray_lng[:] = []
-        date = datetime.utcnow() + timedelta(minutes=dmin)
+        self.tray_alt[:] = []
+        if (date is None):
+            date = datetime.utcnow()
+        current_date = date
         for t in range(0, T, dt):
             self.updateOrbitalParameters3(date)
             date += timedelta(seconds=dt)
             self.tray_lat.append(self.getLat())
             self.tray_lng.append(self.getLng(date=date))
-        self.updateOrbitalParameters3(datetime.utcnow() + timedelta(minutes=dmin))
+            self.tray_alt.append(self.alt)
+        self.updateOrbitalParameters3(current_date)
         return self.tray_lat, self.tray_lng
 
     def changePlanet(self, M=5.9722*10**24, P_r=6371000, Eq_r=6378000, Po_r=6356000, J2=0.00108263, P_w=7.29211505*10**(-5)):
