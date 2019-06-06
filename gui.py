@@ -74,6 +74,8 @@ class GUI(object):
     def __init__(self, Sats):
         self.Sats = Sats
         self.sortSats()
+        client = MongoClient("localhost", 27017)
+        self.db = client["SatConstellation"]
         self.root = Tk()
         self.img = Image("photo", file="img/favicon.png") 
         self.root.call('wm', 'iconphoto', self.root._w, self.img)
@@ -82,23 +84,20 @@ class GUI(object):
         self.setTheme('#404040', 'white', '#303030')
         self.root.protocol("WM_DELETE_WINDOW", quit)
         self.saa = SAA()
-        self.mainSat = self.Sats[0]
-        T = int(self.mainSat.getPeriod()*3)      # Total duration in seconds
         self.updtCnt = 0
         self.dmin = 0
-        self.mainSat_lats, self.mainSat_lngs = self.mainSat.getTrayectory(T, 50)
-        self.world_map = Map("img/earth_nasa_day.png", "img/earth_nasa_night.png")
-        self.plotData()
         self.setButtons()
+        self.world_map = Map("img/earth_nasa_day.png",
+                             "img/earth_nasa_night.png")
+        self.plotData()
         self.setCanvas()
         self.setMenu()
         self.data_gen()
+        self.changeMainSat(self.Sats[0])
         self.cov_lng = empty(180)
         self.cov_lat = empty(180)
         self.setTableTitles()
         self.setTableContent()
-        client = MongoClient("localhost", 27017)
-        self.db = client["SatConstellation"]
         self.tableRefresher()
         self.setRootBindings()
         self.run()
@@ -137,7 +136,7 @@ class GUI(object):
         self.ax_saa.set_xy(self.saa.vertices)
         self.ax_saa.set_alpha(self.saa_alpha)
 
-    def plotData(self, init=True):
+    def plotData(self):
         screen_height = self.root.winfo_screenheight()
         if (screen_height < 1080):
             self.fig, self.ax = subplots(figsize=(12, 6),
@@ -149,18 +148,10 @@ class GUI(object):
             self.fig, self.ax = subplots(figsize=(18, 9),
                                     subplot_kw={'projection': PlateCarree()})
         img_extent = (-180, 180, -90, 90)
-        #self.map = self.ax.imshow(imread("img/earth_nasa_day.png"), origin='upper',
-        #               extent=img_extent, transform=PlateCarree())
-        self.date = datetime.utcnow() + timedelta(minutes=self.dmin)
-        if (init):
-            self.map = self.ax.imshow(self.world_map.fillDarkSideFromPicture(self.date),
+        self.map = self.ax.imshow(self.world_map.fillDarkSideFromPicture(self.date),
                 origin='upper', extent=img_extent, transform=PlateCarree())
-            self.gridAndFormat()
-            tight_layout(pad=-0.26)
-        else:
-            self.map.set_data(self.world_map.fillDarkSideFromPicture(self.date))
-        #self.gridAndFormat()
-        #tight_layout(pad=-0.26)
+        self.gridAndFormat()
+        tight_layout(pad=-0.26)
 
     def gridAndFormat(self):
         gl = self.ax.gridlines(crs=PlateCarree(), draw_labels=True,
@@ -205,7 +196,6 @@ class GUI(object):
 
     def updateCanvas(self):
         self.fillSAA()
-        self.ax_tray.set_data(self.mainSat_lngs, self.mainSat_lats)
         sats_lngs = []
         sats_lats = []
         for i, Sat in enumerate(self.Sats):
@@ -215,7 +205,7 @@ class GUI(object):
             lat = sats_lats[i] - (1 - 2*(sats_lats[i] < -85))*4
             self.sat_txt[i].set_position(array((lng, lat)))
             self.sat_txt[i].set_text(Sat.name)
-            self.plotCoverage(Sat.getCoverage(), lat, lng, i)
+            self.plotCoverage(Sat.getCoverage(), sats_lats[i], sats_lngs[i], i)
         self.ax_sat.set_data(sats_lngs, sats_lats)
         self.canvas.draw_idle()
 
@@ -259,7 +249,8 @@ class GUI(object):
     def changeMainSat(self, Sat):
         self.mainSat = Sat
         tf = int(self.mainSat.getPeriod()*3)
-        self.mainSat_lats, self.mainSat_lngs = self.mainSat.getTrayectory(tf, 50, self.dmin)
+        self.mainSat_lats, self.mainSat_lngs = self.mainSat.getTrayectory(tf, 50, self.date)
+        self.ax_tray.set_data(self.mainSat_lngs, self.mainSat_lats)
    
     def up(self):
         if (self.top_index > 0):
