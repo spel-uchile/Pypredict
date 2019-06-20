@@ -70,12 +70,13 @@ class GUI(object):
                  "updtCnt", "warranty_lbl", "details_lbl", "cov_lat",
                  "cov_lng", "play", "next_min", "next_day", "prev_min",
                  "prev_day", "dmin", "dt_box", "molniya", "canvas",
-                 "saa", "date", "db"]
+                 "saa", "date", "db", "en_db"]
     def __init__(self, Sats):
         self.Sats = Sats
         self.sortSats()
         client = MongoClient("localhost", 27017)
         self.db = client["SatConstellation"]
+        self.en_db = False
         self.root = Tk()
         self.img = Image("photo", file="img/favicon.png") 
         self.root.call('wm', 'iconphoto', self.root._w, self.img)
@@ -507,8 +508,9 @@ class GUI(object):
             self.format_dt()
         for Sat in self.Sats:
             Sat.updateOrbitalParameters3(self.date)
-            col = self.db[Sat.name]
-            col.insert_one(self.formatDump(Sat))
+            if (self.en_db):
+                col = self.db[Sat.name]
+                col.insert_one(self.formatDump(Sat))
         for i, Sat in enumerate(self.Sats[self.top_index:self.bottom_index]):
             self.name_bt[i]['text'] = Sat.name
             self.name_bt[i]['command'] = lambda Sat=Sat: self.changeMainSat(Sat)
@@ -613,24 +615,34 @@ class GUI(object):
                                             str(screen_height))
         self.root.geometry(screen_resolution)
 
+    def enableDB(self):
+        self.en_db = True
+        self.editmenu.entryconfigure(2, label="Disable database",
+                                     command=self.disableDB)
+
+    def disableDB(self):
+        self.en_db = False
+        self.editmenu.entryconfigure(2, label="Enable database",
+                                     command=self.enableDB)
+
     def removeSAA(self):
         self.saa_alpha = 0
-        self.editmenu.entryconfigure(3, label="Add south atlantic anomaly",
+        self.editmenu.entryconfigure(4, label="Add south atlantic anomaly",
                                      command=self.addSAA)
 
     def addSAA(self):
         self.saa_alpha = 0.2
-        self.editmenu.entryconfigure(3, label="Remove south atlantic anomaly",
+        self.editmenu.entryconfigure(4, label="Remove south atlantic anomaly",
                                      command=self.removeSAA)
 
     def removeCoverage(self):
         self.cov_alpha = 0
-        self.editmenu.entryconfigure(4, label="Add coverage",
+        self.editmenu.entryconfigure(5, label="Add coverage",
                                      command=self.addCoverage)
 
     def addCoverage(self):
         self.cov_alpha = 0.2
-        self.editmenu.entryconfigure(4, label="Remove coverage", 
+        self.editmenu.entryconfigure(5, label="Remove coverage", 
                                      command=self.removeCoverage)
 
     def setSearchBox(self):
@@ -910,6 +922,7 @@ class GUI(object):
                              activeforeground=self.fg, activebackground=self.bg)
         self.editmenu.add_command(label="Update TLE from net", command=self.updateTLEfromNet)
         self.editmenu.add_command(label="Update TLE from file", command=self.notAvailable)
+        self.editmenu.add_command(label="Enable database", command=self.enableDB)
         self.editmenu.add_separator()
         self.editmenu.add_command(label="Add south atlantic anomaly", command=self.addSAA)
         self.editmenu.add_command(label="Remove coverage", command=self.removeCoverage)
