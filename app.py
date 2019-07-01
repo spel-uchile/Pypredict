@@ -22,6 +22,8 @@
 """
 __version__ = "2.2.0"
 
+from PyQt5 import QtWidgets, QtGui
+from ui.main_window import Ui_MainWindow
 from cartopy.crs import Geodetic, PlateCarree, RotatedPole
 from dayNightMap import Map
 from dpl import Dpl
@@ -31,9 +33,10 @@ from pyorbital import tlefile
 from matplotlib.pyplot import imread, subplots, tight_layout
 from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
 from datetime import datetime, timedelta
-from tkinter import Button, Entry, END, Image, Label, Listbox, Menu, StringVar, ttk, Tk
+#from tkinter import Button, Entry, END, Image, Label, Listbox, Menu, StringVar, ttk, Tk
 from tkinter.filedialog import asksaveasfilename
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+#from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
 from sat import Sat
 from SAA import SAA
 from warnings import filterwarnings
@@ -44,7 +47,7 @@ import json
 filterwarnings("ignore", category=RuntimeWarning)
 ssl._create_default_https_context = ssl._create_unverified_context
 
-class GUI(object):
+class ApplicationWindow(QtWidgets.QMainWindow):
     #@profile
     __slots__ = ["Sats", "root", "img", "mainSat", "mainSat_lats",
                  "mainSat_lngs", "ax_saa", "fig", "ax", "ax_tray",
@@ -74,34 +77,40 @@ class GUI(object):
     def __init__(self, Sats):
         self.Sats = Sats
         self.sortSats()
+        super(ApplicationWindow, self).__init__()
+        self.ui = Ui_MainWindow()
+        self.ui.setupUi(self)
         client = MongoClient("localhost", 27017)
         self.db = client["SatConstellation"]
         self.en_db = False
-        self.root = Tk()
-        self.img = Image("photo", file="img/favicon.png") 
-        self.root.call('wm', 'iconphoto', self.root._w, self.img)
-        self.geometry()
-        self.root.title('Pypredict')
-        self.setTheme('#404040', 'white', '#303030')
-        self.root.protocol("WM_DELETE_WINDOW", quit)
+        self.setWindowIcon( QtGui.QIcon("img/favicon.png") )
+        #self.root = Tk()
+        #self.img = Image("photo", file="img/favicon.png") 
+        #self.root.call('wm', 'iconphoto', self.root._w, self.img)
+        #self.geometry()
+        self.setWindowTitle('Pypredict')
+        #self.setTheme('#404040', 'white', '#303030')
+        #self.root.protocol("WM_DELETE_WINDOW", quit)
+        self.saa_alpha = 0
+        self.cov_alpha = 0.2
         self.saa = SAA()
         self.updtCnt = 0
         self.dmin = 0
-        self.setButtons()
+        #self.setButtons()
         self.world_map = Map("img/earth_nasa_day.png",
                              "img/earth_nasa_night.png")
         self.plotData()
         self.setCanvas()
-        self.setMenu()
+        #self.setMenu()
         self.data_gen()
         self.changeMainSat(self.Sats[0])
         self.cov_lng = empty(180)
         self.cov_lat = empty(180)
-        self.setTableTitles()
-        self.setTableContent()
-        self.tableRefresher()
-        self.setRootBindings()
-        self.run()
+        #self.setTableTitles()
+        #self.setTableContent()
+        #self.tableRefresher()
+        #self.setRootBindings()
+        #self.run()
 
     def __call__(self):
         return self
@@ -138,7 +147,7 @@ class GUI(object):
         self.ax_saa.set_alpha(self.saa_alpha)
 
     def plotData(self):
-        screen_height = self.root.winfo_screenheight()
+        screen_height = self.frameGeometry().height()#self.root.winfo_screenheight()
         if (screen_height < 1080):
             self.fig, self.ax = subplots(figsize=(12, 6),
                                     subplot_kw={'projection': PlateCarree()})
@@ -149,6 +158,7 @@ class GUI(object):
             self.fig, self.ax = subplots(figsize=(18, 9),
                                     subplot_kw={'projection': PlateCarree()})
         img_extent = (-180, 180, -90, 90)
+        self.date = datetime.utcnow()
         self.map = self.ax.imshow(self.world_map.fillDarkSideFromPicture(self.date),
                 origin='upper', extent=img_extent, transform=PlateCarree())
         self.gridAndFormat()
@@ -244,8 +254,6 @@ class GUI(object):
         style.configure('nextPrev.TLabel', font=('TkDefaultFont', 10, 'bold'),
                     foreground=self.fg, background=self.bg, anchor='center')
         style.map("nextPrev.TLabel", background=[("active", self.active_bg)])
-        self.saa_alpha = 0
-        self.cov_alpha = 0.2
 
     def changeMainSat(self, Sat):
         self.mainSat = Sat
@@ -415,12 +423,13 @@ class GUI(object):
         
 
     def setCanvas(self):
-        self.canvas = FigureCanvasTkAgg(self.fig, master=self.root)
+        self.canvas = FigureCanvasQTAgg(self.fig)#, master=self.root)
         #self.root.rowconfigure(0, weight=1)
         #self.root.columnconfigure(0, weight=1)
-        self.canvas.get_tk_widget().grid(row=0, column=5, rowspan=4,
-                columnspan=13, sticky="NES")
+        #self.canvas.get_qk_widget().grid(row=0, column=5, rowspan=4,
+        #        columnspan=13, sticky="NES")
         self.canvas.draw()
+        self.ui.frame_plot.layout().addWidget(self.canvas)
 
     def setTableTitles(self):
         self.root.rowconfigure(4, weight=1)
@@ -608,12 +617,12 @@ class GUI(object):
         print("This command is not available yet")
 
     def geometry(self):
-        screen_width = self.root.winfo_screenwidth()
-        screen_height = self.root.winfo_screenheight()
+        screen_width = self.frameGeometry().width()
+        screen_height = self.frameGeometry().height()
         screen_resolution = "{}{}{}".format(str(screen_width),
                                             'x',
                                             str(screen_height))
-        self.root.geometry(screen_resolution)
+        self.geometry(screen_resolution)
 
     def enableDB(self):
         self.en_db = True

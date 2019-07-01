@@ -1,5 +1,6 @@
 sudo apt-get install python3.6-dev
-sudo apt-get install python3.6-tk
+#sudo apt-get install python3.6-tk
+sudo -H pip3 install --upgrade PyQt5
 #sudo apt-get install python3-pyorbital
 #sudo apt-get install python3-matplotlib
 #sudo apt-get install python3-scipy

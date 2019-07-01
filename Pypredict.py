@@ -22,7 +22,9 @@
 """
 from pyorbital import tlefile
 from sat import Sat
-from gui import GUI
+from PyQt5 import QtWidgets
+from app import ApplicationWindow
+import sys
 
 SUCHAI = Sat(name="SUCHAI", tle=tlefile.read("SUCHAI", "TLE/cubesat.txt"), cat="CubeSat")
 HODOYOSHI3 = Sat(name="HODOYOSHI-3", tle=tlefile.read("HODOYOSHI-3", "TLE/resource.txt"), cat="Earth Resources")
@@ -31,4 +33,8 @@ CUBESATXI_IV = Sat(name="CUBESAT XI-IV (CO-57)", tle=tlefile.read("CUBESAT XI-IV
 ISS = Sat(name="ISS (ZARYA)", tle=tlefile.read("ISS (ZARYA)", "TLE/tdrss.txt"), cat="Tracking and Data Relay")
 
 Sats = [CUBESATXI_IV, HODOYOSHI3, HODOYOSHI4, ISS, SUCHAI]
-GUI = GUI(Sats=Sats)
+if __name__ == "__main__":
+    app = QtWidgets.QApplication(sys.argv)
+    application = ApplicationWindow(Sats=Sats)
+    application.show()
+    sys.exit(app.exec_())
