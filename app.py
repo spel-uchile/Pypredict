@@ -22,7 +22,8 @@
 """
 __version__ = "2.2.0"
 
-from PyQt5 import QtWidgets, QtGui
+from PyQt5 import QtWidgets, QtGui, QtCore
+from time import sleep
 from ui.main_window import Ui_MainWindow
 from cartopy.crs import Geodetic, PlateCarree, RotatedPole
 from dayNightMap import Map
@@ -73,7 +74,8 @@ class ApplicationWindow(QtWidgets.QMainWindow):
                  "updtCnt", "warranty_lbl", "details_lbl", "cov_lat",
                  "cov_lng", "play", "next_min", "next_day", "prev_min",
                  "prev_day", "dmin", "dt_box", "molniya", "canvas",
-                 "saa", "date", "db", "en_db"]
+                 "saa", "date", "db", "en_db", "time_timer", "sats_timer",
+                 "canvas_timer", "bg_timer"]
     def __init__(self, Sats):
         self.Sats = Sats
         self.sortSats()
@@ -96,12 +98,13 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         self.saa = SAA()
         self.updtCnt = 0
         self.dmin = 0
-        #self.setButtons()
+        self.ui.datetime.setDateTime(datetime.utcnow())
+        self.setButtons()
         self.world_map = Map("img/earth_nasa_day.png",
                              "img/earth_nasa_night.png")
         self.plotData()
         self.setCanvas()
-        #self.setMenu()
+        self.setMenu()
         self.data_gen()
         self.changeMainSat(self.Sats[0])
         self.cov_lng = empty(180)
@@ -110,10 +113,20 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         #self.setTableContent()
         #self.tableRefresher()
         #self.setRootBindings()
-        #self.run()
+        self.showMaximized()
+        self.run()
 
     def __call__(self):
         return self
+
+    def keyPressEvent(self, e):
+        if e.key() == QtCore.Qt.Key_Escape:
+            self.exitFullscreen()
+        if e.key() == QtCore.Qt.Key_F11:
+            if self.isFullScreen():
+                self.showMaximized()
+            else:
+                self.showFullScreen()
 
     def setRootBindings(self):
         self.root.bind("<F11>", self.fullscreen)
@@ -147,16 +160,17 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         self.ax_saa.set_alpha(self.saa_alpha)
 
     def plotData(self):
-        screen_height = self.frameGeometry().height()#self.root.winfo_screenheight()
-        if (screen_height < 1080):
-            self.fig, self.ax = subplots(figsize=(12, 6),
-                                    subplot_kw={'projection': PlateCarree()})
-        elif (screen_height == 1080):
-            self.fig, self.ax = subplots(figsize=(17.5, 8.75),
-                                    subplot_kw={'projection': PlateCarree()})
-        else:
-            self.fig, self.ax = subplots(figsize=(18, 9),
-                                    subplot_kw={'projection': PlateCarree()})
+        #screen_height = self.frameGeometry().height()#self.root.winfo_screenheight()
+        #if (screen_height < 1080):
+        #    self.fig, self.ax = subplots(figsize=(12, 6),
+        #                            subplot_kw={'projection': PlateCarree()})
+        #elif (screen_height == 1080):
+        #    self.fig, self.ax = subplots(figsize=(17.5, 8.75),
+        #                            subplot_kw={'projection': PlateCarree()})
+        #else:
+        #    self.fig, self.ax = subplots(figsize=(18, 9),
+        #                            subplot_kw={'projection': PlateCarree()})
+        self.fig, self.ax = subplots(subplot_kw={'projection': PlateCarree()})
         img_extent = (-180, 180, -90, 90)
         self.date = datetime.utcnow()
         self.map = self.ax.imshow(self.world_map.fillDarkSideFromPicture(self.date),
@@ -206,11 +220,11 @@ class ApplicationWindow(QtWidgets.QMainWindow):
                                 transform=Geodetic(), ha="center"))
 
     def updateCanvas(self):
-        self.fillSAA()
-        sats_lngs = []
-        sats_lats = []
-        for i, Sat in enumerate(self.Sats):
-            sats_lngs.append(Sat.getLng(date=self.date))
+        self.fillSAA() 
+        sats_lngs = [] 
+        sats_lats = [] 
+        for i, Sat in  enumerate(self.Sats):
+            sats_lngs. append(Sat.getLng(date=self.date))
             lng = sats_lngs[i] - 5*(sats_lngs[i] > 174) + 5*(sats_lngs[i] < -174)
             sats_lats.append(Sat.getLat())
             lat = sats_lats[i] - (1 - 2*(sats_lats[i] < -85))*4
@@ -219,6 +233,7 @@ class ApplicationWindow(QtWidgets.QMainWindow):
             self.plotCoverage(Sat.getCoverage(), sats_lats[i], sats_lngs[i], i)
         self.ax_sat.set_data(sats_lngs, sats_lats)
         self.canvas.draw_idle()
+        #self.update()
 
     def plotCoverage(self, ang, sat_lat, sat_lng, n, deg2rad=pi/180, rad2deg=180/pi):
         for i in range(0, 180):
@@ -272,6 +287,16 @@ class ApplicationWindow(QtWidgets.QMainWindow):
             self.bottom_index += 1
 
     def setButtons(self):
+        #self.ui.dpl_button.clicked.connect(self.deployPopup)
+        self.ui.loc_button.clicked.connect(self.notAvailable)
+        self.ui.prev_day.clicked.connect(self.previousDay)
+        self.ui.prev_min.clicked.connect(self.previousMinute)
+        self.ui.play.clicked.connect(self.currentMinute)
+        self.ui.next_min.clicked.connect(self.nextMinute)
+        self.ui.next_day.clicked.connect(self.nextDay)
+        self.ui.datetime.dateTimeChanged.connect(self.newDate)
+
+    def setButtons2(self):
         self.dpl_img = Image("photo", file="img/deploy.png")
         self.dpl_bt = ttk.Button(self.root, text="Simulate deployment",
                 style = "nextPrev.TLabel", image=self.dpl_img, compound="bottom",
@@ -412,9 +437,30 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         self.format_dt()
 
     def format_dt(self):
-        self.date = datetime.utcnow() + timedelta(minutes=self.dmin)
-        self.dt_box.delete(0, END)
-        self.dt_box.insert(0, self.date.strftime("%d %b %Y, %H:%M:%S"))
+        self.updateTime()
+        self.ui.datetime.setDateTime(self.date)
+        self.refreshBackgroundImg()
+        #self.dt_box.delete(0, END)
+        #self.dt_box.insert(0, self.date.strftime("%d %b %Y, %H:%M:%S"))
+
+    def updateTime(self, date=None):
+        if (date is None):
+            self.date = datetime.utcnow() + timedelta(minutes=self.dmin)
+        else:
+            self.date = date
+
+    def newDate(self):
+        date = self.ui.datetime.dateTime().toPyDateTime()
+        self.dmin += (date - self.date).total_seconds()/60.0
+        self.date = date
+        self.refreshBackgroundImg()
+
+    def updateSatellites(self):
+        for Sat in self.Sats:
+            Sat.updateOrbitalParameters3(self.date)
+            if (self.en_db):
+                col = self.db[Sat.name]
+                col.insert_one(self.formatDump(Sat))
 
     def changeDate(self, event):
         date = datetime.strptime(self.dt_box.get(), "%d %b %Y, %H:%M:%S")
@@ -424,6 +470,7 @@ class ApplicationWindow(QtWidgets.QMainWindow):
 
     def setCanvas(self):
         self.canvas = FigureCanvasQTAgg(self.fig)#, master=self.root)
+        self.canvas.setParent(self)
         #self.root.rowconfigure(0, weight=1)
         #self.root.columnconfigure(0, weight=1)
         #self.canvas.get_qk_widget().grid(row=0, column=5, rowspan=4,
@@ -626,33 +673,45 @@ class ApplicationWindow(QtWidgets.QMainWindow):
 
     def enableDB(self):
         self.en_db = True
-        self.editmenu.entryconfigure(2, label="Disable database",
-                                     command=self.disableDB)
+        self.ui.actionEnable_database.setText("Disable database")
+        self.ui.actionEnable_database.triggered.connect(self.disableDB)
+        #self.editmenu.entryconfigure(2, label="Disable database",
+        #                             command=self.disableDB)
 
     def disableDB(self):
         self.en_db = False
-        self.editmenu.entryconfigure(2, label="Enable database",
-                                     command=self.enableDB)
+        self.ui.actionEnable_database.setText("Enable database")
+        self.ui.actionEnable_database.triggered.connect(self.enableDB)
+        #self.editmenu.entryconfigure(2, label="Enable database",
+        #                             command=self.enableDB)
 
     def removeSAA(self):
         self.saa_alpha = 0
-        self.editmenu.entryconfigure(4, label="Add south atlantic anomaly",
-                                     command=self.addSAA)
+        self.ui.actionAdd_south_atlantic_anomaly.setText("Add south atlantic anomaly")
+        self.ui.actionAdd_south_atlantic_anomaly.triggered.connect(self.addSAA)
+        #self.editmenu.entryconfigure(4, label="Add south atlantic anomaly",
+        #                             command=self.addSAA)
 
     def addSAA(self):
         self.saa_alpha = 0.2
-        self.editmenu.entryconfigure(4, label="Remove south atlantic anomaly",
-                                     command=self.removeSAA)
+        self.ui.actionAdd_south_atlantic_anomaly.setText("Remove south atlantic anomaly")
+        self.ui.actionAdd_south_atlantic_anomaly.triggered.connect(self.removeSAA)
+        #self.editmenu.entryconfigure(4, label="Remove south atlantic anomaly",
+        #                             command=self.removeSAA)
 
     def removeCoverage(self):
         self.cov_alpha = 0
-        self.editmenu.entryconfigure(5, label="Add coverage",
-                                     command=self.addCoverage)
+        self.ui.actionRemove_coverage.setText("Add coverage")
+        self.ui.actionRemove_coverage.triggered.connect(self.addCoverage)
+        #self.editmenu.entryconfigure(5, label="Add coverage",
+        #                             command=self.addCoverage)
 
     def addCoverage(self):
         self.cov_alpha = 0.2
-        self.editmenu.entryconfigure(5, label="Remove coverage", 
-                                     command=self.removeCoverage)
+        self.ui.actionRemove_coverage.setText("Remove coverage")
+        self.ui.actionRemove_coverage.triggered.connect(self.removeCoverage)
+        #self.editmenu.entryconfigure(5, label="Remove coverage", 
+        #                             command=self.removeCoverage)
 
     def setSearchBox(self):
         self.srch_lbl = Label(self.popup, text="Search:")
@@ -817,16 +876,22 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         self.popup.mainloop()
 
     def fullscreen(self, event=None):
-        self.root.attributes("-fullscreen", True)
-        self.viewmenu.entryconfigure(0, label="Exit fullscreen", 
-                                     command=self.exitFullscreen)
-        self.rememberLastRows()
+        self.showFullScreen()
+        self.ui.actionFullscreen.setText("Exit fullscreen")
+        self.ui.actionFullscreen.triggered.connect(self.exitFullscreen)
+        #self.root.attributes("-fullscreen", True)
+        #self.viewmenu.entryconfigure(0, label="Exit fullscreen", 
+        #                             command=self.exitFullscreen)
+        #self.rememberLastRows()
 
     def exitFullscreen(self, event=None):
-        self.root.attributes("-fullscreen", False)
-        self.viewmenu.entryconfigure(0, label="Fullscreen",
-                                     command=self.fullscreen)
-        self.forgetLastRows()
+        self.showMaximized()
+        self.ui.actionFullscreen.setText("Fullscreen")
+        self.ui.actionFullscreen.triggered.connect(self.fullscreen)
+        #self.root.attributes("-fullscreen", False)
+        #self.viewmenu.entryconfigure(0, label="Fullscreen",
+        #                             command=self.fullscreen)
+        #self.forgetLastRows()
 
     def updateTLEfromNet(self):
         tlefile.TLE_URLS = ("https://celestrak.com/NORAD/elements/argos.txt", )
@@ -914,6 +979,18 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         self.popup.mainloop()
 
     def setMenu(self):
+        self.ui.actionSave_as.triggered.connect(self.saveAs)
+        self.ui.actionUpdate_TLE_from_net.triggered.connect(self.updateTLEfromNet)
+        self.ui.actionEnable_database.triggered.connect(self.enableDB)
+        self.ui.actionAdd_south_atlantic_anomaly.triggered.connect(self.addSAA)
+        self.ui.actionRemove_coverage.triggered.connect(self.removeCoverage)
+        self.ui.actionAdd_remove_satellites.triggered.connect(self.addRemoveSat)
+        self.ui.actionFullscreen.triggered.connect(self.fullscreen)
+        self.ui.actionEarth.triggered.connect(self.earth)
+        self.ui.actionMars.triggered.connect(self.mars)
+        self.ui.actionAbout.triggered.connect(self.about)
+
+    def setMenu2(self):
         menubar = Menu(self.root, bg=self.bg, fg=self.fg, activeforeground=self.fg,
                         activebackground=self.active_bg)
 
@@ -961,5 +1038,28 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         self.root.destroy()
 
     def run(self):
-        self.root.mainloop()
+        #self.root.mainloop()
+        self.time_timer = QtCore.QTimer()
+        self.time_timer.timeout.connect(self.updateTime)
+        self.time_timer.start(100)
+
+        self.sats_timer = QtCore.QTimer()
+        self.sats_timer.timeout.connect(self.updateSatellites)
+        self.sats_timer.start(300)
+
+        self.canvas_timer = QtCore.QTimer()
+        self.canvas_timer.timeout.connect(self.updateCanvas)
+        self.canvas_timer.start(500)
+
+        self.bg_timer = QtCore.QTimer()
+        self.bg_timer.timeout.connect(self.refreshBackgroundImg)
+        self.bg_timer.start(60000)
+        #while (True):
+        #    self.updtCnt += 1
+        #    self.updateCanvas()
+        #    if (self.updtCnt > 20):
+        #        self.refreshBackgroundImg()
+        #        self.updtCnt = 0
+        #    QtWidgets.QApplication.processEvents()
+        #    sleep(0.5)
 

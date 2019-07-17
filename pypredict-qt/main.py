@@ -5,8 +5,10 @@ import sys
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 import matplotlib.pyplot as plt
-from mpl_toolkits.basemap import Basemap
+#from mpl_toolkits.basemap import Basemap
 from datetime import datetime
+from cartopy.crs import Geodetic, PlateCarree, RotatedPole
+from matplotlib.pyplot import imread, subplots, tight_layout
 
 import numpy as np
 
@@ -67,18 +69,20 @@ class MapCanvas(FigureCanvas):
 
     def plot_map(self, date=None):
         """Plot the initial map"""
-        self.map = Basemap(ax=self.axes)
+        self.fig, self.ax = subplots(figsize=(12, 6),
+                                    subplot_kw={'projection': PlateCarree()})
+        #self.map = Basemap(ax=self.axes)
         # Plot coastlines, draw label meridians and parallels.
-        self.map.drawcoastlines()
-        self.map.drawparallels(np.arange(-90, 90, 30), labels=[1, 0, 0, 0])
-        self.map.drawmeridians(np.arange(self.map.lonmin, self.map.lonmax + 30, 60), labels=[0, 0, 0, 1])
+        #self.map.drawcoastlines()
+        #self.map.drawparallels(np.arange(-90, 90, 30), labels=[1, 0, 0, 0])
+        #self.map.drawmeridians(np.arange(self.map.lonmin, self.map.lonmax + 30, 60), labels=[0, 0, 0, 1])
         # Set background
-        self.map.bluemarble(scale=0.25)
+        #self.map.bluemarble(scale=0.25)
         # Set initial nightshade
         date = date if date else datetime.utcnow()
-        self.cs = self.map.nightshade(date)
+        #self.cs = self.map.nightshade(date)
         # Init the x,y plot, empty at this moment @see plot_update
-        self.plt, = self.axes.plot([], [], 'g--')
+        #self.plt, = self.axes.plot([], [], 'g--')
         self.draw()
 
     def plot_nightshade(self, dt):
