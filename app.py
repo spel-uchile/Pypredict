@@ -114,6 +114,7 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         #self.tableRefresher()
         #self.setRootBindings()
         self.showMaximized()
+        self.fig.canvas.mpl_connect('scroll_event',self.zoom)
         self.run()
 
     def __call__(self):
@@ -137,20 +138,33 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         self.root.bind("<Button-5>", self.zoom)
 
     def zoom(self, event):
-        if (event.num == 5 or event.delta == -120):
-            self.ax.set_extent([-180, 180, -90, 90],
-                           crs=PlateCarree())
-        elif (event.num == 4 or event.delta == 120):
-            x, y = self.ax.transAxes.inverted().transform((event.x,
-                                                           event.y))
-            lng = x*360 - 180
-            lng_min = (-90+lng)*(-90+lng >= -180) - 180*(-90+lng < -180)
-            lng_max = (90+lng)*(90+lng <= 180) + 180*(90+lng > 180)
-            lat = (1 - y)*180 - 90
-            lat_min = (-45+lat)*(-45+lat >= -90) - 90*(-45+lat < -90)
-            lat_max = (45+lat)*(45+lat <= 90) + 90*(45+lat > 90)
+        lng = event.xdata
+        lat = event.ydata
+        if (event.button == "up"):
+            scale = 0.6
+        else:
+            scale = 1.4
+        lng_min = self.ax.get_xlim()[0]*scale + lng
+        lng_max = self.ax.get_xlim()[1]*scale + lng
+        lat_min = self.ax.get_ylim()[0]*scale + lat
+        lat_max = self.ax.get_ylim()[1]*scale + lat
+        if (lng_min < -180 and lng_max > 180 or lat_min < -90 and lat_max > 90):
+            self.ax.set_extent([-180, 180, -90, 90], crs=PlateCarree())
+        else:
+            if (lng_min < -180):
+                lng_max += -(180 + lng_min)
+                lng_min = -180
+            elif (lng_max > 180):
+                lng_min += -(lng_max - 180)
+                lng_max = 90
+            if (lat_min < -90):
+                lat_max += -(90 + lat_min)
+                lat_min = -90
+            elif (lat_max > 90):
+                lat_min += -(lat_max - 90)
+                lat_max = 90
             self.ax.set_extent([lng_min, lng_max, lat_min, lat_max],
-                           crs=PlateCarree())
+                        crs=PlateCarree())
 
     def fillSAA(self):
         """
@@ -687,6 +701,7 @@ class ApplicationWindow(QtWidgets.QMainWindow):
 
     def removeSAA(self):
         self.saa_alpha = 0
+        self.updateCanvas()
         self.ui.actionAdd_south_atlantic_anomaly.setText("Add south atlantic anomaly")
         self.ui.actionAdd_south_atlantic_anomaly.triggered.connect(self.addSAA)
         #self.editmenu.entryconfigure(4, label="Add south atlantic anomaly",
@@ -694,6 +709,7 @@ class ApplicationWindow(QtWidgets.QMainWindow):
 
     def addSAA(self):
         self.saa_alpha = 0.2
+        self.updateCanvas()
         self.ui.actionAdd_south_atlantic_anomaly.setText("Remove south atlantic anomaly")
         self.ui.actionAdd_south_atlantic_anomaly.triggered.connect(self.removeSAA)
         #self.editmenu.entryconfigure(4, label="Remove south atlantic anomaly",
@@ -701,6 +717,7 @@ class ApplicationWindow(QtWidgets.QMainWindow):
 
     def removeCoverage(self):
         self.cov_alpha = 0
+        self.updateCanvas()
         self.ui.actionRemove_coverage.setText("Add coverage")
         self.ui.actionRemove_coverage.triggered.connect(self.addCoverage)
         #self.editmenu.entryconfigure(5, label="Add coverage",
@@ -708,6 +725,7 @@ class ApplicationWindow(QtWidgets.QMainWindow):
 
     def addCoverage(self):
         self.cov_alpha = 0.2
+        self.updateCanvas()
         self.ui.actionRemove_coverage.setText("Remove coverage")
         self.ui.actionRemove_coverage.triggered.connect(self.removeCoverage)
         #self.editmenu.entryconfigure(5, label="Remove coverage", 
