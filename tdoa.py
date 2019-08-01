@@ -199,23 +199,23 @@ class TDOA(object):
         """
         x1 = r1[0]
         y1 = r1[1]
+        z1 = r1[2]
         x21 = r2[0] - x1
         y21 = r2[1] - y1
+        z21 = r2[2] - z1
         x31 = r3[0] - x1
         y31 = r3[1] - y1
-        d21 = self.getDistance(r0, r2) - self.getDistance(r0, r1)
-        d31 = self.getDistance(r0, r3) - self.getDistance(r0, r1)
-        z1 = r1[2]
-        C1 = self.getC(r1)
-        C2 = self.getC(r2)
-        C3 = self.getC(r3)
-        C4 = self.getC(r4)
-        z21 = r2[2] - z1
         z31 = r3[2] - z1
         x41 = r4[0] - x1
         y41 = r4[1] - y1
         z41 = r4[2] - z1
+        d21 = self.getDistance(r0, r2) - self.getDistance(r0, r1)
+        d31 = self.getDistance(r0, r3) - self.getDistance(r0, r1)
         d41 = self.getDistance(r0, r4) - self.getDistance(r0, r1)
+        C1 = self.getC(r1)
+        C2 = self.getC(r2)
+        C3 = self.getC(r3)
+        C4 = self.getC(r4)
         D = (x31*y41 - x41*y31)*z21 + (x41*y21 - x21*y41)*z31 + (x21*y31 - x31*y21)*z41
         a1 = (y31*z41 - y41*z31)*d21 - (y21*z41 - y41*z21)*d31 - (y31*z21 - y21*z31)*d41
         a2 = (x31*z41 - x41*z31)*d21 - (x21*z41 - x41*z21)*d31 + (x21*z31 - x31*z21)*d41
@@ -229,6 +229,7 @@ class TDOA(object):
         if (b**2 - 4*a*c < 0):
             print("{}{}{}{}{}{}".format("b^2: ", b**2, "   4ac: ", 4*a*c, "   Diff: ", b**2 - 4*a*c))
         d1 = (-b + sqrt(b**2 - 4*a*c))/(2*a)
+        print(d1 - self.getDistance(r0, r1))
         M = matrix([[x21, y21, z21],
                     [x31, y31, z31],
                     [x41, y41, z41]])
