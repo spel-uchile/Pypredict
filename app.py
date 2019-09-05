@@ -25,7 +25,7 @@ __version__ = "2.2.0"
 from PyQt5 import QtWidgets, QtGui, QtCore
 from time import sleep
 from ui.main_window import Ui_MainWindow
-from help_menu.help_window import Ui_Dialog
+from help.help_window import Ui_Dialog
 from cartopy.crs import Geodetic, PlateCarree, RotatedPole
 from dayNightMap import Map
 from dpl import Dpl
