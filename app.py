@@ -25,6 +25,7 @@ __version__ = "2.2.0"
 from PyQt5 import QtWidgets, QtGui, QtCore
 from time import sleep
 from ui.main_window import Ui_MainWindow
+from help_menu.help_window import Ui_Dialog
 from cartopy.crs import Geodetic, PlateCarree, RotatedPole
 from dayNightMap import Map
 from dpl import Dpl
@@ -969,6 +970,7 @@ class ApplicationWindow(QtWidgets.QMainWindow):
                     Po_r=3376200, J2=0.00196045, P_w=7.08821812*10**(-5))
 
     def about(self):
+        '''
         self.popup = Tk()
         self.popup.title("About Pypredict")
         self.prog_name_lbl = Label(self.popup,
@@ -995,6 +997,13 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         self.popup.columnconfigure(3,weight=1)
         self.popup.protocol("WM_DELETE_WINDOW", self.popup.destroy)
         self.popup.mainloop()
+        '''
+        Dialog = QtWidgets.QDialog()
+        ui = Ui_Dialog()
+        ui.setupUi(Dialog)
+        Dialog.setWindowTitle('About Pypredict')
+        Dialog.setAttribute(QtCore.Qt.WA_DeleteOnClose)
+        Dialog.exec_()
 
     def setMenu(self):
         self.ui.actionSave_as.triggered.connect(self.saveAs)
