@@ -71,12 +71,10 @@ class ApplicationWindow(QtWidgets.QMainWindow):
                  "mass_box1", "mass_box2", "spdx_box", "spdy_box",
                  "spdz_box", "dpl_name_lbl", "name_box", "dpl_cat_lbl",
                  "cat_box", "deployer_lbl", "deployer_name_lbl", "dpl",
-                 "prog_name_lbl", "version_lbl", "dev_lbl", "contact_lbl",
-                 "updtCnt", "warranty_lbl", "details_lbl", "cov_lat",
-                 "cov_lng", "play", "next_min", "next_day", "prev_min",
-                 "prev_day", "dmin", "dt_box", "molniya", "canvas",
-                 "saa", "date", "db", "en_db", "time_timer", "sats_timer",
-                 "canvas_timer", "bg_timer"]
+                 "updtCnt", "cov_lat", "cov_lng", "play", "next_min",
+                 "next_day", "prev_min", "prev_day", "dmin", "dt_box",
+                 "molniya", "canvas", "saa", "date", "db", "en_db",
+                 "time_timer", "sats_timer", "canvas_timer", "bg_timer"]
     def __init__(self, Sats):
         self.Sats = Sats
         self.sortSats()
