@@ -26,6 +26,7 @@ from PyQt5 import QtWidgets, QtGui, QtCore
 from time import sleep
 from ui.main_window import Ui_MainWindow
 from help.help_window import Ui_Dialog
+from deployment.dpl_window import Ui_DPLWindow
 from cartopy.crs import Geodetic, PlateCarree, RotatedPole
 from dayNightMap import Map
 from dpl import Dpl
@@ -300,7 +301,7 @@ class ApplicationWindow(QtWidgets.QMainWindow):
             self.bottom_index += 1
 
     def setButtons(self):
-        #self.ui.dpl_button.clicked.connect(self.deployPopup)
+        self.ui.dpl_button.clicked.connect(self.deployPopup)
         self.ui.loc_button.clicked.connect(self.notAvailable)
         self.ui.prev_day.clicked.connect(self.previousDay)
         self.ui.prev_min.clicked.connect(self.previousMinute)
@@ -344,6 +345,7 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         self.format_dt()
 
     def deployPopup(self):
+        '''
         self.popup = Tk()
         self.popup.title("Deployment settings")
         self.showCurrentSats(0, rowspan=7)
@@ -396,6 +398,13 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         self.popup.bind("<Return>", self.selectDeployer)
         self.popup.protocol("WM_DELETE_WINDOW", self.popup.destroy)
         self.popup.mainloop()
+        '''
+        Dialog = QtWidgets.QDialog()
+        ui = Ui_DPLWindow()
+        ui.setupUi(Dialog)
+        Dialog.setWindowTitle("Deployment settings")
+        Dialog.setAttribute(QtCore.Qt.WA_DeleteOnClose)
+        Dialog.exec_()
 
     def selectDeployer(self, event):
         #select = self.curr_sats_lst.curselection()
