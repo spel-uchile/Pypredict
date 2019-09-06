@@ -13,7 +13,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 class Ui_addRemove(object):
     def setupUi(self, addRemove):
         addRemove.setObjectName("addRemove")
-        addRemove.resize(507, 308)
+        addRemove.resize(516, 308)
         self.horizontalLayout = QtWidgets.QHBoxLayout(addRemove)
         self.horizontalLayout.setObjectName("horizontalLayout")
         self.frame = QtWidgets.QFrame(addRemove)
