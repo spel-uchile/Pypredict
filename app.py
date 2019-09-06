@@ -20,13 +20,14 @@
     You should have received a copy of the GNU General Public License
     along with this program. If not, see <https://www.gnu.org/licenses/>.
 """
-__version__ = "2.2.0"
+__version__ = "2.3.0"
 
 from PyQt5 import QtWidgets, QtGui, QtCore
 from time import sleep
 from ui.main_window import Ui_MainWindow
-from help.help_window import Ui_Dialog
-from deployment.dpl_window import Ui_DPLWindow
+from about.about_window import Ui_About
+from deployment.dpl_window import Ui_DPL
+from addRemove.addRemove_window import Ui_addRemove
 from cartopy.crs import Geodetic, PlateCarree, RotatedPole
 from dayNightMap import Map
 from dpl import Dpl
@@ -36,9 +37,7 @@ from pyorbital import tlefile
 from matplotlib.pyplot import imread, subplots, tight_layout
 from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
 from datetime import datetime, timedelta
-#from tkinter import Button, Entry, END, Image, Label, Listbox, Menu, StringVar, ttk, Tk
 from tkinter.filedialog import asksaveasfilename
-#from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
 from sat import Sat
 from SAA import SAA
@@ -48,34 +47,25 @@ import ssl
 import json
 
 filterwarnings("ignore", category=RuntimeWarning)
-ssl._create_default_https_context = ssl._create_unverified_context
 
 class ApplicationWindow(QtWidgets.QMainWindow):
     #@profile
-    __slots__ = ["Sats", "root", "img", "mainSat", "mainSat_lats",
+    __slots__ = ["Sats", "img", "mainSat", "mainSat_lats",
                  "mainSat_lngs", "ax_saa", "fig", "ax", "ax_tray",
                  "ax_sat", "ax_cov", "sat_txt", "bg", "fg", "active_bg",
                  "saa_alpha", "cov_alpha", "top_index", "bottom_index",
                  "name_bt", "cat_lbl", "lat_lbl", "lng_lbl", "alt_lbl",
                  "a_lbl", "e_lbl", "raan_lbl", "i_lbl", "w_lbl",
                  "theta_lbl", "h_lbl", "up_bt", "down_bt", "popup",
-                 "srch_lbl", "ent", "srch_box", "match", "avail_sats",
-                 "argos", "cubesat", "dmc", "goes", "intelsat",
-                 "iridium", "iridium_next", "noaa", "planet", "resource",
-                 "sarsat", "spire", "tdrss", "tle_new", "weather",
-                 "avail_sats_lst", "curr_lbl", "curr_sats_lst",
-                 "add_sat_bt", "remove_sat_bt", "editmenu", "viewmenu",
-                 "planetmenu", "map", "spd_lbl", "dpl_bt", 
-                 "deploy_now_bt", "loc_bt", "dpl_img", "tdoa_img",
-                 "world_map", "dpl_mass_lbl1", "dpl_mass_lbl2",
-                 "dpl_spdx_lbl", "dpl_spdy_lbl", "dpl_spdz_lbl",
-                 "mass_box1", "mass_box2", "spdx_box", "spdy_box",
-                 "spdz_box", "dpl_name_lbl", "name_box", "dpl_cat_lbl",
-                 "cat_box", "deployer_lbl", "deployer_name_lbl", "dpl",
-                 "updtCnt", "cov_lat", "cov_lng", "play", "next_min",
-                 "next_day", "prev_min", "prev_day", "dmin", "dt_box",
-                 "molniya", "canvas", "saa", "date", "db", "en_db",
-                 "time_timer", "sats_timer", "canvas_timer", "bg_timer"]
+                 "ent", "match", "avail_sats", "argos", "cubesat", "dmc",
+                 "goes", "intelsat", "iridium", "iridium_next", "noaa",
+                 "planet", "resource", "sarsat", "spire", "tdrss",
+                 "tle_new", "weather", "molniya", "map", "dpl_img",
+                 "tdoa_img", "world_map", "dpl", "cov_lat",
+                 "cov_lng", "dmin", "canvas", "saa", "date", "db",
+                 "en_db", "time_timer", "sats_timer", "canvas_timer",
+                 "bg_timer", "Dialog"]
+
     def __init__(self, Sats):
         self.Sats = Sats
         self.sortSats()
@@ -86,17 +76,10 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         self.db = client["SatConstellation"]
         self.en_db = False
         self.setWindowIcon( QtGui.QIcon("img/favicon.png") )
-        #self.root = Tk()
-        #self.img = Image("photo", file="img/favicon.png") 
-        #self.root.call('wm', 'iconphoto', self.root._w, self.img)
-        #self.geometry()
         self.setWindowTitle('Pypredict')
-        #self.setTheme('#404040', 'white', '#303030')
-        #self.root.protocol("WM_DELETE_WINDOW", quit)
         self.saa_alpha = 0
         self.cov_alpha = 0.2
         self.saa = SAA()
-        self.updtCnt = 0
         self.dmin = 0
         self.ui.datetime.setDateTime(datetime.utcnow())
         self.setButtons()
@@ -109,10 +92,8 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         self.changeMainSat(self.Sats[0])
         self.cov_lng = empty(180)
         self.cov_lat = empty(180)
-        #self.setTableTitles()
         #self.setTableContent()
         #self.tableRefresher()
-        #self.setRootBindings()
         self.showMaximized()
         self.fig.canvas.mpl_connect('scroll_event',self.zoom)
         self.run()
@@ -128,14 +109,6 @@ class ApplicationWindow(QtWidgets.QMainWindow):
                 self.showMaximized()
             else:
                 self.showFullScreen()
-
-    def setRootBindings(self):
-        self.root.bind("<F11>", self.fullscreen)
-        self.root.bind("<Escape>", self.exitFullscreen)
-        self.root.bind("<Return>", self.changeDate)
-        self.root.bind("<MouseWheel>", self.zoom)
-        self.root.bind("<Button-4>", self.zoom)
-        self.root.bind("<Button-5>", self.zoom)
 
     def zoom(self, event):
         lng = event.xdata
@@ -174,16 +147,6 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         self.ax_saa.set_alpha(self.saa_alpha)
 
     def plotData(self):
-        #screen_height = self.frameGeometry().height()#self.root.winfo_screenheight()
-        #if (screen_height < 1080):
-        #    self.fig, self.ax = subplots(figsize=(12, 6),
-        #                            subplot_kw={'projection': PlateCarree()})
-        #elif (screen_height == 1080):
-        #    self.fig, self.ax = subplots(figsize=(17.5, 8.75),
-        #                            subplot_kw={'projection': PlateCarree()})
-        #else:
-        #    self.fig, self.ax = subplots(figsize=(18, 9),
-        #                            subplot_kw={'projection': PlateCarree()})
         self.fig, self.ax = subplots(subplot_kw={'projection': PlateCarree()})
         img_extent = (-180, 180, -90, 90)
         self.date = datetime.utcnow()
@@ -310,120 +273,31 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         self.ui.next_day.clicked.connect(self.nextDay)
         self.ui.datetime.dateTimeChanged.connect(self.newDate)
 
-    def setButtons2(self):
-        self.dpl_img = Image("photo", file="img/deploy.png")
-        self.dpl_bt = ttk.Button(self.root, text="Simulate deployment",
-                style = "nextPrev.TLabel", image=self.dpl_img, compound="bottom",
-                command=self.deployPopup)
-        self.dpl_bt.grid(row=0, column=0, columnspan=5, sticky="NESW")
-        self.tdoa_img = Image("photo", file="img/TDOA.png")
-        self.loc_bt = ttk.Button(self.root, text="Simulate localization",
-                style="nextPrev.TLabel", image=self.tdoa_img, compound="bottom",
-                command=self.notAvailable)
-        self.loc_bt.grid(row=1, column=0, columnspan=5, sticky="NESW")
-        self.dpl = Dpl()
-
-        self.prev_day = ttk.Button(self.root, text="|◀◀",
-                style = "nextPrev.TLabel", command=self.previousDay)
-        self.prev_day.grid(row=2, column=0, sticky="NESW")
-        self.prev_min = ttk.Button(self.root, text="|◀",
-                style = "nextPrev.TLabel", command=self.previousMinute)
-        self.prev_min.grid(row=2, column=1, sticky="NESW")
-        self.play = ttk.Button(self.root, text="▶️",
-                style = "play.TLabel", command=self.currentMinute)
-        self.play.grid(row=2, column=2, sticky="NESW")
-        self.next_min = ttk.Button(self.root, text="▶️|",
-                style = "nextPrev.TLabel", command=self.nextMinute)
-        self.next_min.grid(row=2, column=3, sticky="NESW")
-        self.next_day = ttk.Button(self.root, text="▶️▶️|",
-                style = "nextPrev.TLabel", command=self.nextDay)
-        self.next_day.grid(row=2, column=4, sticky="NESW")
-        self.dt_box = Entry(self.root)
-        self.dt_box.configure({"background": self.bg})
-        self.dt_box.configure({"foreground": self.fg})
-        self.dt_box.grid(row=3, column=0, columnspan=5)
-        self.format_dt()
-
     def deployPopup(self):
-        '''
-        self.popup = Tk()
-        self.popup.title("Deployment settings")
-        self.showCurrentSats(0, rowspan=7)
-        self.deployer_lbl = Label(self.popup,
-                text="Satellite deployer:")
-        self.deployer_lbl.grid(row=0, column=1, sticky="W")
-        self.deployer_name_lbl = Label(self.popup,
-                text="No sat selected")
-        self.deployer_name_lbl.grid(row=0, column=2, sticky="W")
-        self.dpl_mass_lbl1 = Label(self.popup,
-                text="Deployer's mass [kg]:")
-        self.dpl_mass_lbl1.grid(row=1, column=1, sticky="W")
-        self.mass_box1 = Entry(self.popup)
-        self.mass_box1.grid(row=1, column=2)
-        self.dpl_name_lbl = Label(self.popup,
-                text="New sat's name:")
-        self.dpl_name_lbl.grid(row=2, column=1, sticky="W")
-        self.name_box = Entry(self.popup)
-        self.name_box.grid(row=2, column=2)
-        self.dpl_cat_lbl = Label(self.popup,
-                text="New sat's category:")
-        self.dpl_cat_lbl.grid(row=3, column=1, sticky="W")
-        self.cat_box = Entry(self.popup)
-        self.cat_box.grid(row=3, column=2)
-        self.dpl_mass_lbl2 = Label(self.popup,
-                text="New sat's mass [kg]:")
-        self.dpl_mass_lbl2.grid(row=4, column=1, sticky="W")
-        self.mass_box2 = Entry(self.popup)
-        self.mass_box2.grid(row=4, column=2)
-        self.dpl_spdx_lbl = Label(self.popup,
-                text="Deployment speed x [m/s]:")
-        self.dpl_spdx_lbl.grid(row=5, column=1, sticky="W")
-        self.spdx_box = Entry(self.popup)
-        self.spdx_box.grid(row=5, column=2)
-        self.dpl_spdy_lbl = Label(self.popup,
-                text="Deployment speed y [m/s]:")
-        self.dpl_spdy_lbl.grid(row=6, column=1, sticky="W")
-        self.spdy_box = Entry(self.popup)
-        self.spdy_box.grid(row=6, column=2)
-        self.dpl_spdz_lbl = Label(self.popup,
-                text="Deployment speed z [m/s]:")
-        self.dpl_spdz_lbl.grid(row=7, column=1, sticky="W")
-        self.spdz_box = Entry(self.popup)
-        self.spdz_box.grid(row=7, column=2)
-        self.deploy_now_bt = Button(self.popup, text="Deploy",
-                                 command=self.deploySat)
-        self.deploy_now_bt.grid(row=8, column=0,
-                columnspan=3, sticky="NESW")
-        self.popup.bind("<Button-1>", self.selectDeployer)
-        self.popup.bind("<Return>", self.selectDeployer)
-        self.popup.protocol("WM_DELETE_WINDOW", self.popup.destroy)
-        self.popup.mainloop()
-        '''
-        Dialog = QtWidgets.QDialog()
-        ui = Ui_DPLWindow()
-        ui.setupUi(Dialog)
-        Dialog.setWindowTitle("Deployment settings")
-        Dialog.setAttribute(QtCore.Qt.WA_DeleteOnClose)
-        Dialog.exec_()
+        self.Dialog = QtWidgets.QDialog()
+        self.popup = Ui_DPL()
+        self.popup.setupUi(self.Dialog)
+        self.Dialog.setWindowTitle("Deployment settings")
+        self.showCurrentSats()
+        self.popup.curr_sats_lst.itemClicked.connect(self.selectDeployer)
+        self.popup.deploy_now_bt.clicked.connect(self.deploySat)
+        self.dpl = Dpl()
+        self.Dialog.setAttribute(QtCore.Qt.WA_DeleteOnClose)
+        self.Dialog.exec_()
 
-    def selectDeployer(self, event):
-        #select = self.curr_sats_lst.curselection()
-        if (event.widget == self.curr_sats_lst):
-            select = self.curr_sats_lst.curselection()
-            deployer_name = self.curr_sats_lst.get(select)
-            self.deployer_name_lbl['text'] = deployer_name
-        elif (event.widget == self.deploy_now_bt):
-            self.deploySat()
+    def selectDeployer(self, item):
+        deployer_name = item.text()
+        self.popup.deployer_name_lbl.setText(deployer_name)
 
     def deploySat(self):
-        deployer_name = self.deployer_name_lbl['text']
-        dplyr_mass = float(self.mass_box1.get())
-        dplyd_mass = float(self.mass_box2.get())
-        spdx = int(self.spdx_box.get())
-        spdy = int(self.spdy_box.get())
-        spdz = int(self.spdz_box.get())
-        name = self.name_box.get()
-        cat = self.cat_box.get()
+        deployer_name = self.popup.deployer_name_lbl.text()
+        dplyr_mass = float(self.popup.mass_box1.text())
+        dplyd_mass = float(self.popup.mass_box2.text())
+        spdx = int(self.popup.spdx_box.text())
+        spdy = int(self.popup.spdy_box.text())
+        spdz = int(self.popup.spdz_box.text())
+        name = self.popup.name_box.text()
+        cat = self.popup.cat_box.text()
         for sat in self.Sats:
             if (sat.name == deployer_name):
                 deployer = sat
@@ -436,7 +310,7 @@ class ApplicationWindow(QtWidgets.QMainWindow):
                             transform=Geodetic(), ha="center"))
         self.Sats.append(newSat)
         self.sortSats()
-        self.popup.destroy()
+        self.Dialog.close()
 
     def previousDay(self):
         self.dmin -= 1440
@@ -462,8 +336,6 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         self.updateTime()
         self.ui.datetime.setDateTime(self.date)
         self.refreshBackgroundImg()
-        #self.dt_box.delete(0, END)
-        #self.dt_box.insert(0, self.date.strftime("%d %b %Y, %H:%M:%S"))
 
     def updateTime(self, date=None):
         if (date is None):
@@ -483,53 +355,13 @@ class ApplicationWindow(QtWidgets.QMainWindow):
             if (self.en_db):
                 col = self.db[Sat.name]
                 col.insert_one(self.formatDump(Sat))
-
-    def changeDate(self, event):
-        date = datetime.strptime(self.dt_box.get(), "%d %b %Y, %H:%M:%S")
-        self.dmin += (date - self.date).total_seconds()/60.0
-        self.date = datetime.utcnow() + timedelta(minutes=self.dmin)
         
 
     def setCanvas(self):
-        self.canvas = FigureCanvasQTAgg(self.fig)#, master=self.root)
+        self.canvas = FigureCanvasQTAgg(self.fig)
         self.canvas.setParent(self)
-        #self.root.rowconfigure(0, weight=1)
-        #self.root.columnconfigure(0, weight=1)
-        #self.canvas.get_qk_widget().grid(row=0, column=5, rowspan=4,
-        #        columnspan=13, sticky="NES")
         self.canvas.draw()
         self.ui.frame_plot.layout().addWidget(self.canvas)
-
-    def setTableTitles(self):
-        self.root.rowconfigure(4, weight=1)
-        Label(self.root, text="Satellite", font="TkDefaultFont 10 bold", 
-                bg=self.bg, fg=self.fg, width=19, anchor='w').grid(row=4,
-                        column=0, columnspan=5, sticky="W")
-        Label(self.root, text="Category", font="TkDefaultFont 10 bold",
-                bg=self.bg, fg=self.fg, width=20, anchor='w').grid(row=4,
-                        column=5, sticky="W")
-        Label(self.root, text="Latitude", font="TkDefaultFont 10 bold",
-                bg=self.bg, fg=self.fg).grid(row=4, column=6)
-        Label(self.root, text="Longitude", font="TkDefaultFont 10 bold",
-                bg=self.bg, fg=self.fg).grid(row=4, column=7)
-        Label(self.root, text="Alt. [km]", font="TkDefaultFont 10 bold",
-                bg=self.bg, fg=self.fg).grid(row=4, column=8)
-        Label(self.root, text="Spd. [m/s]", font="TkDefaultFont 10 bold",
-                bg=self.bg, fg=self.fg).grid(row=4, column=9)
-        Label(self.root, text="a [km]", font="TkDefaultFont 10 bold",
-                bg=self.bg, fg=self.fg).grid(row=4, column=10)
-        Label(self.root, text="h [km²/s]", font="TkDefaultFont 10 bold",
-                bg=self.bg, fg=self.fg).grid(row=4, column=11)
-        Label(self.root, text="e", font="TkDefaultFont 10 bold",
-                bg=self.bg, fg=self.fg).grid(row=4, column=12)
-        Label(self.root, text="Ω", font="TkDefaultFont 10 bold",
-                bg=self.bg, fg=self.fg).grid(row=4, column=13)
-        Label(self.root, text="i", font="TkDefaultFont 10 bold",
-                bg=self.bg, fg=self.fg).grid(row=4, column=14)
-        Label(self.root, text="ω", font="TkDefaultFont 10 bold",
-                bg=self.bg, fg=self.fg).grid(row=4, column=15)
-        Label(self.root, text="T. Anom.", font="TkDefaultFont 10 bold",
-                bg=self.bg, fg=self.fg).grid(row=4, column=16)
 
     def setTableContent(self):
         self.name_bt = []
@@ -574,21 +406,6 @@ class ApplicationWindow(QtWidgets.QMainWindow):
 
     def updateTableContent(self):
         rad2deg = 180/pi
-        self.updtCnt += 1
-        self.updateCanvas()
-        if (self.updtCnt > 20):
-            self.refreshBackgroundImg()
-            self.updtCnt = 0
-        try:
-            if (self.root.focus_get() is not self.dt_box):
-                self.format_dt()
-        except KeyError:
-            self.format_dt()
-        for Sat in self.Sats:
-            Sat.updateOrbitalParameters3(self.date)
-            if (self.en_db):
-                col = self.db[Sat.name]
-                col.insert_one(self.formatDump(Sat))
         for i, Sat in enumerate(self.Sats[self.top_index:self.bottom_index]):
             self.name_bt[i]['text'] = Sat.name
             self.name_bt[i]['command'] = lambda Sat=Sat: self.changeMainSat(Sat)
@@ -685,14 +502,6 @@ class ApplicationWindow(QtWidgets.QMainWindow):
     def notAvailable(self):
         print("This command is not available yet")
 
-    def geometry(self):
-        screen_width = self.frameGeometry().width()
-        screen_height = self.frameGeometry().height()
-        screen_resolution = "{}{}{}".format(str(screen_width),
-                                            'x',
-                                            str(screen_height))
-        self.geometry(screen_resolution)
-
     def enableDB(self):
         self.en_db = True
         self.ui.actionEnable_database.setText("Disable database")
@@ -747,14 +556,16 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         self.srch_box.grid(row=0, column=1)
         self.srch_box.focus()
 
-    def searchSat(self, event):
-        srch = self.srch_box.get().upper()
+    #def searchSat(self, event):
+    def searchSat(self, text):
+        srch = text.upper()#self.srch_box.get().upper()
         self.match = [s for s in self.avail_sats if srch in s]
-        self.match.sort(reverse=True)
-        for i in range(0, self.avail_sats_lst.size()):
-            self.avail_sats_lst.delete(0)
+        self.match.sort(reverse=False) 
+        for i in range(0, self.popup.avail_sats_lst.count()):
+            #self.avail_sats_lst.delete(0)
+            self.popup.avail_sats_lst.clear()#takeItem(i)
         for sat in self.match:
-            self.avail_sats_lst.insert(0, sat)
+            self.popup.avail_sats_lst.addItem(sat)
 
     def readSatsFromFile(self, file, lst):
         with open(file, 'r') as f:
@@ -803,34 +614,34 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         self.avail_sats.sort()
 
     def showAvailSats(self):
-        self.avail_sats_lst = Listbox(self.popup, width=28)
+        #self.avail_sats_lst = Listbox(self.popup, width=28)
         self.readAllSats()
         for sat in self.avail_sats:
-            self.avail_sats_lst.insert(END, sat)
-        self.avail_sats_lst.grid(row=1, column=0, rowspan=2, columnspan=2)
-        self.popup.columnconfigure(0, weight=1)
+            self.popup.avail_sats_lst.addItem(sat)
+        #self.avail_sats_lst.grid(row=1, column=0, rowspan=2, columnspan=2)
+        #self.popup.columnconfigure(0, weight=1)
 
-    def showCurrentSats(self, col, rowspan=2):
-        self.curr_lbl = Label(self.popup, text="Current satellites:", anchor='w')
-        self.curr_lbl.grid(row=0, column=col, sticky="W")
-        self.curr_sats_lst = Listbox(self.popup, width=28)
+    def showCurrentSats(self):
         for sat in self.Sats:
-            self.curr_sats_lst.insert(END, sat.name)
-        self.curr_sats_lst.grid(row=1, column=col, rowspan=rowspan)
+            self.popup.curr_sats_lst.addItem(sat.name)
 
     def addRemoveButtons(self):
+        self.popup.add_sat_bt.clicked.connect(self.addSat)
+        self.popup.remove_sat_bt.clicked.connect(self.removeSat)
+        '''
         self.add_sat_bt = Button(self.popup, text="→",
                                  command=self.addSat)
         self.add_sat_bt.grid(row=1, column=2)
         self.remove_sat_bt = Button(self.popup, text="←",
                                     command=self.removeSat)
         self.remove_sat_bt.grid(row=2, column=2)
+        '''
 
     def sortSats(self):
         self.Sats.sort(key = lambda s: s.name)
 
     def addSat(self):
-        add_sat = self.avail_sats_lst.get(self.avail_sats_lst.curselection())
+        add_sat = self.popup.avail_sats_lst.currentItem().text()#self.popup.avail_sats_lst.get(self.popup.avail_sats_lst.curselection())
         self.ax_cov.append(self.ax.fill([0,0], [0,0], transform=Geodetic(),
                            color='white', alpha=self.cov_alpha)[0])
         self.sat_txt.append(self.ax.text([], [], "", color='yellow', size=8,
@@ -869,12 +680,12 @@ class ApplicationWindow(QtWidgets.QMainWindow):
             self.createSatFromFile(add_sat, "TLE/weather.txt", "Weather")
         else:
             self.Sats.append(Sat(add_sat, tle=tlefile.read(add_sat)))
-        self.curr_sats_lst.insert(END, add_sat)
+        self.popup.curr_sats_lst.addItem(add_sat)#insert(END, add_sat)
         self.sortSats()
-        self.srch_box.focus()
+        self.popup.curr_sats_lst.clear()
+        self.popup.srch_box.setFocus()
         for i, sat in enumerate(self.Sats):
-            self.curr_sats_lst.delete(i)
-            self.curr_sats_lst.insert(i, sat.name)
+            self.popup.curr_sats_lst.addItem(sat.name)#insert(i, sat.name)
 
     def createSatFromFile(self, sat_name, file_name, category):
         newSat = Sat(sat_name, tle=tlefile.read(sat_name, file_name), cat=category)
@@ -882,14 +693,15 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         self.Sats.append(newSat)
 
     def removeSat(self):
-        del_sat = self.curr_sats_lst.get(self.curr_sats_lst.curselection())
+        del_sat = self.popup.curr_sats_lst.currentItem().text()
         for i, sat in enumerate(self.Sats):
             if (del_sat == sat.name):
                 self.Sats.remove(sat)
-                self.curr_sats_lst.delete(i)
+                self.popup.curr_sats_lst.takeItem(i)
         self.resetCov()
         
     def addRemoveSat(self):
+        '''
         self.popup = Tk()
         self.popup.title("Add/remove satellites")
         #self.popup.call('wm', 'iconphoto', self.popup._w, self.img)
@@ -900,24 +712,27 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         self.popup.bind("<Key>", self.searchSat)
         self.popup.protocol("WM_DELETE_WINDOW", self.popup.destroy)
         self.popup.mainloop()
+        '''
+        Dialog = QtWidgets.QDialog()
+        self.popup = Ui_addRemove()
+        self.popup.setupUi(Dialog)
+        Dialog.setWindowTitle("Add/remove satellites")
+        Dialog.setAttribute(QtCore.Qt.WA_DeleteOnClose)
+        self.addRemoveButtons()
+        self.showCurrentSats()
+        self.showAvailSats()
+        self.popup.srch_box.textChanged.connect(self.searchSat)
+        Dialog.exec_()
 
     def fullscreen(self, event=None):
         self.showFullScreen()
         self.ui.actionFullscreen.setText("Exit fullscreen")
         self.ui.actionFullscreen.triggered.connect(self.exitFullscreen)
-        #self.root.attributes("-fullscreen", True)
-        #self.viewmenu.entryconfigure(0, label="Exit fullscreen", 
-        #                             command=self.exitFullscreen)
-        #self.rememberLastRows()
 
     def exitFullscreen(self, event=None):
         self.showMaximized()
         self.ui.actionFullscreen.setText("Fullscreen")
         self.ui.actionFullscreen.triggered.connect(self.fullscreen)
-        #self.root.attributes("-fullscreen", False)
-        #self.viewmenu.entryconfigure(0, label="Fullscreen",
-        #                             command=self.fullscreen)
-        #self.forgetLastRows()
 
     def updateTLEfromNet(self):
         tlefile.TLE_URLS = ("https://celestrak.com/NORAD/elements/argos.txt", )
@@ -977,38 +792,13 @@ class ApplicationWindow(QtWidgets.QMainWindow):
                     Po_r=3376200, J2=0.00196045, P_w=7.08821812*10**(-5))
 
     def about(self):
-        '''
-        self.popup = Tk()
-        self.popup.title("About Pypredict")
-        self.prog_name_lbl = Label(self.popup,
-                text="Pypredict", font="TkDefaultFont 10 bold")
-        self.prog_name_lbl.grid(row=0, column=0, sticky="EW")
-        self.version_lbl = Label(self.popup,
-                text=__version__)
-        self.version_lbl.grid(row=1, column=0, sticky="EW")
-        self.dev_lbl = Label(self.popup,
-                text="\nCopyright (C) 2018-2019, Matías Vidal Valladares.")
-        self.dev_lbl.grid(row=2, column=0, sticky="EW")
-        self.contact_lbl = Label(self.popup,
-                text="E-mail: matias.vidal.v@gmail.com")
-        self.contact_lbl.grid(row=3, column=0, sticky="EW")
-        self.warranty_lbl = Label(self.popup,
-                text="\nThis program comes with ABSOLUTELY NO WARRANTY.")
-        self.warranty_lbl.grid(row=4, column=0, sticky="EW")
-        self.details_lbl = Label(self.popup,
-                text="See the GNU General Public License, version 3 or later for details.")
-        self.details_lbl.grid(row=5, column=0, sticky="EW")
-        self.popup.columnconfigure(0,weight=1)
-        self.popup.columnconfigure(1,weight=1)
-        self.popup.columnconfigure(2,weight=1)
-        self.popup.columnconfigure(3,weight=1)
-        self.popup.protocol("WM_DELETE_WINDOW", self.popup.destroy)
-        self.popup.mainloop()
-        '''
         Dialog = QtWidgets.QDialog()
-        ui = Ui_Dialog()
+        ui = Ui_About()
         ui.setupUi(Dialog)
         Dialog.setWindowTitle('About Pypredict')
+        pixmap = QtGui.QPixmap('img/favicon.png')
+        ui.icon.setPixmap(pixmap)
+        ui.version.setText("Pypredict {}".format(__version__))
         Dialog.setAttribute(QtCore.Qt.WA_DeleteOnClose)
         Dialog.exec_()
 
@@ -1024,55 +814,7 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         self.ui.actionMars.triggered.connect(self.mars)
         self.ui.actionAbout.triggered.connect(self.about)
 
-    def setMenu2(self):
-        menubar = Menu(self.root, bg=self.bg, fg=self.fg, activeforeground=self.fg,
-                        activebackground=self.active_bg)
-
-        # Create a pulldown menu, and add it to the menu bar
-        filemenu = Menu(menubar, tearoff=0, bg=self.active_bg, fg=self.fg,
-                        activeforeground=self.fg, activebackground=self.bg)
-        filemenu.add_command(label="Open", command=self.notAvailable)
-        filemenu.add_command(label="Save as", command=self.saveAs)
-        filemenu.add_separator()
-        filemenu.add_command(label="Exit", command=quit)
-        menubar.add_cascade(label="File", menu=filemenu)
-
-        # Create more pulldown menus
-        self.editmenu = Menu(menubar, tearoff=0, bg=self.active_bg, fg=self.fg,
-                             activeforeground=self.fg, activebackground=self.bg)
-        self.editmenu.add_command(label="Update TLE from net", command=self.updateTLEfromNet)
-        self.editmenu.add_command(label="Update TLE from file", command=self.notAvailable)
-        self.editmenu.add_command(label="Enable database", command=self.enableDB)
-        self.editmenu.add_separator()
-        self.editmenu.add_command(label="Add south atlantic anomaly", command=self.addSAA)
-        self.editmenu.add_command(label="Remove coverage", command=self.removeCoverage)
-        self.editmenu.add_command(label="Add/remove satellites", command=self.addRemoveSat)
-        menubar.add_cascade(label="Edit", menu=self.editmenu)
-        
-        self.viewmenu = Menu(menubar, tearoff=0, bg=self.active_bg, fg=self.fg,
-                             activeforeground=self.fg, activebackground=self.bg)
-        self.viewmenu.add_command(label="Fullscreen", command=self.fullscreen)
-        #self.viewmenu.add_command(label="Change planet", command=self.notAvailable)
-        self.planetmenu = Menu(self.viewmenu, tearoff=0, bg=self.active_bg, fg=self.fg,
-                               activeforeground=self.fg, activebackground=self.bg)
-        self.planetmenu.add_command(label="Earth", command=self.earth)
-        self.planetmenu.add_command(label="Mars", command=self.mars)
-        self.viewmenu.add_cascade(label="Change planet", menu=self.planetmenu)
-        menubar.add_cascade(label="View", menu=self.viewmenu)
-
-        helpmenu = Menu(menubar, tearoff=0, bg=self.active_bg, fg=self.fg,
-                        activeforeground=self.fg, activebackground=self.bg)
-        helpmenu.add_command(label="About Pypredict", command=self.about)
-        menubar.add_cascade(label="Help", menu=helpmenu)
-
-        # Display the menu
-        self.root.config(menu=menubar)
-
-    def quit(self):
-        self.root.destroy()
-
     def run(self):
-        #self.root.mainloop()
         self.time_timer = QtCore.QTimer()
         self.time_timer.timeout.connect(self.updateTime)
         self.time_timer.start(100)
@@ -1088,12 +830,3 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         self.bg_timer = QtCore.QTimer()
         self.bg_timer.timeout.connect(self.refreshBackgroundImg)
         self.bg_timer.start(60000)
-        #while (True):
-        #    self.updtCnt += 1
-        #    self.updateCanvas()
-        #    if (self.updtCnt > 20):
-        #        self.refreshBackgroundImg()
-        #        self.updtCnt = 0
-        #    QtWidgets.QApplication.processEvents()
-        #    sleep(0.5)
-
