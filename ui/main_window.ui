@@ -32,115 +32,103 @@
        </attribute>
        <layout class="QVBoxLayout" name="verticalLayout_4">
         <item>
-         <widget class="QFrame" name="frame_3">
+         <widget class="QFrame" name="frame_2">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Expanding" vsizetype="Minimum">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
           <property name="frameShape">
            <enum>QFrame::StyledPanel</enum>
           </property>
           <property name="frameShadow">
            <enum>QFrame::Raised</enum>
           </property>
-          <layout class="QVBoxLayout" name="verticalLayout_3">
+          <layout class="QHBoxLayout" name="horizontalLayout_3">
            <item>
-            <widget class="QFrame" name="frame_2">
-             <property name="sizePolicy">
-              <sizepolicy hsizetype="Expanding" vsizetype="Minimum">
-               <horstretch>0</horstretch>
-               <verstretch>0</verstretch>
-              </sizepolicy>
+            <widget class="QPushButton" name="dpl_button">
+             <property name="text">
+              <string>Simulate deployment</string>
              </property>
-             <property name="frameShape">
-              <enum>QFrame::StyledPanel</enum>
-             </property>
-             <property name="frameShadow">
-              <enum>QFrame::Raised</enum>
-             </property>
-             <layout class="QHBoxLayout" name="horizontalLayout_3">
-              <item>
-               <widget class="QPushButton" name="dpl_button">
-                <property name="text">
-                 <string>Simulate deployment</string>
-                </property>
-               </widget>
-              </item>
-              <item>
-               <widget class="QPushButton" name="loc_button">
-                <property name="text">
-                 <string>Simulate localization</string>
-                </property>
-               </widget>
-              </item>
-              <item>
-               <widget class="QToolButton" name="prev_day">
-                <property name="text">
-                 <string>|◀◀</string>
-                </property>
-               </widget>
-              </item>
-              <item>
-               <widget class="QToolButton" name="prev_min">
-                <property name="text">
-                 <string>|◀</string>
-                </property>
-               </widget>
-              </item>
-              <item>
-               <widget class="QToolButton" name="play">
-                <property name="text">
-                 <string>▶️</string>
-                </property>
-               </widget>
-              </item>
-              <item>
-               <widget class="QToolButton" name="next_min">
-                <property name="text">
-                 <string>▶️|</string>
-                </property>
-               </widget>
-              </item>
-              <item>
-               <widget class="QToolButton" name="next_day">
-                <property name="text">
-                 <string>▶️▶️|</string>
-                </property>
-               </widget>
-              </item>
-              <item>
-               <widget class="QDateTimeEdit" name="datetime"/>
-              </item>
-              <item>
-               <spacer name="horizontalSpacer">
-                <property name="orientation">
-                 <enum>Qt::Horizontal</enum>
-                </property>
-                <property name="sizeHint" stdset="0">
-                 <size>
-                  <width>40</width>
-                  <height>20</height>
-                 </size>
-                </property>
-               </spacer>
-              </item>
-             </layout>
             </widget>
            </item>
            <item>
-            <widget class="QFrame" name="frame_plot">
-             <property name="sizePolicy">
-              <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
-               <horstretch>0</horstretch>
-               <verstretch>0</verstretch>
-              </sizepolicy>
+            <widget class="QPushButton" name="loc_button">
+             <property name="text">
+              <string>Simulate localization</string>
              </property>
-             <property name="maximumSize">
+            </widget>
+           </item>
+           <item>
+            <widget class="QToolButton" name="prev_day">
+             <property name="text">
+              <string>|◀◀</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QToolButton" name="prev_min">
+             <property name="text">
+              <string>|◀</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QToolButton" name="play">
+             <property name="text">
+              <string>▶️</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QToolButton" name="next_min">
+             <property name="text">
+              <string>▶️|</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QToolButton" name="next_day">
+             <property name="text">
+              <string>▶️▶️|</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QDateTimeEdit" name="datetime"/>
+           </item>
+           <item>
+            <spacer name="horizontalSpacer">
+             <property name="orientation">
+              <enum>Qt::Horizontal</enum>
+             </property>
+             <property name="sizeHint" stdset="0">
               <size>
-               <width>1180</width>
-               <height>16777215</height>
+               <width>40</width>
+               <height>20</height>
               </size>
              </property>
-             <layout class="QVBoxLayout" name="verticalLayout"/>
-            </widget>
+            </spacer>
            </item>
           </layout>
+         </widget>
+        </item>
+        <item>
+         <widget class="QFrame" name="frame_plot">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="maximumSize">
+           <size>
+            <width>1180</width>
+            <height>16777215</height>
+           </size>
+          </property>
+          <layout class="QVBoxLayout" name="verticalLayout"/>
          </widget>
         </item>
        </layout>
@@ -512,7 +500,7 @@
    </widget>
    <widget class="QMenu" name="menuEdit">
     <property name="title">
-     <string>Edit</string>
+     <string>E&amp;dit</string>
     </property>
     <addaction name="actionUpdate_TLE_from_net"/>
     <addaction name="actionUpdate_TLE_from_file"/>
