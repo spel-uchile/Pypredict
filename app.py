@@ -54,7 +54,7 @@ class ApplicationWindow(QtWidgets.QMainWindow):
                  "mainSat_lngs", "ax_saa", "fig", "ax", "ax_tray",
                  "ax_sat", "ax_cov", "sat_txt", "bg", "fg", "active_bg",
                  "saa_alpha", "cov_alpha", "popup", "ent", "match",
-                 "avail_sats", "argos", "cubesat", "dmc", "goes",
+                 "avail_sats", "argos", "beidou", "cubesat", "dmc", "goes",
                  "intelsat", "iridium", "iridium_next", "noaa",
                  "planet", "resource", "sarsat", "spire", "tdrss",
                  "tle_new", "weather", "molniya", "map", "dpl_img",
@@ -495,6 +495,7 @@ class ApplicationWindow(QtWidgets.QMainWindow):
 
     def readAllSats(self):
         self.argos = []
+        self.beidou = []
         self.cubesat = []
         self.dmc = []
         self.goes = []
@@ -509,8 +510,10 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         self.spire = []
         self.tdrss = []
         self.tle_new = []
+        self.visual = []
         self.weather = []
         self.readSatsFromFile("TLE/argos.txt", self.argos)
+        self.readSatsFromFile("TLE/beidou.txt", self.beidou)
         self.readSatsFromFile("TLE/cubesat.txt", self.cubesat)
         self.readSatsFromFile("TLE/dmc.txt", self.dmc)
         self.readSatsFromFile("TLE/goes.txt", self.goes)
@@ -525,12 +528,14 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         self.readSatsFromFile("TLE/spire.txt", self.spire)
         self.readSatsFromFile("TLE/tdrss.txt", self.tdrss)
         self.readSatsFromFile("TLE/tle-new.txt", self.tle_new)
+        self.readSatsFromFile("TLE/visual.txt", self.visual)
         self.readSatsFromFile("TLE/weather.txt", self.weather)
-        self.avail_sats = self.argos + self.cubesat + self.dmc + self.goes
-        self.avail_sats += self.intelsat + self.iridium + self.iridium_next
-        self.avail_sats += self.molniya + self.noaa + self.planet
-        self.avail_sats += self.resource + self.sarsat + self.spire
-        self.avail_sats += self.tdrss + self.tle_new + self.weather
+        self.avail_sats = self.argos + self.beidou + self.cubesat + self.dmc
+        self.avail_sats += self.goes + self.intelsat + self.iridium
+        self.avail_sats += self.iridium_next + self.molniya + self.noaa
+        self.avail_sats += self.planet + self.resource + self.sarsat
+        self.avail_sats += self.spire + self.tdrss + self.tle_new + self.visual
+        self.avail_sats += self.weather
         self.avail_sats.sort()
 
     def showAvailSats(self):
@@ -568,6 +573,8 @@ class ApplicationWindow(QtWidgets.QMainWindow):
                             transform=Geodetic(), ha="center"))
         if (add_sat in self.argos):
             self.createSatFromFile(add_sat, "TLE/argos.txt", "Argos Data Collection System")
+        elif (add_sat in self.beidou):
+            self.createSatFromFile(add_sat, "TLE/beidou.txt", "Beidou")
         elif (add_sat in self.cubesat):
             self.createSatFromFile(add_sat, "TLE/cubesat.txt", "CubeSat")
         elif (add_sat in self.dmc):
@@ -621,18 +628,6 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         self.resetCov()
         
     def addRemoveSat(self):
-        '''
-        self.popup = Tk()
-        self.popup.title("Add/remove satellites")
-        #self.popup.call('wm', 'iconphoto', self.popup._w, self.img)
-        self.showAvailSats()
-        self.setSearchBox()
-        self.addRemoveButtons()
-        self.showCurrentSats(3)
-        self.popup.bind("<Key>", self.searchSat)
-        self.popup.protocol("WM_DELETE_WINDOW", self.popup.destroy)
-        self.popup.mainloop()
-        '''
         Dialog = QtWidgets.QDialog()
         self.popup = Ui_addRemove()
         self.popup.setupUi(Dialog)
@@ -657,6 +652,8 @@ class ApplicationWindow(QtWidgets.QMainWindow):
     def updateTLEfromNet(self):
         tlefile.TLE_URLS = ("https://celestrak.com/NORAD/elements/argos.txt", )
         tlefile.fetch("TLE/argos.txt")
+        tlefile.TLE_URLS = ("https://celestrak.com/NORAD/elements/beidou.txt", )
+        tlefile.fetch("TLE/beidou.txt")
         tlefile.TLE_URLS = ("https://celestrak.com/NORAD/elements/cubesat.txt", )
         tlefile.fetch("TLE/cubesat.txt")
         tlefile.TLE_URLS = ("https://celestrak.com/NORAD/elements/dmc.txt", )
