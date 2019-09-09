@@ -20,7 +20,7 @@
     You should have received a copy of the GNU General Public License
     along with this program. If not, see <https://www.gnu.org/licenses/>.
 """
-__version__ = "2.3.0"
+__version__ = "3.0.0"
 
 from PyQt5 import QtWidgets, QtGui, QtCore
 from time import sleep
@@ -53,12 +53,9 @@ class ApplicationWindow(QtWidgets.QMainWindow):
     __slots__ = ["Sats", "img", "mainSat", "mainSat_lats",
                  "mainSat_lngs", "ax_saa", "fig", "ax", "ax_tray",
                  "ax_sat", "ax_cov", "sat_txt", "bg", "fg", "active_bg",
-                 "saa_alpha", "cov_alpha", "top_index", "bottom_index",
-                 "name_bt", "cat_lbl", "lat_lbl", "lng_lbl", "alt_lbl",
-                 "a_lbl", "e_lbl", "raan_lbl", "i_lbl", "w_lbl",
-                 "theta_lbl", "h_lbl", "up_bt", "down_bt", "popup",
-                 "ent", "match", "avail_sats", "argos", "cubesat", "dmc",
-                 "goes", "intelsat", "iridium", "iridium_next", "noaa",
+                 "saa_alpha", "cov_alpha", "popup", "ent", "match",
+                 "avail_sats", "argos", "cubesat", "dmc", "goes",
+                 "intelsat", "iridium", "iridium_next", "noaa",
                  "planet", "resource", "sarsat", "spire", "tdrss",
                  "tle_new", "weather", "molniya", "map", "dpl_img",
                  "tdoa_img", "world_map", "dpl", "cov_lat",
@@ -89,14 +86,11 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         self.setCanvas()
         self.setMenu()
         self.data_gen()
-        self.changeMainSat(0, 0)
-        self.cov_lng = empty(180)
-        self.cov_lat = empty(180)
-        #self.ui.Table.setRowCount(len(self.Sats))
-        #self.ui.Table.setItem(0,0, QtWidgets.QTableWidgetItem("Item (1,1)"))
+        self.cov_lng = empty(360)
+        self.cov_lat = empty(360)
         self.updateTableContent()
         self.setTableConnections()
-        #self.tableRefresher()
+        self.changeMainSat(0, 0)
         self.showMaximized()
         self.fig.canvas.mpl_connect('scroll_event',self.zoom)
         self.run()
@@ -217,20 +211,20 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         #self.update()
 
     def plotCoverage(self, ang, sat_lat, sat_lng, n, deg2rad=pi/180, rad2deg=180/pi):
-        for i in range(0, 180):
-            theta = (2*i + 1)*deg2rad
+        for i in range(0, 360):
+            theta = i*deg2rad
             dlat = ang*deg2rad * cos(theta)
-            self.cov_lat[179-i] = sat_lat*deg2rad + dlat
-            dpsi = log(tan(self.cov_lat[179-i]*0.5 + pi*0.25)/tan(sat_lat*deg2rad*0.5 + pi*0.25))
+            self.cov_lat[359-i] = sat_lat*deg2rad + dlat
+            dpsi = log(tan(self.cov_lat[359-i]*0.5 + pi*0.25)/tan(sat_lat*deg2rad*0.5 + pi*0.25))
             if (abs(dpsi) > 10e-12):
                 q = dlat / dpsi
             else:
                 q = cos(sat_lat*deg2rad)
             dlng = ang*deg2rad*sin(theta)/q
-            self.cov_lng[179-i] = sat_lng*deg2rad + dlng
-            if (abs(self.cov_lat[179-i]) > (6*deg2rad + pi - ang*deg2rad - abs(sat_lat*deg2rad))):
-                self.cov_lat[179-i] = (2*(sat_lat > 0) - 1)*(6*deg2rad + pi - ang*deg2rad - abs(sat_lat*deg2rad))
-                self.cov_lng[179-i] = sat_lng*deg2rad - ((sat_lng*deg2rad - pi) > 0)*pi + ((sat_lng*deg2rad - pi) <= 0)*pi
+            self.cov_lng[359-i] = sat_lng*deg2rad + dlng
+            if (abs(self.cov_lat[359-i]) > (6*deg2rad + pi - ang*deg2rad - abs(sat_lat*deg2rad))):
+                self.cov_lat[359-i] = (2*(sat_lat > 0) - 1)*(6*deg2rad + pi - ang*deg2rad - abs(sat_lat*deg2rad))
+                self.cov_lng[359-i] = sat_lng*deg2rad - ((sat_lng*deg2rad - pi) > 0)*pi + ((sat_lng*deg2rad - pi) <= 0)*pi
         self.cov_lat = self.cov_lat*rad2deg
         self.cov_lng = self.cov_lng*rad2deg
         self.ax_cov[n].set_alpha(self.cov_alpha) 
@@ -252,20 +246,13 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         style.map("nextPrev.TLabel", background=[("active", self.active_bg)])
 
     def changeMainSat(self, row, col):
-        self.mainSat = self.Sats[row]
+        selectedSat = self.ui.Table.item(row, 0).text()
+        for sat in self.Sats:
+            if (sat.name == selectedSat):
+                self.mainSat = sat
         tf = int(self.mainSat.getPeriod()*3)
         self.mainSat_lats, self.mainSat_lngs = self.mainSat.getTrayectory(tf, 50, self.date)
         self.ax_tray.set_data(self.mainSat_lngs, self.mainSat_lats)
-   
-    def up(self):
-        if (self.top_index > 0):
-            self.top_index -= 1
-            self.bottom_index -= 1
-
-    def down(self):
-        if (self.bottom_index < len(self.Sats)):
-            self.top_index += 1
-            self.bottom_index += 1
 
     def setButtons(self):
         self.ui.dpl_button.clicked.connect(self.deployPopup)
@@ -410,62 +397,6 @@ class ApplicationWindow(QtWidgets.QMainWindow):
             theta = QtWidgets.QTableWidgetItem("{:0.2f}°".format((Sat.getAnomaly()*rad2deg)))
             theta.setTextAlignment(QtCore.Qt.AlignVCenter | QtCore.Qt.AlignRight)
             self.ui.Table.setItem(i, 12, theta)
-
-    def rememberLastRows(self):
-        if (len(self.Sats) > 4):
-            self.top_index = 0
-            self.bottom_index = 5
-            self.rememberRow(self.bottom_index)
-            if (len(self.Sats) >= 6):
-                self.bottom_index = 6
-                self.rememberRow(self.bottom_index)
-                self.up_bt.grid(row=5, column=17, rowspan=3, sticky="NESW")
-                self.down_bt.grid(row=8, column=17, rowspan=3, sticky="NESW")
-
-    def rememberRow(self, r):
-        self.root.rowconfigure(r+4, weight=1)
-        self.name_bt[r-1].grid(row=r+4, column=0, columnspan=5, sticky="EW")
-        self.cat_lbl[r-1].grid(row=r+4, column=5, sticky="W")
-        self.lat_lbl[r-1].grid(row=r+4, column=6)
-        self.lng_lbl[r-1].grid(row=r+4, column=7)
-        self.alt_lbl[r-1].grid(row=r+4, column=8)
-        self.spd_lbl[r-1].grid(row=r+4, column=9)
-        self.a_lbl[r-1].grid(row=r+4, column=10)
-        self.h_lbl[r-1].grid(row=r+4, column=11)
-        self.e_lbl[r-1].grid(row=r+4, column=12)
-        self.raan_lbl[r-1].grid(row=r+4, column=13)
-        self.i_lbl[r-1].grid(row=r+4, column=14)
-        self.w_lbl[r-1].grid(row=r+4, column=15)
-        self.theta_lbl[r-1].grid(row=r+4, column=16)
-
-    def forgetLastRows(self):
-        self.top_index = 0
-        self.bottom_index = 4*(len(self.Sats) > 4) + len(self.Sats)*(len(self.Sats) <= 4)
-        self.up_bt.grid(row=5, column=17, rowspan=2, sticky="NESW")
-        self.down_bt.grid(row=7, column=17, rowspan=2, sticky="NESW")
-        if (len(self.Sats) > 4):
-            self.forgetRow(self.bottom_index)
-            if (len(self.Sats) >= 6):
-                self.forgetRow(self.bottom_index + 1)
-
-    def forgetRow(self, r):
-        self.name_bt[r].grid_forget()
-        self.cat_lbl[r].grid_forget()
-        self.lat_lbl[r].grid_forget()
-        self.lng_lbl[r].grid_forget()
-        self.alt_lbl[r].grid_forget()
-        self.spd_lbl[r].grid_forget()
-        self.a_lbl[r].grid_forget()
-        self.h_lbl[r].grid_forget()
-        self.e_lbl[r].grid_forget()
-        self.raan_lbl[r].grid_forget()
-        self.i_lbl[r].grid_forget()
-        self.w_lbl[r].grid_forget()
-        self.theta_lbl[r].grid_forget()
-
-    def tableRefresher(self):
-        self.updateTableContent()
-        self.root.after(500, self.tableRefresher)
 
     def formatDump(self, Sat):
         dump = {

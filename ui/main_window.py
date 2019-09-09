@@ -186,7 +186,7 @@ class Ui_MainWindow(object):
         self.menubar.addAction(self.menuHelp.menuAction())
 
         self.retranslateUi(MainWindow)
-        self.tabWidget.setCurrentIndex(1)
+        self.tabWidget.setCurrentIndex(0)
         self.actionExit.triggered.connect(MainWindow.close)
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
 
@@ -201,6 +201,7 @@ class Ui_MainWindow(object):
         self.next_min.setText(_translate("MainWindow", "▶️|"))
         self.next_day.setText(_translate("MainWindow", "▶️▶️|"))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab), _translate("MainWindow", "Tab 1"))
+        self.Table.setSortingEnabled(True)
         item = self.Table.horizontalHeaderItem(0)
         item.setText(_translate("MainWindow", "Satellite"))
         item = self.Table.horizontalHeaderItem(1)
