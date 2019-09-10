@@ -148,7 +148,7 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         self.map = self.ax.imshow(self.world_map.fillDarkSideFromPicture(self.date),
                 origin='upper', extent=img_extent, transform=PlateCarree())
         self.gridAndFormat()
-        tight_layout(pad=-0.26)
+        tight_layout(pad=0)
 
     def gridAndFormat(self):
         gl = self.ax.gridlines(crs=PlateCarree(), draw_labels=True,
