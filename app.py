@@ -23,7 +23,6 @@
 __version__ = "3.0.0"
 
 from PyQt5 import QtWidgets, QtGui, QtCore
-from time import sleep
 from ui.main_window import Ui_MainWindow
 from about.about_window import Ui_About
 from deployment.dpl_window import Ui_DPL
@@ -43,8 +42,6 @@ from sat import Sat
 from SAA import SAA
 from warnings import filterwarnings
 from pymongo import MongoClient
-import ssl
-import json
 
 filterwarnings("ignore", category=RuntimeWarning)
 
@@ -54,14 +51,15 @@ class ApplicationWindow(QtWidgets.QMainWindow):
                  "mainSat_lngs", "ax_saa", "fig", "ax", "ax_tray",
                  "ax_sat", "ax_cov", "sat_txt", "bg", "fg", "active_bg",
                  "saa_alpha", "cov_alpha", "popup", "ent", "match",
-                 "avail_sats", "argos", "beidou", "cubesat", "dmc", "goes",
-                 "intelsat", "iridium", "iridium_next", "noaa",
-                 "planet", "resource", "sarsat", "spire", "tdrss",
-                 "tle_new", "weather", "molniya", "map", "dpl_img",
-                 "tdoa_img", "world_map", "dpl", "cov_lat",
-                 "cov_lng", "dmin", "canvas", "saa", "date", "db",
-                 "en_db", "time_timer", "sats_timer", "canvas_timer",
-                 "bg_timer", "Dialog", "table_timer"]
+                 "avail_sats", "argos", "beidou", "cubesat", "dmc", 
+                 "education", "geodetic", "goes", "intelsat", "iridium",
+                 "iridium_next", "military", "molniya", "noaa",
+                 "planet", "radar", "resource", "sarsat", "spire",
+                 "tdrss", "tle_new", "weather", "x_comm", "tle_files",
+                 "map", "dpl_img", "tdoa_img", "world_map", "dpl",
+                 "cov_lat", "cov_lng", "dmin", "canvas", "saa", "date",
+                 "db", "en_db", "time_timer", "sats_timer",
+                 "canvas_timer", "bg_timer", "Dialog", "table_timer"]
 
     def __init__(self, Sats):
         self.Sats = Sats
@@ -208,7 +206,6 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         self.ax_sat.set_data(sats_lngs, sats_lats)
         self.canvas.draw_idle()
         self.ui.datetime.setDateTime(self.date)
-        #self.update()
 
     def plotCoverage(self, ang, sat_lat, sat_lng, n, deg2rad=pi/180, rad2deg=180/pi):
         for i in range(0, 360):
@@ -426,47 +423,35 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         self.en_db = True
         self.ui.actionEnable_database.setText("Disable database")
         self.ui.actionEnable_database.triggered.connect(self.disableDB)
-        #self.editmenu.entryconfigure(2, label="Disable database",
-        #                             command=self.disableDB)
 
     def disableDB(self):
         self.en_db = False
         self.ui.actionEnable_database.setText("Enable database")
         self.ui.actionEnable_database.triggered.connect(self.enableDB)
-        #self.editmenu.entryconfigure(2, label="Enable database",
-        #                             command=self.enableDB)
 
     def removeSAA(self):
         self.saa_alpha = 0
         self.updateCanvas()
         self.ui.actionAdd_south_atlantic_anomaly.setText("Add south atlantic anomaly")
         self.ui.actionAdd_south_atlantic_anomaly.triggered.connect(self.addSAA)
-        #self.editmenu.entryconfigure(4, label="Add south atlantic anomaly",
-        #                             command=self.addSAA)
 
     def addSAA(self):
         self.saa_alpha = 0.2
         self.updateCanvas()
         self.ui.actionAdd_south_atlantic_anomaly.setText("Remove south atlantic anomaly")
         self.ui.actionAdd_south_atlantic_anomaly.triggered.connect(self.removeSAA)
-        #self.editmenu.entryconfigure(4, label="Remove south atlantic anomaly",
-        #                             command=self.removeSAA)
 
     def removeCoverage(self):
         self.cov_alpha = 0
         self.updateCanvas()
         self.ui.actionRemove_coverage.setText("Add coverage")
         self.ui.actionRemove_coverage.triggered.connect(self.addCoverage)
-        #self.editmenu.entryconfigure(5, label="Add coverage",
-        #                             command=self.addCoverage)
 
     def addCoverage(self):
         self.cov_alpha = 0.2
         self.updateCanvas()
         self.ui.actionRemove_coverage.setText("Remove coverage")
         self.ui.actionRemove_coverage.triggered.connect(self.removeCoverage)
-        #self.editmenu.entryconfigure(5, label="Remove coverage", 
-        #                             command=self.removeCoverage)
 
     def setSearchBox(self):
         self.srch_lbl = Label(self.popup, text="Search:")
@@ -476,14 +461,11 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         self.srch_box.grid(row=0, column=1)
         self.srch_box.focus()
 
-    #def searchSat(self, event):
     def searchSat(self, text):
-        srch = text.upper()#self.srch_box.get().upper()
+        srch = text.upper()
         self.match = [s for s in self.avail_sats if srch in s]
-        self.match.sort(reverse=False) 
-        for i in range(0, self.popup.avail_sats_lst.count()):
-            #self.avail_sats_lst.delete(0)
-            self.popup.avail_sats_lst.clear()#takeItem(i)
+        self.match.sort(reverse=False)
+        self.popup.avail_sats_lst.clear()
         for sat in self.match:
             self.popup.avail_sats_lst.addItem(sat)
 
@@ -498,13 +480,17 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         self.beidou = []
         self.cubesat = []
         self.dmc = []
+        self.education = []
+        self.geodetic = []
         self.goes = []
         self.intelsat = []
         self.iridium = []
         self.iridium_next = []
+        self.military = []
         self.molniya = []
         self.noaa = []
         self.planet = []
+        self.radar = []
         self.resource = []
         self.sarsat = []
         self.spire = []
@@ -512,17 +498,22 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         self.tle_new = []
         self.visual = []
         self.weather = []
+        self.x_comm = []
         self.readSatsFromFile("TLE/argos.txt", self.argos)
         self.readSatsFromFile("TLE/beidou.txt", self.beidou)
         self.readSatsFromFile("TLE/cubesat.txt", self.cubesat)
         self.readSatsFromFile("TLE/dmc.txt", self.dmc)
+        self.readSatsFromFile("TLE/education.txt", self.education)
+        self.readSatsFromFile("TLE/geodetic.txt", self.geodetic)
         self.readSatsFromFile("TLE/goes.txt", self.goes)
         self.readSatsFromFile("TLE/intelsat.txt", self.intelsat)
         self.readSatsFromFile("TLE/iridium.txt", self.iridium)
         self.readSatsFromFile("TLE/iridium-NEXT.txt", self.iridium_next)
+        self.readSatsFromFile("TLE/military.txt", self.military)
         self.readSatsFromFile("TLE/molniya.txt", self.molniya)
         self.readSatsFromFile("TLE/noaa.txt", self.noaa)
         self.readSatsFromFile("TLE/planet.txt", self.planet)
+        self.readSatsFromFile("TLE/radar.txt", self.radar)
         self.readSatsFromFile("TLE/resource.txt", self.resource)
         self.readSatsFromFile("TLE/sarsat.txt", self.sarsat)
         self.readSatsFromFile("TLE/spire.txt", self.spire)
@@ -530,21 +521,20 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         self.readSatsFromFile("TLE/tle-new.txt", self.tle_new)
         self.readSatsFromFile("TLE/visual.txt", self.visual)
         self.readSatsFromFile("TLE/weather.txt", self.weather)
+        self.readSatsFromFile("TLE/x-comm.txt", self.x_comm)
         self.avail_sats = self.argos + self.beidou + self.cubesat + self.dmc
-        self.avail_sats += self.goes + self.intelsat + self.iridium
-        self.avail_sats += self.iridium_next + self.molniya + self.noaa
-        self.avail_sats += self.planet + self.resource + self.sarsat
+        self.avail_sats += self.education + self.geodetic + self.goes
+        self.avail_sats += self.intelsat + self.iridium + self.iridium_next
+        self.avail_sats += self.military + self.molniya + self.noaa
+        self.avail_sats += self.planet + self.radar + self.resource + self.sarsat
         self.avail_sats += self.spire + self.tdrss + self.tle_new + self.visual
-        self.avail_sats += self.weather
+        self.avail_sats += self.weather + self.x_comm
         self.avail_sats.sort()
 
     def showAvailSats(self):
-        #self.avail_sats_lst = Listbox(self.popup, width=28)
         self.readAllSats()
         for sat in self.avail_sats:
             self.popup.avail_sats_lst.addItem(sat)
-        #self.avail_sats_lst.grid(row=1, column=0, rowspan=2, columnspan=2)
-        #self.popup.columnconfigure(0, weight=1)
 
     def showCurrentSats(self):
         for sat in self.Sats:
@@ -553,20 +543,12 @@ class ApplicationWindow(QtWidgets.QMainWindow):
     def addRemoveButtons(self):
         self.popup.add_sat_bt.clicked.connect(self.addSat)
         self.popup.remove_sat_bt.clicked.connect(self.removeSat)
-        '''
-        self.add_sat_bt = Button(self.popup, text="→",
-                                 command=self.addSat)
-        self.add_sat_bt.grid(row=1, column=2)
-        self.remove_sat_bt = Button(self.popup, text="←",
-                                    command=self.removeSat)
-        self.remove_sat_bt.grid(row=2, column=2)
-        '''
 
     def sortSats(self):
         self.Sats.sort(key = lambda s: s.name)
 
     def addSat(self):
-        add_sat = self.popup.avail_sats_lst.currentItem().text()#self.popup.avail_sats_lst.get(self.popup.avail_sats_lst.curselection())
+        add_sat = self.popup.avail_sats_lst.currentItem().text()
         self.ax_cov.append(self.ax.fill([0,0], [0,0], transform=Geodetic(),
                            color='white', alpha=self.cov_alpha)[0])
         self.sat_txt.append(self.ax.text([], [], "", color='yellow', size=8,
@@ -579,6 +561,10 @@ class ApplicationWindow(QtWidgets.QMainWindow):
             self.createSatFromFile(add_sat, "TLE/cubesat.txt", "CubeSat")
         elif (add_sat in self.dmc):
             self.createSatFromFile(add_sat, "TLE/dmc.txt", "Disaster Monitoring")
+        elif (add_sat in self.education):
+            self.createSatFromFile(add_sat, "TLE/education.txt", "Education")
+        elif (add_sat in self.geodetic):
+            self.createSatFromFile(add_sat, "TLE/geodetic.txt", "Geodetic")
         elif (add_sat in self.goes):
             self.createSatFromFile(add_sat, "TLE/goes.txt", "GOES")
         elif (add_sat in self.intelsat):
@@ -587,12 +573,16 @@ class ApplicationWindow(QtWidgets.QMainWindow):
             self.createSatFromFile(add_sat, "TLE/iridium.txt", "Iridium")
         elif (add_sat in self.iridium_next):
             self.createSatFromFile(add_sat, "TLE/iridium-NEXT.txt", "Iridium Next")
+        elif (add_sat in self.military):
+            self.createSatFromFile(add_sat, "TLE/military.txt", "Miscellaneous Military")
         elif (add_sat in self.molniya):
             self.createSatFromFile(add_sat, "TLE/molniya.txt", "Molniya")
         elif (add_sat in self.noaa):
             self.createSatFromFile(add_sat, "TLE/noaa.txt", "NOAA")
         elif (add_sat in self.planet):
             self.createSatFromFile(add_sat, "TLE/planet.txt", "Planet")
+        elif (add_sat in self.radar):
+            self.createSatFromFile(add_sat, "TLE/radar.txt", "Radar Calibration")
         elif (add_sat in self.resource):
             self.createSatFromFile(add_sat, "TLE/resource.txt", "Earth Resources")
         elif (add_sat in self.sarsat):
@@ -605,14 +595,15 @@ class ApplicationWindow(QtWidgets.QMainWindow):
             self.createSatFromFile(add_sat, "TLE/tle-new.txt", "Last 30 Days' Launches")
         elif (add_sat in self.weather):
             self.createSatFromFile(add_sat, "TLE/weather.txt", "Weather")
+        elif (add_sat in self.x_comm):
+            self.createSatFromFile(add_sat, "TLE/x-comm.txt", "Experimental")
         else:
             self.Sats.append(Sat(add_sat, tle=tlefile.read(add_sat)))
-        self.popup.curr_sats_lst.addItem(add_sat)#insert(END, add_sat)
         self.sortSats()
         self.popup.curr_sats_lst.clear()
         self.popup.srch_box.setFocus()
         for i, sat in enumerate(self.Sats):
-            self.popup.curr_sats_lst.addItem(sat.name)#insert(i, sat.name)
+            self.popup.curr_sats_lst.addItem(sat.name)
 
     def createSatFromFile(self, sat_name, file_name, category):
         newSat = Sat(sat_name, tle=tlefile.read(sat_name, file_name), cat=category)
@@ -650,42 +641,15 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         self.ui.actionFullscreen.triggered.connect(self.fullscreen)
 
     def updateTLEfromNet(self):
-        tlefile.TLE_URLS = ("https://celestrak.com/NORAD/elements/argos.txt", )
-        tlefile.fetch("TLE/argos.txt")
-        tlefile.TLE_URLS = ("https://celestrak.com/NORAD/elements/beidou.txt", )
-        tlefile.fetch("TLE/beidou.txt")
-        tlefile.TLE_URLS = ("https://celestrak.com/NORAD/elements/cubesat.txt", )
-        tlefile.fetch("TLE/cubesat.txt")
-        tlefile.TLE_URLS = ("https://celestrak.com/NORAD/elements/dmc.txt", )
-        tlefile.fetch("TLE/dmc.txt")
-        tlefile.TLE_URLS = ("https://celestrak.com/NORAD/elements/goes.txt", )
-        tlefile.fetch("TLE/goes.txt")
-        tlefile.TLE_URLS = ("https://celestrak.com/NORAD/elements/intelsat.txt", )
-        tlefile.fetch("TLE/intelsat.txt")
-        tlefile.TLE_URLS = ("https://celestrak.com/NORAD/elements/iridium.txt", )
-        tlefile.fetch("TLE/iridium.txt")
-        tlefile.TLE_URLS = ("https://celestrak.com/NORAD/elements/iridium-NEXT.txt", )
-        tlefile.fetch("TLE/iridium-NEXT.txt")
-        tlefile.TLE_URLS = ("https://celestrak.com/NORAD/elements/molniya.txt", )
-        tlefile.fetch("TLE/molniya.txt")
-        tlefile.TLE_URLS = ("https://celestrak.com/NORAD/elements/noaa.txt", )
-        tlefile.fetch("TLE/noaa.txt")
-        tlefile.TLE_URLS = ("https://celestrak.com/NORAD/elements/planet.txt", )
-        tlefile.fetch("TLE/planet.txt")
-        tlefile.TLE_URLS = ("https://celestrak.com/NORAD/elements/resource.txt", )
-        tlefile.fetch("TLE/resource.txt")
-        tlefile.TLE_URLS = ("https://celestrak.com/NORAD/elements/sarsat.txt", )
-        tlefile.fetch("TLE/sarsat.txt")
-        tlefile.TLE_URLS = ("https://celestrak.com/NORAD/elements/spire.txt", )
-        tlefile.fetch("TLE/spire.txt")
-        tlefile.TLE_URLS = ("https://celestrak.com/NORAD/elements/tdrss.txt", )
-        tlefile.fetch("TLE/tdrss.txt")
-        tlefile.TLE_URLS = ("https://celestrak.com/NORAD/elements/tle-new.txt", )
-        tlefile.fetch("TLE/tle-new.txt")
-        tlefile.TLE_URLS = ("https://celestrak.com/NORAD/elements/visual.txt", )
-        tlefile.fetch("TLE/visual.txt")
-        tlefile.TLE_URLS = ("https://celestrak.com/NORAD/elements/weather.txt", )
-        tlefile.fetch("TLE/weather.txt")
+        self.tle_files = ["argos", "beidou", "cubesat", "dmc", "education",
+                          "geodetic", "goes", "intelsat", "iridium",
+                          "iridium-NEXT", "military", "molniya", "noaa",
+                          "planet", "radar", "resource", "sarsat", "spire",
+                          "tdrss", "tle-new", "visual", "weather", "x-comm"]
+        for file_name in self.tle_files:
+            link = "https://celestrak.com/NORAD/elements/{}.txt".format(file_name)
+            tlefile.TLE_URLS = (link, )
+            tlefile.fetch("TLE/{}.txt".format(file_name))
 
     def refreshBackgroundImg(self, img=None):
         if (img is None):
