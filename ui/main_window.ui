@@ -34,6 +34,9 @@
         <property name="spacing">
          <number>0</number>
         </property>
+        <property name="sizeConstraint">
+         <enum>QLayout::SetDefaultConstraint</enum>
+        </property>
         <property name="leftMargin">
          <number>0</number>
         </property>
@@ -170,7 +173,7 @@
           </property>
           <property name="maximumSize">
            <size>
-            <width>1180</width>
+            <width>16777215</width>
             <height>16777215</height>
            </size>
           </property>
