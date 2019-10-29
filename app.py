@@ -596,6 +596,8 @@ class ApplicationWindow(QtWidgets.QMainWindow):
             self.createSatFromFile(add_sat, "TLE/tdrss.txt", "Tracking and Data Relay")
         elif (add_sat in self.tle_new):
             self.createSatFromFile(add_sat, "TLE/tle-new.txt", "Last 30 Days' Launches")
+        elif (add_sat in self.visual):
+            self.createSatFromFile(add_sat, "TLE/visual.txt", "100 (or so) Brightest")
         elif (add_sat in self.weather):
             self.createSatFromFile(add_sat, "TLE/weather.txt", "Weather")
         elif (add_sat in self.x_comm):
