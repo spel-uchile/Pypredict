@@ -66,27 +66,6 @@ class TDOA(object):
             r2 = [r2[0,0], r2[1,0], r2[2,0]]
             r3 = [r3[0,0], r3[1,0], r3[2,0]]
             r4 = [r4[0,0], r4[1,0], r4[2,0]]
-            #b = a1*(2*x1*D + (y31*z41 - y41*z31)*(d21**2 - C2 + C1) - (y21*z41 - y41*z21)*(d31**2 - C3 + C1) - (y31*z21 - y21*z31)*(d41**2 - C4 + C1))
-            #b += -a2*(2*y1*D - (x31*z41 - x41*z31)*(d21**2 - C2 + C1) + (x21*z41 - x41*z21)*(d31**2 - C3 + C1) - (x21*z31 - x31*z21)*(d41**2 - C4 + C1))
-            #b += a3*(2*z1*D + (x31*y41 - x41*y31)*(d21**2 - C2 + C1) - (x21*y41 - x41*y21)*(d31**2 - C3 + C1) - (x31*y21 - x21*y31)*(d41**2 - C4 + C1))
-            #c = x1**2*D**2 + 1/4*(y31*z41 - y41*z31)**2*(d21**2 - C2 + C1)**2 + 1/4*(y21*z41 - y41*z21)**2*(d31**2 - C3 + C1)**2
-            #c += 1/4*(y31*z21 - y21*z31)**2*(d41**2 - C4 + C1)**2 + x1*D*(y31*z41 - y41*z31)*(d21**2 - C2 + C1)
-            #c += -x1*D*(y21*z41 - y41*z21)*(d31**2 - C3 + C1) - x1*D*(y31*z21 - y21*z31)*(d41**2 - C4 + C1)
-            #c += y1**2*D**2 + 1/4*(x31*z41 - x41*x31)**2*(d21**2 - C2 + C1)**2 + 1/4*(x21*z41 - x41*z21)**2*(d31**2 - C3 + C1)**2
-            #c += -1/4*(x21*z31 - x31*z21)**2*(d41**2 - C4 + C1)**2 - y1*D*(x31*z41 - x41*z31)*(d21**2 - C2 + C1)
-            #c += y1*D*(x21*z41 - x41*z21)*(d31**2 - C3 + C1) - y1*D*(x21*z31 - x31*z21)*(d41**2 - C4 + C1)
-            #c += z1**2*D**2 + 1/4*(x31*y41 - x41*y31)**2*(d21**2 - C2 + C1)**2 + 1/4*(x21*y41 - x41*y21)**2*(d31**2 - C3 + C1)**2
-            #c += 1/4*(x31*y21 - x21*y31)**2*(d41**2 - C4 + C1)**2 + z1*D*(x31*y41 - x41*y31)*(d21**2 - C2 + C1)
-            #c += -z1*D*(x21*y41 - x41*y21)*(d31**2 - C3 + C1) - z1*D*(x31*y21 - x21*y31)*(d41**2 - C4 + C1)
-            #c += -1/2*(y21*z41 - y41*z21)*(y31*z41 - y41*z31)*(d21**2 - C2 + C1)*(d31**2 - C3 + C1)
-            #c += -1/2*(y31*z21 - y21*z31)*(y31*z41 - y41*z31)*(d21**2 - C2 + C1)*(d41**2 - C4 + C1)
-            #c += 1/2*(y21*z41 - y41*z21)*(y31*z21 - y21*z31)*(d31**2 - C3 + C1)*(d41**2 - C4 + C1)
-            #c += -1/2*(x21*z41 - x41*z21)*(x31*z41 - x41*z31)*(d21**2 - C2 + C1)*(d31**2 - C3 + C1)
-            #c += 1/2*(x21*z31 - x31*z21)*(x31*z41 - x41*z31)*(d21**2 - C2 + C1)*(d41**2 - C4 + C1)
-            #c += -1/2*(x21*z31 - x31*z21)*(x21*z41 - x41*z21)*(d31**2 - C3 + C1)*(d41**2 - C4 + C1)
-            #c += -1/2*(x21*y41 - x41*y21)*(x31*y41 - x41*y31)*(d21**2 - C2 +C1)*(d31**2 - C3 + C1)
-            #c += -1/2*(x31*y21 - x21*y31)*(x31*y41 - x41*y31)*(d21**2 - C2 + C1)*(d41**2 - C4 + C1)
-            #c += 1/2*(x21*y41 - x41*y21)*(x31*y21 - x21*y31)*(d31**2 - C3 + C1)*(d41**2 - C4 + C1)
             x, y, z = self.getLocation(r0, r1, r2, r3, r4)
         return matrix([[x[0,0]], [y[0,0]], [z[0,0]]])
 
@@ -162,21 +141,10 @@ class TDOA(object):
         d41 : float
               Difference in length between d4 and d1
         """
-        H = 1/2*matrix([[d21**2 - (C2 - C1)],
+        H = 0.5*matrix([[d21**2 - (C2 - C1)],
                         [d31**2 - (C3 - C1)],
                         [d41**2 - (C4 - C1)]])
         return H
-
-    def getG(self, r0, r1, r2, r3):
-        d21 = self.c*self.getdt(r0, r1, r2)
-        d31 = self.c*self.getdt(r0, r1, r3)
-        x21 = r2[0] - r1[0]
-        x31 = r3[0] - r1[0]
-        y21 = r2[1] - r1[1]
-        y31 = r3[1] - r1[1]
-        G = matrix(((x21, y21, d21),
-                       (x31, y31, d31)))
-        return G
 
     def getLocation(self, r0, r1, r2, r3, r4):
         """
@@ -209,6 +177,9 @@ class TDOA(object):
         x41 = r4[0] - x1
         y41 = r4[1] - y1
         z41 = r4[2] - z1
+        M = matrix([[x21, y21, z21],
+                    [x31, y31, z31],
+                    [x41, y41, z41]])
         d21 = self.getDistance(r0, r2) - self.getDistance(r0, r1)
         d31 = self.getDistance(r0, r3) - self.getDistance(r0, r1)
         d41 = self.getDistance(r0, r4) - self.getDistance(r0, r1)
@@ -216,9 +187,10 @@ class TDOA(object):
         C2 = self.getC(r2)
         C3 = self.getC(r3)
         C4 = self.getC(r4)
-        D = (x31*y41 - x41*y31)*z21 + (x41*y21 - x21*y41)*z31 + (x21*y31 - x31*y21)*z41
+        H = self.getH(C1, C2, C3, C4, d21, d31, d41)
+        D = float((x31*y41 - x41*y31)*z21 + (x41*y21 - x21*y41)*z31 + (x21*y31 - x31*y21)*z41)
         a1 = (y31*z41 - y41*z31)*d21 - (y21*z41 - y41*z21)*d31 - (y31*z21 - y21*z31)*d41
-        a2 = (x31*z41 - x41*z31)*d21 - (x21*z41 - x41*z21)*d31 + (x21*z31 - x31*z21)*d41
+        a2 = -((x31*z41 - x41*z31)*d21 - (x21*z41 - x41*z21)*d31 + (x21*z31 - x31*z21)*d41)
         a3 = (x31*y41 - x41*y31)*d21 - (x21*y41 - x41*y21)*d31 - (x31*y21 - x21*y31)*d41
         a = a1**2 + a2**2 + a3**2 - D**2
         c1 = x1*D + 0.5*((y31*z41 - y41*z31)*(d21**2 - C2 + C1) - (y21*z41 - y41*z21)*(d31**2 - C3 + C1) - (y31*z21 - y21*z31)*(d41**2 - C4 + C1))
@@ -228,10 +200,11 @@ class TDOA(object):
         c = c1**2 + c2**2 + c3**2
         if (b**2 - 4*a*c < 0):
             print("{}{}{}{}{}{}".format("b^2: ", b**2, "   4ac: ", 4*a*c, "   Diff: ", b**2 - 4*a*c))
-        d1 = (-b + sqrt(b**2 - 4*a*c))/(2*a)
-        print(d1 - self.getDistance(r0, r1))
-        M = matrix([[x21, y21, z21],
-                    [x31, y31, z31],
-                    [x41, y41, z41]])
-        H = self.getH(C1, C2, C3, C4, d21, d31, d41)
+        d1 = (-b - sqrt(b**2 - 4*a*c))/(2*a)
+        if (d1 < 0):
+            d1 = (-b + sqrt(b**2 - 4*a*c))/(2*a)
+            if (d1 < 0):
+                print("Error: Negative distance.")
+        #real = self.getDistance(r0, r1)
+        #print("sol1: {}, sol2: {}, real: {}, diff: {}".format((-b + sqrt(b**2 - 4*a*c))/(2*a), (-b - sqrt(b**2 - 4*a*c))/(2*a), real, real-d1))
         return -M.I*(matrix([[d21], [d31], [d41]])*d1 + H)
