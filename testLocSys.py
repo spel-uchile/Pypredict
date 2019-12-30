@@ -46,8 +46,8 @@ FE1_mass = 0.08
 v = [2, 0, 0]
 FE1 = dpl.deploy("Femto", SUCHAI, SUCHAI_mass, FE1_mass, "FE1", v, date)
 FE1.updateOrbitalParameters3(date)
-up_dt = 2
-pred_dt = 0.005
+up_dt = 2#2
+pred_dt = 0.005#0.005
 r0_i = FE1.getXYZ()
 r1_i = SUCHAI.getXYZ()
 r2_i = HODOYOSHI3.getXYZ()
@@ -145,7 +145,7 @@ t0 = SUCHAI.getTnow()
 #                    [1, 1, 1]])
 #loc.ekf.x_up[0:3] = loc.transformPosition(x[0:3])
 #loc.ekf.x_up[3:6] = loc.transformVelocity(x[3:6])
-for i in range(0, 600):
+for i in range(0, 15):
     #for j in range(1, int(up_dt/pred_dt)):
     #    SUCHAI.updateWithDragEffect(t0 + (i-1)*up_dt + j*pred_dt)
     #    r1_i = SUCHAI.getXYZ()
