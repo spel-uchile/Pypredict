@@ -495,6 +495,7 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         self.resource = []
         self.sarsat = []
         self.spire = []
+        self.starlink = []
         self.tdrss = []
         self.tle_new = []
         self.visual = []
@@ -518,6 +519,7 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         self.readSatsFromFile("TLE/resource.txt", self.resource)
         self.readSatsFromFile("TLE/sarsat.txt", self.sarsat)
         self.readSatsFromFile("TLE/spire.txt", self.spire)
+        self.readSatsFromFile("TLE/starlink.txt", self.starlink)
         self.readSatsFromFile("TLE/tdrss.txt", self.tdrss)
         self.readSatsFromFile("TLE/tle-new.txt", self.tle_new)
         self.readSatsFromFile("TLE/visual.txt", self.visual)
@@ -528,8 +530,8 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         self.avail_sats += self.intelsat + self.iridium + self.iridium_next
         self.avail_sats += self.military + self.molniya + self.noaa
         self.avail_sats += self.planet + self.radar + self.resource + self.sarsat
-        self.avail_sats += self.spire + self.tdrss + self.tle_new + self.visual
-        self.avail_sats += self.weather + self.x_comm
+        self.avail_sats += self.spire + self.starlink + self.tdrss + self.tle_new
+        self.avail_sats += self.visual + self.weather + self.x_comm
         self.avail_sats.sort()
 
     def showAvailSats(self):
@@ -592,6 +594,8 @@ class ApplicationWindow(QtWidgets.QMainWindow):
             self.createSatFromFile(add_sat, "TLE/sarsat.txt", "Search & Rescue")
         elif (add_sat in self.spire):
             self.createSatFromFile(add_sat, "TLE/spire.txt", "Spire")
+        elif (add_sat in self.starlink):
+            self.createSatFromFile(add_sat, "TLE/starlink.txt", "Starlink")
         elif (add_sat in self.tdrss):
             self.createSatFromFile(add_sat, "TLE/tdrss.txt", "Tracking and Data Relay")
         elif (add_sat in self.tle_new):
@@ -654,7 +658,8 @@ class ApplicationWindow(QtWidgets.QMainWindow):
                           "geodetic", "goes", "intelsat", "iridium",
                           "iridium-NEXT", "military", "molniya", "noaa",
                           "planet", "radar", "resource", "sarsat", "spire",
-                          "tdrss", "tle-new", "visual", "weather", "x-comm"]
+                          "starlink", "tdrss", "tle-new", "visual", "weather",
+                          "x-comm"]
         for file_name in self.tle_files:
             link = "https://celestrak.com/NORAD/elements/{}.txt".format(file_name)
             tlefile.TLE_URLS = (link, )
