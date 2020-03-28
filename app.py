@@ -267,7 +267,6 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         self.popup.setupUi(self.Dialog)
         self.Dialog.setWindowTitle("Deployment settings")
         self.showCurrentSats()
-        #self.popup.curr_sats_lst.itemClicked.connect(self.selectDeployer)
         self.popup.curr_sats_tab.itemClicked.connect(self.selectDeployer)
         self.popup.deploy_now_bt.clicked.connect(self.deploySat)
         self.dpl = Dpl()
@@ -344,8 +343,7 @@ class ApplicationWindow(QtWidgets.QMainWindow):
             if (self.en_db):
                 col = self.db[Sat.name]
                 col.insert_one(self.formatDump(Sat))
-        
-
+ 
     def setCanvas(self):
         self.canvas = FigureCanvasQTAgg(self.fig)
         self.canvas.setParent(self)
@@ -614,7 +612,6 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         self.popup.srch_box.setFocus()
         for i, sat in enumerate(self.Sats):
             self.popup.curr_sats_tab.setItem(i, 0, QtWidgets.QTableWidgetItem(sat.name))
-            #self.popup.curr_sats_lst.addItem(sat.name)
 
     def createSatFromFile(self, sat_name, file_name, category):
         newSat = Sat(sat_name, tle=tlefile.read(sat_name, file_name), cat=category)
@@ -622,12 +619,10 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         self.Sats.append(newSat)
 
     def removeSat(self):
-        #del_sat = self.popup.curr_sats_lst.currentItem().text()
         del_sat = self.popup.curr_sats_tab.currentItem().text()
         for i, sat in enumerate(self.Sats):
             if (del_sat == sat.name):
                 self.Sats.remove(sat)
-                #self.popup.curr_sats_lst.takeItem(i)
                 self.popup.curr_sats_tab.removeRow(i)
         self.resetCov()
         

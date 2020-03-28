@@ -24,7 +24,6 @@ from numpy import abs, arange, arccos, arcsin, arctan, arctan2, array, cos, matr
 from node import Node
 from datetime import datetime, timedelta
 from pyorbital import tlefile
-from Atmospheric_data import denUSSA76
 from sgp4.earth_gravity import wgs72
 from sgp4.io import twoline2rv
 from sgp4.ext import rv2coe
@@ -36,7 +35,8 @@ class Sat(Node):
                  "h", "v", "tray_lat", "tray_lng", "tlast", "B", "bstar", "v_atm",
                  "v_peri", "v_iner", "r_iner", "Rot_Mat", "r_vect0", "sat",
                  "mean_motion_derivative", "id_launch_year", "id_launch_number",
-                 "id_launch_piece",  "element_number", "satnumber", "tray_alt"]
+                 "id_launch_piece",  "element_number", "satnumber", "tray_alt",
+                 "line1", "line2"]
     def __init__(self, name="", lat=0, lng=0, alt=0, freq=437225000, tle=None, cat=""):
         """
         Parameters
@@ -86,6 +86,8 @@ class Sat(Node):
             self.id_launch_piece = tle.id_launch_piece
             self.element_number = tle.element_number
             self.satnumber = tle.satnumber
+            self.line1 = tle.line1
+            self.line2 = tle.line2
             print(self.name + " TLE found!")
         else:
             self.incl = 97.39*deg2rad
@@ -96,6 +98,7 @@ class Sat(Node):
             self.n = 0.0011
             self.B = 2.2*0.0025*0.0085/0.08
             self.updateEpoch()
+            self.element_number = 999
             print("No TLE found, used default parameters instead")
         self.RAAN = self.RAAN0
         self.w = self.w0
@@ -280,6 +283,45 @@ class Sat(Node):
         """
         Y = int(self.epoch_year) + 2000                                             # Year
         ep_day = self.epoch_day
+        if (Y % 4 == 0):
+            if (Y % 100 == 0):
+                if (Y % 400 == 0):
+                    D, Month = self.leapYearDM(ep_day)
+                else:
+                    D, Month = self.notLeapYearDM(ep_day)
+            else:
+                D, Month = self.leapYearDM(ep_day)
+        else:
+            D, Month = self.notLeapYearDM(ep_day)
+        return D, Month, Y
+
+    def leapYearDM(self, ep_day):
+        """
+        Calculates the days and months from an epoch day parameter,
+        assuming it is a leap year.
+        Parameters
+        ----------
+        ep_day : float
+            Satellite's epoch day from TLE.
+        """
+        Month = 1 + (ep_day > 31) + (ep_day > 60) + (ep_day > 91) + (ep_day > 121)
+        Month = Month + (ep_day > 152) + (ep_day > 182) + (ep_day > 213) + (ep_day > 244)
+        Month = Month + (ep_day > 274) + (ep_day > 305) + (ep_day > 335)            # Month
+
+        D = ep_day - (ep_day > 31)*31 - (ep_day > 59)*29 - (ep_day > 90)*31 - (ep_day > 120)*30
+        D = D - (ep_day > 151)*31 - (ep_day > 181)*30 - (ep_day > 212)*31 - (ep_day > 243)*31
+        D = D - (ep_day > 273)*30 - (ep_day > 304)*31 - (ep_day > 334)*30           # Day
+        return D, Month
+
+    def notLeapYearDM(self, ep_day):
+        """
+        Calculates the days and months from an epoch day parameter,
+        assuming it is not a leap year.
+        Parameters
+        ----------
+        ep_day : float
+            Satellite's epoch day from TLE.
+        """
         Month = 1 + (ep_day > 31) + (ep_day > 59) + (ep_day > 90) + (ep_day > 120)
         Month = Month + (ep_day > 151) + (ep_day > 181) + (ep_day > 212) + (ep_day > 243)
         Month = Month + (ep_day > 273) + (ep_day > 304) + (ep_day > 334)            # Month
@@ -287,7 +329,7 @@ class Sat(Node):
         D = ep_day - (ep_day > 31)*31 - (ep_day > 59)*28 - (ep_day > 90)*31 - (ep_day > 120)*30
         D = D - (ep_day > 151)*31 - (ep_day > 181)*30 - (ep_day > 212)*31 - (ep_day > 243)*31
         D = D - (ep_day > 273)*30 - (ep_day > 304)*31 - (ep_day > 334)*30           # Day
-        return D, Month, Y
+        return D, Month
 
     def getGST(self, D, M, Y):
         """
@@ -319,18 +361,27 @@ class Sat(Node):
         seconds = date.hour*3600 + date.minute*60 + date.second
         return seconds + date.microsecond*0.000001
 
-    def month2days(self, month):
+    def month2days(self, date):
         """
         Returns the number of months in days.
 
         Parameters
         ----------
-        month : int
-            Number of months to be transformed to days
+        date : datetime
+            Date from the datetime library
         """
-        days = (month > 1)*31 + (month > 2)*28 + (month > 3)*31 + (month > 4)*30
+        days = date.day
+        month = date.month
+        year = date.year
+        days = days + (month > 1)*31 + (month > 2)*28 + (month > 3)*31 + (month > 4)*30
         days = days + (month > 5)*31 + (month > 6)*30 + (month > 7)*31 + (month > 8)*31
         days = days + (month > 9)*30 + (month > 10)*31 + (month > 11)*30
+        if (year % 4 == 0):
+            if (year % 100 == 0):
+                if (year % 400 == 0):
+                    days = days + (month > 2)
+            else:
+                days = days + (month > 2)
         return days
 
     def M2E(self, M):
@@ -408,57 +459,9 @@ class Sat(Node):
             date = datetime.utcnow()                  # Use current time in UTC.
         dayinsec = 86400                              # Day in seconds
         tnow = self.getCurrentTimeInSeconds(date)     # Current time in seconds
-        days = self.month2days(date.month) + date.day # Days in current time
+        days = self.month2days(date)                  # Days in current time
         daysdiff = days - int(self.epoch_day)         # Difference between TLE date and current date in days
         return tnow + daysdiff*dayinsec               # Time in seconds from TLE to present time
-
-    def getDrag(self):
-        """
-        Returns the drag at the satellite's altitude.
-        """
-        alt = self.alt
-        if (alt > 30000):
-            rho = denUSSA76(alt*0.001)
-        elif (alt > 25000):
-            T = -131.21 + 0.00299*alt
-            P = 2.488*((T + 273.1)/216.6)**-11.388
-            rho = P/(0.2869*(T - 273.1))
-        elif (alt > 11000):
-            T = -56.46
-            P = 22.65*exp(1.73 - 0.000157*alt)
-            rho = P/(0.2869*(T - 273.1))
-        elif (alt > 0):
-            T = 15.04 - 0.00649*alt
-            P = 101.29*((T + 273.1)/288.08)**5.256
-            rho = P/(0.2869*(T - 273.1))
-        else:
-            print("{}{:0.2f}".format("Invalid altitude: ", alt))
-            rho = 0
-        return rho
-
-    def updateWithDragEffect(self, tnow=None):
-        if (tnow is None):
-            tnow = self.getTnow()
-        dt = tnow - self.tlast
-        while (dt > self.getPeriod()):
-            dt = dt - self.getPeriod()
-            drag = self.getDrag()
-            da = -2*pi*self.B*drag*self.a**2
-            self.a = self.a + da
-            self.n = sqrt(self.mu/(self.a**3))
-            self.p = self.a*(1 - self.e**2)
-            self.h = sqrt(self.p*self.mu)
-            self.e = sqrt(1 - self.h**2/(self.a*self.mu))
-            self.updateOrbitalParameters(tnow - dt)
-        drag = self.getDrag()
-        da = -2*pi*self.B*drag*self.a**2*dt/self.getPeriod()
-        self.a = self.a + da
-        self.n = sqrt(self.mu/(self.a**3))
-        self.p = self.a*(1 - self.e**2)
-        self.h = sqrt(self.p*self.mu)
-        self.e = sqrt(1 - self.h**2/(self.a*self.mu))
-        self.updateOrbitalParameters(tnow)
-        self.tlast = tnow
 
     def getLocation(self, T, dt, dmin=0):
         tnow = self.getTnow() + dmin*60
@@ -535,12 +538,6 @@ class Sat(Node):
         if (self.tlast == self.t0):
             self.updateOrbitalParameters(self.t0)
         #self.updateOrbitalParameters3()
-
-        #tnow = self.getTnow()
-        #for t in arange(int(self.t0)+1, tnow, 0.5):
-        #    self.updateOrbitalParameters2(t)
-        
-        #self.updateWithDragEffect()
 
     def updateOrbitalParameters(self, tnow=None):
         if (tnow is None):
@@ -694,63 +691,18 @@ class Sat(Node):
 
     def updateEpoch(self, date=None):
         if (date is None):
-            date = datetime.utcnow()                  # Use current time in UTC.
-        tnow = self.getCurrentTimeInSeconds(date)     # Current time in seconds
-        days = self.month2days(date.month) + date.day # Days in current time
+            date = datetime.utcnow()              # Use current time in UTC.
+        tnow = self.getCurrentTimeInSeconds(date) # Current time in seconds
+        days = self.month2days(date)              # Days in current time
         self.epoch_day = days + tnow/86400
         self.t0 = tnow
         self.tlast = self.t0
         self.epoch_year = date.year - 2000
         self.updateGST0()
 
-    def J2_effect(self):
-        u = self.w + self.theta
-        sin_u = sin(u)
-        sin_2u = sin(2*u)
-        cos_incl = cos(self.incl)
-        sin_incl = sin(self.incl)
-        cos_theta = cos(self.theta)
-        sin_theta = sin(self.theta)
-        aux1 = 1.5*self.J2*self.mu*self.P_r**2/self.r**3 # Calculate only one time
-        aux2 = aux1/self.h
-        aux3 = aux2/self.e
-        aux4 = self.h**2*(3*sin_incl**2*sin_u**2 - 1)/(self.mu*self.r)
-        aux5 = sin_2u*sin_incl**2
-        aux6 = 2 + self.e*cos_theta
-        aux7 = 2*self.e*cos_incl**2*sin_u**2
-        aux8 = self.h/self.r**2
-
-        dh = -aux1*aux5
-        de = aux4*sin_theta - aux5*(aux6*cos_theta + self.e)
-        de = aux2*de
-        dtheta = aux4*cos_theta + aux6*aux5*sin_theta
-        dtheta = aux8 + aux3*dtheta
-        dRAAN = -2*aux2*sin_u**2*cos_incl
-        di = -0.5*aux2*sin_2u*sin(2*self.incl)
-        dw = -aux4*cos_theta - aux6*aux5*sin_theta + aux7
-        dw = aux3*dw
-        return dh, de, dtheta, dRAAN, di, dw
-
-    def drag_effect(self):
-        rho = self.getDrag()
-        self.v_atm[0,0] = -self.P_w*self.y
-        self.v_atm[1,0] = self.P_w*self.x
-        v_rel = self.v_iner - self.v_atm
-        v_rel_s = v_rel[0,0]**2 + v_rel[1,0]**2 + v_rel[2,0]**2
-        v_rel_s = sqrt(v_rel_s)
-        aux = self.B*rho*v_rel_s
-
-        da = -aux*v_rel_s**2/(self.a*self.n**2)
-        de = -aux*(self.e + cos(self.theta))
-        dw = -aux*sin(self.theta)/self.e
-        return da, de, dw
-
-    def getDeltas(self):
-        dh, de, dtheta, dRAAN, di, dw = self.J2_effect()
-        da, de2, dw2 = self.drag_effect()
-        #de = de + de2
-        dw = dw + dw2
-        return dh, de, de2, dtheta, dRAAN, di, dw, da
+    def getTLE(self):
+        print("{}\n{}\n{}".format(self.name, self.line1, self.line2))
+        return self.name, self.line1, self.line2
 
     def checksum(self, line):
         check = 0
@@ -761,7 +713,8 @@ class Sat(Node):
                 check += 1
         return check % 10
 
-    def createTLE(self):
+    def createTLE(self, date):
+        self.updateEpoch(date)
         aux="{:+.9f}".format(self.mean_motion_derivative)
         mean_motion_derivative = "{}{}".format(aux[0],aux[2:-1])
         #aux = "{:+.6f}".format(tle.bstar*10000)
@@ -770,9 +723,8 @@ class Sat(Node):
         BSTAR = "{}{}-2".format(aux[0],aux[3:-1])
         aux="{:.8f}".format(self.e)
         e = "{}".format(aux[2:-1])
-        aux = self.element_number+1
-        tle_num = "{:4d}".format(aux)
-        line1 = "{} {}{} {}{}{} {}{:08.8f} {} +{} {} {} {}{}".format("1",
+        tle_num = "{:4d}".format(self.element_number)
+        line1 = "{} {}{} {}{}{} {}{:012.8f} {} +{} {} {} {}{}".format("1",
                                 self.satnumber,
                                 "U",
                                 self.id_launch_year,
@@ -787,7 +739,7 @@ class Sat(Node):
                                 "0",
                                 tle_num,
                                 "7")
-        line2 = "{} {} {:8.4f} {:08.4f} {} {:08.4f} {:08.4f} {:02.8f}{}{}".format("2",
+        line2 = "{} {} {:8.4f} {:8.4f} {} {:8.4f} {:08.4f} {:02.8f}{}{}".format("2",
                                                              self.satnumber,
                                                              self.incl*180/pi,
                                                              self.RAAN*180/pi,

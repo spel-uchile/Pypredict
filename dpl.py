@@ -99,15 +99,13 @@ class Dpl(object):
 
     def deploy(self, category, deployer, dplyr_mass, dplyd_mass, name, vel, date=None):
         self.calcPosAndVel(deployer, vel)
-        #tle = tlefile.read(deployer.name, "TLE/cubesat.txt")
-        deployer_name, line1, line2 = deployer.createTLE()
+        deployer_name, line1, line2 = deployer.createTLE(date)
         tle = tlefile.read(deployer_name, line1=line1, line2=line2)
         newSat = Sat(name=name, tle=tle, cat=category)
-        #newSat = Sat(name=name, cat=category)
         self.updateSat(newSat, date)
         B = (2*(0.034*0.084 + 0.034*0.028 + 0.084*0.028))/6/dplyd_mass
         newSat.setBallisticCoeff(B)
-        newSat.createTLE()
+        newSat.createTLE(date)
         dplyr_mass = dplyr_mass - dplyd_mass
         dplyr_vel = [-vel[0]*dplyd_mass/dplyr_mass,
                      -vel[1]*dplyd_mass/dplyr_mass,
@@ -116,5 +114,5 @@ class Dpl(object):
         self.updateSat(deployer, date)
         B = (0.1*0.1*2 + 4*0.3*0.1)/6/dplyr_mass
         deployer.setBallisticCoeff(B)
-        deployer.createTLE()
+        deployer.createTLE(date)
         return newSat
