@@ -31,19 +31,18 @@ from cartopy.crs import Geodetic, PlateCarree, RotatedPole
 from dayNightMap import Map
 from dpl import Dpl
 from matplotlib.ticker import FixedLocator
-from numpy import abs, arange, array, cos, empty, log, pi, sin, tan
+from numpy import abs, array, cos, empty, log, pi, sin, tan
 from pyorbital import tlefile
-from matplotlib.pyplot import imread, subplots, tight_layout
+from matplotlib.pyplot import imread, figure
 from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
 from datetime import datetime, timedelta
 from tkinter.filedialog import asksaveasfilename
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
 from sat import Sat
 from SAA import SAA
-from warnings import filterwarnings
 from pymongo import MongoClient
-
-filterwarnings("ignore", category=RuntimeWarning)
+from cartopy.geodesic import Geodesic
+from shapely.geometry import Polygon
 
 class ApplicationWindow(QtWidgets.QMainWindow):
     #@profile
@@ -54,11 +53,11 @@ class ApplicationWindow(QtWidgets.QMainWindow):
                  "avail_sats", "argos", "beidou", "cubesat", "dmc", 
                  "education", "geodetic", "goes", "intelsat", "iridium",
                  "iridium_next", "military", "molniya", "noaa",
-                 "planet", "radar", "resource", "sarsat", "spire",
-                 "tdrss", "tle_new", "weather", "x_comm", "tle_files",
-                 "map", "dpl_img", "tdoa_img", "world_map", "dpl",
-                 "cov_lat", "cov_lng", "dmin", "canvas", "saa", "date",
-                 "db", "en_db", "time_timer", "sats_timer",
+                 "oneweb", "planet", "radar", "resource", "sarsat",
+                 "spire", "tdrss", "tle_new", "weather", "x_comm",
+                 "tle_files", "map", "dpl_img", "tdoa_img", "world_map",
+                 "dpl", "cov_lat", "cov_lng", "dmin", "canvas", "saa",
+                 "date", "db", "en_db", "time_timer", "sats_timer",
                  "canvas_timer", "bg_timer", "Dialog", "table_timer"]
 
     def __init__(self, Sats):
@@ -142,13 +141,18 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         self.ax_saa.set_alpha(self.saa_alpha)
 
     def plotData(self):
-        self.fig, self.ax = subplots(subplot_kw={'projection': PlateCarree()})
+        self.fig = figure(figsize=(16, 8))
+        self.ax = self.fig.add_axes([0, 0, 1, 1], projection=PlateCarree(), frameon=False)
         img_extent = (-180, 180, -90, 90)
         self.date = datetime.utcnow()
         self.map = self.ax.imshow(self.world_map.fillDarkSideFromPicture(self.date),
                 origin='upper', extent=img_extent, transform=PlateCarree())
         self.gridAndFormat()
-        tight_layout(pad=0)
+        self.ax.outline_patch.set_visible(False)
+        self.ax.spines['left'].set_visible(True)
+        self.ax.spines['bottom'].set_visible(True)
+        self.ax.spines['right'].set_visible(True)
+        self.ax.spines['top'].set_visible(True)
 
     def gridAndFormat(self):
         gl = self.ax.gridlines(crs=PlateCarree(), draw_labels=True,
@@ -202,30 +206,32 @@ class ApplicationWindow(QtWidgets.QMainWindow):
             lat = sats_lats[i] - (1 - 2*(sats_lats[i] < -85))*4
             self.sat_txt[i].set_position(array((lng, lat)))
             self.sat_txt[i].set_text(Sat.name)
-            self.plotCoverage(Sat.getCoverage(), sats_lats[i], sats_lngs[i], i)
+            if (self.cov_alpha > 0):
+                self.plotCoverage(Sat.getCoverage(), Sat.getPlanetRadius(),
+                                   sats_lats[i], sats_lngs[i], i)
         self.ax_sat.set_data(sats_lngs, sats_lats)
         self.canvas.draw_idle()
         self.ui.datetime.setDateTime(self.date)
 
-    def plotCoverage(self, ang, sat_lat, sat_lng, n, deg2rad=pi/180, rad2deg=180/pi):
-        for i in range(0, 360):
-            theta = i*deg2rad
-            dlat = ang*deg2rad * cos(theta)
-            self.cov_lat[359-i] = sat_lat*deg2rad + dlat
-            dpsi = log(tan(self.cov_lat[359-i]*0.5 + pi*0.25)/tan(sat_lat*deg2rad*0.5 + pi*0.25))
-            if (abs(dpsi) > 10e-12):
-                q = dlat / dpsi
-            else:
-                q = cos(sat_lat*deg2rad)
-            dlng = ang*deg2rad*sin(theta)/q
-            self.cov_lng[359-i] = sat_lng*deg2rad + dlng
-            if (abs(self.cov_lat[359-i]) > (6*deg2rad + pi - ang*deg2rad - abs(sat_lat*deg2rad))):
-                self.cov_lat[359-i] = (2*(sat_lat > 0) - 1)*(6*deg2rad + pi - ang*deg2rad - abs(sat_lat*deg2rad))
-                self.cov_lng[359-i] = sat_lng*deg2rad - ((sat_lng*deg2rad - pi) > 0)*pi + ((sat_lng*deg2rad - pi) <= 0)*pi
-        self.cov_lat = self.cov_lat*rad2deg
-        self.cov_lng = self.cov_lng*rad2deg
-        self.ax_cov[n].set_alpha(self.cov_alpha) 
-        self.ax_cov[n].set_xy(array((self.cov_lng, self.cov_lat)).transpose())
+    def plotCoverage(self, ang, p_radius, sat_lat, sat_lng, n):
+        """
+        Returns the coordinates of the satellite's coverage.
+
+        ang      : float
+                   Angle of the satellite's coverage
+        p_radius : float
+                   Planet's radius at the satellite's coordinates
+        sat_lat  : float
+                   Center latitude of the satellite in degrees
+        sat_lng  : float
+                   Center longitude of the satellite in degrees
+        """
+        radius = ang*p_radius*0.017453292519943295 # Angle in rads (pi/180)
+        circle_points = Geodesic().circle(lon=sat_lng, lat=sat_lat, radius=radius,
+                                          n_samples=360, endpoint=False)
+        geom = Polygon(circle_points)
+        #self.ax_cov[n].set_alpha(self.cov_alpha)
+        self.ax_cov[n].set_xy(array(geom.exterior.coords.xy).transpose())
 
     def setTheme(self, bg, fg, active_bg):
         self.bg = bg
@@ -442,12 +448,16 @@ class ApplicationWindow(QtWidgets.QMainWindow):
 
     def removeCoverage(self):
         self.cov_alpha = 0
+        for i, Sat in enumerate(self.Sats):
+            self.ax_cov[i].set_alpha(self.cov_alpha)
         self.updateCanvas()
         self.ui.actionRemove_coverage.setText("Add coverage")
         self.ui.actionRemove_coverage.triggered.connect(self.addCoverage)
 
     def addCoverage(self):
         self.cov_alpha = 0.2
+        for i, Sat in enumerate(self.Sats):
+            self.ax_cov[i].set_alpha(self.cov_alpha)
         self.updateCanvas()
         self.ui.actionRemove_coverage.setText("Remove coverage")
         self.ui.actionRemove_coverage.triggered.connect(self.removeCoverage)
@@ -488,6 +498,7 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         self.military = []
         self.molniya = []
         self.noaa = []
+        self.oneweb = []
         self.planet = []
         self.radar = []
         self.resource = []
@@ -512,6 +523,7 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         self.readSatsFromFile("TLE/military.txt", self.military)
         self.readSatsFromFile("TLE/molniya.txt", self.molniya)
         self.readSatsFromFile("TLE/noaa.txt", self.noaa)
+        self.readSatsFromFile("TLE/oneweb.txt", self.oneweb)
         self.readSatsFromFile("TLE/planet.txt", self.planet)
         self.readSatsFromFile("TLE/radar.txt", self.radar)
         self.readSatsFromFile("TLE/resource.txt", self.resource)
@@ -527,9 +539,9 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         self.avail_sats += self.education + self.geodetic + self.goes
         self.avail_sats += self.intelsat + self.iridium + self.iridium_next
         self.avail_sats += self.military + self.molniya + self.noaa
-        self.avail_sats += self.planet + self.radar + self.resource + self.sarsat
-        self.avail_sats += self.spire + self.starlink + self.tdrss + self.tle_new
-        self.avail_sats += self.visual + self.weather + self.x_comm
+        self.avail_sats += self.oneweb + self.planet + self.radar + self.resource
+        self.avail_sats += self.sarsat + self.spire + self.starlink + self.tdrss
+        self.avail_sats += self.tle_new + self.visual + self.weather + self.x_comm
         self.avail_sats.sort()
 
     def showAvailSats(self):
@@ -582,6 +594,8 @@ class ApplicationWindow(QtWidgets.QMainWindow):
             self.createSatFromFile(add_sat, "TLE/molniya.txt", "Molniya")
         elif (add_sat in self.noaa):
             self.createSatFromFile(add_sat, "TLE/noaa.txt", "NOAA")
+        elif (add_sat in self.oneweb):
+            self.createSatFromFile(add_sat, "TLE/oneweb.txt", "OneWeb")
         elif (add_sat in self.planet):
             self.createSatFromFile(add_sat, "TLE/planet.txt", "Planet")
         elif (add_sat in self.radar):
@@ -652,9 +666,9 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         self.tle_files = ["argos", "beidou", "cubesat", "dmc", "education",
                           "geodetic", "goes", "intelsat", "iridium",
                           "iridium-NEXT", "military", "molniya", "noaa",
-                          "planet", "radar", "resource", "sarsat", "spire",
-                          "starlink", "tdrss", "tle-new", "visual", "weather",
-                          "x-comm"]
+                          "oneweb", "planet", "radar", "resource", "sarsat",
+                          "spire", "starlink", "tdrss", "tle-new", "visual",
+                          "weather", "x-comm"]
         for file_name in self.tle_files:
             link = "https://celestrak.com/NORAD/elements/{}.txt".format(file_name)
             tlefile.TLE_URLS = (link, )
@@ -670,13 +684,11 @@ class ApplicationWindow(QtWidgets.QMainWindow):
 
     def earth(self):
         self.refreshBackgroundImg()
-        mu = 5.9722*6.67408*10**13
         for sat in self.Sats:
             sat.changePlanet()
 
     def mars(self):
         self.refreshBackgroundImg("img/mars_nasa_day.png")
-        mu = 0.64171*6.67408*10**13
         for sat in self.Sats:
             sat.changePlanet(M=0.64171*10**24, P_r=3389500, Eq_r=3396200, 
                     Po_r=3376200, J2=0.00196045, P_w=7.08821812*10**(-5))
@@ -707,19 +719,19 @@ class ApplicationWindow(QtWidgets.QMainWindow):
     def run(self):
         self.time_timer = QtCore.QTimer()
         self.time_timer.timeout.connect(self.updateTime)
-        self.time_timer.start(100)
+        self.time_timer.start(400)
 
         self.sats_timer = QtCore.QTimer()
         self.sats_timer.timeout.connect(self.updateSatellites)
-        self.sats_timer.start(300)
+        self.sats_timer.start(800)
 
         self.table_timer = QtCore.QTimer()
         self.table_timer.timeout.connect(self.updateTableContent)
-        self.table_timer.start(500)
+        self.table_timer.start(900)
 
         self.canvas_timer = QtCore.QTimer()
         self.canvas_timer.timeout.connect(self.updateCanvas)
-        self.canvas_timer.start(500)
+        self.canvas_timer.start(1000)
 
         self.bg_timer = QtCore.QTimer()
         self.bg_timer.timeout.connect(self.refreshBackgroundImg)
