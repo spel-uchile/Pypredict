@@ -109,8 +109,6 @@ class Map(object):
                                    pole_longitude=pole_lng,
                                    central_rotated_longitude=central_rot_lng)
 
-        x = empty(360)
-        y = empty(360)
         self.x[:180] = -90
         self.y[:180] = arange(-90, 90.)
         self.x[180:] = 90
