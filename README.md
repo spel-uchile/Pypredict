@@ -4,6 +4,8 @@ This software is a python version of "Gpredict". It displays any satellite's pos
 
 Current version: 3.0.0
 
+![](img/Screenshot.png)
+
 ### Supported software:
 
 * Python 3.7.15
