@@ -430,14 +430,16 @@ class Sat(Node):
 
     def getCoverage(self):
         """
-        Returns the angle of the coverage considering planet's radius
-        at the satellite's coordinates and the satellite's altitude.
+        Returns the angle of the coverage considering the planet's
+        radius at the satellite's coordinates and the satellite's
+        altitude. To return the angle in degrees, it is multiplied
+        by 57.29577951308232 which is 180/pi.
         """
         radius = self.getPlanetRadius()
-        ang = arccos(radius/(radius + self.alt))*180/pi
+        ang = arccos(radius/(radius + self.alt))*57.29577951308232
         return ang
 
-    def getComCoverage(self, E_r):
+    def getComCoverage(self, E_r, c=299792458):
         """
         Returns the angle of the coverage of the comunication link
         considering the transmit and receive power, the antenna
@@ -446,7 +448,6 @@ class Sat(Node):
         # FSPL = Ptx + Ant_tx + Ant_rx - Cable + Sens - margin
         #SUCHAI
         FSPL = 30 + 2 + 18.9 - 1 + 117 - 12
-        c = 299792458
         d = 10**(FSPL/20)*(c/self.freq)/(4*pi)
         ang = arccos((E_r**2 + (E_r + self.alt)**2 - d**2)/(2*E_r*(E_r + self.alt)))*180/pi
         return ang
@@ -593,60 +594,6 @@ class Sat(Node):
         #self.vt = self.h/self.r
         #self.vr = self.mu*self.e*sin(self.theta)/self.h
         #self.v = sqrt(self.v_p**2 + self.v_q**2)
-
-    def updateOrbitalParameters2(self, tnow=None, rad2deg=180/pi, twopi=2*pi):
-        if (tnow is None):
-            tnow = self.getTnow()
-        dt = tnow - self.tlast
-
-        dh, de, de2, dtheta, dRAAN, di, dw, da = self.getDeltas()
-        self.h = self.h + dh*dt
-        self.e = self.e + de*dt
-        self.theta = (self.theta + dtheta*dt) % twopi
-        self.RAAN = (self.RAAN + dRAAN*dt) % twopi
-        self.incl = self.incl + di*dt
-        self.w = (self.w + dw*dt) % twopi
-        self.a = self.h**2/(self.mu*(1 - self.e**2))
-        self.a = self.a + da*dt
-        self.e = abs(self.e + de2*dt)
-        self.p = self.a*(1 - self.e**2)
-        self.h = sqrt(self.a*self.mu*(1 - self.e**2))
-        self.n = sqrt(self.mu/(self.a**3))
-
-        cos_incl = cos(self.incl)
-        sin_incl = sin(self.incl)
-        cos_RAAN = cos(self.RAAN)
-        sin_RAAN = sin(self.RAAN)
-        cos_w = cos(self.w)
-        sin_w = sin(self.w)
-        cos_theta = cos(self.theta)
-        sin_theta = sin(self.theta)
-        
-        self.Rot_Mat[0,0] = cos_RAAN*cos_w - sin_RAAN*cos_incl*sin_w
-        self.Rot_Mat[0,1] = -sin_RAAN*cos_incl*cos_w - cos_RAAN*sin_w
-        self.Rot_Mat[1,0] = cos_RAAN*cos_incl*sin_w + sin_RAAN*cos_w
-        self.Rot_Mat[1,1] = cos_RAAN*cos_incl*cos_w - sin_RAAN*sin_w
-        self.Rot_Mat[2,0] = sin_incl*sin_w
-        self.Rot_Mat[2,1] = sin_incl*cos_w
-        r0 = self.p/(1 + self.e*cos_theta)
-        r_vec0 = r0*cos_theta
-        r_vec1 = r0*sin_theta
-        self.r_iner[0,0] = self.Rot_Mat[0,0]*r_vec0 + self.Rot_Mat[0,1]*r_vec1
-        self.r_iner[1,0] = self.Rot_Mat[1,0]*r_vec0 + self.Rot_Mat[1,1]*r_vec1
-        self.r_iner[2,0] = self.Rot_Mat[2,0]*r_vec0 + self.Rot_Mat[2,1]*r_vec1
-        self.x = self.r_iner[0,0]
-        self.y = self.r_iner[1,0]
-        self.z = self.r_iner[2,0]
-        self.r = sqrt(self.x**2 + self.y**2 + self.z**2)
-
-        self.alt = self.r - self.getPlanetRadius()
-        self.v_peri[0,0] = -self.mu*sin_theta/self.h
-        self.v_peri[1,0] = self.mu*(self.e + cos_theta)/self.h
-        #self.v_iner = self.Rot_Mat*self.v_peri
-        self.v_iner[0,0] = self.Rot_Mat[0,0]*self.v_peri[0,0] + self.Rot_Mat[0,1]*self.v_peri[1,0]
-        self.v_iner[1,0] = self.Rot_Mat[1,0]*self.v_peri[0,0] + self.Rot_Mat[1,1]*self.v_peri[1,0]
-        self.v_iner[2,0] = self.Rot_Mat[2,0]*self.v_peri[0,0] + self.Rot_Mat[2,1]*self.v_peri[1,0]
-        self.tlast = tnow 
 
     def updateOrbitalParameters3(self, date=None):
         if (date is None):
