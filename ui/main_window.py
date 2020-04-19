@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'main_window.ui'
 #
-# Created by: PyQt5 UI code generator 5.12.3
+# Created by: PyQt5 UI code generator 5.14.2
 #
 # WARNING! All changes made in this file will be lost!
 
@@ -14,11 +14,13 @@ class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         MainWindow.setObjectName("MainWindow")
         MainWindow.resize(1263, 713)
+        MainWindow.setBaseSize(QtCore.QSize(0, 0))
         self.centralwidget = QtWidgets.QWidget(MainWindow)
+        self.centralwidget.setBaseSize(QtCore.QSize(0, 0))
         self.centralwidget.setObjectName("centralwidget")
         self.verticalLayout_2 = QtWidgets.QVBoxLayout(self.centralwidget)
-        self.verticalLayout_2.setContentsMargins(-1, 6, -1, 0)
-        self.verticalLayout_2.setSpacing(6)
+        self.verticalLayout_2.setContentsMargins(5, 2, 0, 0)
+        self.verticalLayout_2.setSpacing(0)
         self.verticalLayout_2.setObjectName("verticalLayout_2")
         self.tabWidget = QtWidgets.QTabWidget(self.centralwidget)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Preferred)
@@ -44,7 +46,7 @@ class Ui_MainWindow(object):
         self.frame_2.setFrameShadow(QtWidgets.QFrame.Raised)
         self.frame_2.setObjectName("frame_2")
         self.horizontalLayout_3 = QtWidgets.QHBoxLayout(self.frame_2)
-        self.horizontalLayout_3.setContentsMargins(6, 3, 3, 0)
+        self.horizontalLayout_3.setContentsMargins(6, 2, 0, 0)
         self.horizontalLayout_3.setSpacing(6)
         self.horizontalLayout_3.setObjectName("horizontalLayout_3")
         self.dpl_button = QtWidgets.QPushButton(self.frame_2)
@@ -87,8 +89,10 @@ class Ui_MainWindow(object):
         sizePolicy.setHeightForWidth(self.frame_plot.sizePolicy().hasHeightForWidth())
         self.frame_plot.setSizePolicy(sizePolicy)
         self.frame_plot.setMaximumSize(QtCore.QSize(16777215, 16777215))
+        self.frame_plot.setLineWidth(1)
         self.frame_plot.setObjectName("frame_plot")
         self.verticalLayout = QtWidgets.QVBoxLayout(self.frame_plot)
+        self.verticalLayout.setSizeConstraint(QtWidgets.QLayout.SetMaximumSize)
         self.verticalLayout.setContentsMargins(0, 0, 0, 0)
         self.verticalLayout.setSpacing(0)
         self.verticalLayout.setObjectName("verticalLayout")
@@ -98,6 +102,7 @@ class Ui_MainWindow(object):
         self.tab_2.setObjectName("tab_2")
         self.verticalLayout_5 = QtWidgets.QVBoxLayout(self.tab_2)
         self.verticalLayout_5.setContentsMargins(0, 0, 0, 0)
+        self.verticalLayout_5.setSpacing(0)
         self.verticalLayout_5.setObjectName("verticalLayout_5")
         self.Table = QtWidgets.QTableWidget(self.tab_2)
         self.Table.setColumnCount(13)
@@ -153,6 +158,7 @@ class Ui_MainWindow(object):
         self.menuChange_planet.setObjectName("menuChange_planet")
         MainWindow.setMenuBar(self.menubar)
         self.statusbar = QtWidgets.QStatusBar(MainWindow)
+        self.statusbar.setSizeGripEnabled(True)
         self.statusbar.setObjectName("statusbar")
         MainWindow.setStatusBar(self.statusbar)
         self.actionExit = QtWidgets.QAction(MainWindow)
@@ -217,7 +223,7 @@ class Ui_MainWindow(object):
         self.next_min.setText(_translate("MainWindow", "▶️|"))
         self.next_day.setText(_translate("MainWindow", "▶️▶️|"))
         self.datetime.setDisplayFormat(_translate("MainWindow", "dd-MM-yy HH:mm:ss"))
-        self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab), _translate("MainWindow", "Tab 1"))
+        self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab), _translate("MainWindow", "World Map"))
         self.Table.setSortingEnabled(True)
         item = self.Table.horizontalHeaderItem(0)
         item.setText(_translate("MainWindow", "Satellite"))
@@ -245,7 +251,7 @@ class Ui_MainWindow(object):
         item.setText(_translate("MainWindow", "ω"))
         item = self.Table.horizontalHeaderItem(12)
         item.setText(_translate("MainWindow", "T. Anom."))
-        self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_2), _translate("MainWindow", "Tab 2"))
+        self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_2), _translate("MainWindow", "Table"))
         self.menuFile.setTitle(_translate("MainWindow", "Fi&le"))
         self.menuHelp.setTitle(_translate("MainWindow", "Help"))
         self.menuEdit.setTitle(_translate("MainWindow", "E&dit"))
