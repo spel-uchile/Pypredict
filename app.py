@@ -4,7 +4,7 @@
     orbital parameters in real time. Simulates satellite localization
     and deployment.
     
-    Copyright (C) 2018-2019, Matías Vidal Valladares, matvidal.
+    Copyright (C) 2018-2020, Matías Vidal Valladares, matvidal.
     Authors: Matías Vidal Valladares <matias.vidal.v@gmail.com>
 
     This program is free software: you can redistribute it and/or modify
@@ -58,7 +58,7 @@ class ApplicationWindow(QtWidgets.QMainWindow):
                  "cov_lng", "dmin", "canvas", "saa", "date", "db",
                  "en_db", "time_timer", "sats_timer", "canvas_timer",
                  "bg_timer", "Dialog", "table_timer", "sats_lngs",
-                 "sats_lats"]
+                 "sats_lats", "usr_tle_file", "usr_sats"]
 
     def __init__(self, Sats):
         self.Sats = Sats
@@ -147,30 +147,78 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         self.date = datetime.utcnow()
         self.map = self.ax.imshow(self.world_map.fillDarkSideFromPicture(self.date),
                 origin='upper', extent=img_extent, transform=PlateCarree())
-        self.gridAndFormat()
+        self.gridAndFormat("gray", 0.5, "white", 9)
         self.ax.outline_patch.set_visible(False)
         self.ax.spines['left'].set_visible(True)
         self.ax.spines['bottom'].set_visible(True)
         self.ax.spines['right'].set_visible(True)
         self.ax.spines['top'].set_visible(True)
 
-    def gridAndFormat(self):
-        gl = self.ax.gridlines(crs=PlateCarree(), draw_labels=True,
-                               linewidth=1, color='gray', alpha=0.5, linestyle='-')
-        gl.xlabels_top = True
-        gl.xlabels_bottom = False
-        gl.ylabels_right = False
-        gl.ylabels_left = True
-        gl.xlines = True
-        gl.xlocator = FixedLocator([-180, -150, -120, -90, -60, -30, 0, 30, 60, 90, 120, 150, 180])
-        gl.ylocator = FixedLocator([-90, -60, -30, 0, 30, 60, 90])
-        gl.xformatter = LONGITUDE_FORMATTER
-        gl.yformatter = LATITUDE_FORMATTER
-        gl.xlabel_style = {'size': 9, 'color': 'white'}
-        gl.ylabel_style = {'size': 9, 'color': 'white'}
-        gl.xpadding = -10
-        gl.ypadding = -25
-        return gl
+    def gridAndFormat(self, gcolor, galpha, tcolor, tsize):
+        self.ax.plot([-150, -150], [-90, 90], color=gcolor, alpha=galpha,
+                     linewidth=1, linestyle='-', transform=PlateCarree())
+        self.ax.plot([-120, -120], [-90, 90], color=gcolor, alpha=galpha,
+                     linewidth=1, linestyle='-', transform=PlateCarree())
+        self.ax.plot([-90, -90], [-90, 90], color=gcolor, alpha=galpha,
+                     linewidth=1, linestyle='-', transform=PlateCarree())
+        self.ax.plot([-60, -60], [-90, 90], color=gcolor, alpha=galpha,
+                     linewidth=1, linestyle='-', transform=PlateCarree())
+        self.ax.plot([-30, -30], [-90, 90], color=gcolor, alpha=galpha,
+                     linewidth=1, linestyle='-', transform=PlateCarree())
+        self.ax.plot([0, 0], [-90, 90], color=gcolor, alpha=galpha,
+                     linewidth=1, linestyle='-', transform=PlateCarree())
+        self.ax.plot([30, 30], [-90, 90], color=gcolor, alpha=galpha,
+                     linewidth=1, linestyle='-', transform=PlateCarree())
+        self.ax.plot([60, 60], [-90, 90], color=gcolor, alpha=galpha,
+                     linewidth=1, linestyle='-', transform=PlateCarree())
+        self.ax.plot([90, 90], [-90, 90], color=gcolor, alpha=galpha,
+                     linewidth=1, linestyle='-', transform=PlateCarree())
+        self.ax.plot([120, 120], [-90, 90], color=gcolor, alpha=galpha,
+                     linewidth=1, linestyle='-', transform=PlateCarree())
+        self.ax.plot([150, 150], [-90, 90], color=gcolor, alpha=galpha,
+                     linewidth=1, linestyle='-', transform=PlateCarree())
+        self.ax.plot([-180, 180], [60, 60], color=gcolor, alpha=galpha,
+                     linewidth=1, linestyle='-', transform=PlateCarree())
+        self.ax.plot([-180, 180], [30, 30], color=gcolor, alpha=galpha,
+                     linewidth=1, linestyle='-', transform=PlateCarree())
+        self.ax.plot([-180, 180], [0, 0], color=gcolor, alpha=galpha,
+                     linewidth=1, linestyle='-', transform=PlateCarree())
+        self.ax.plot([-180, 180], [-30, -30], color=gcolor, alpha=galpha,
+                     linewidth=1, linestyle='-', transform=PlateCarree())
+        self.ax.plot([-180, 180], [-60, -60], color=gcolor, alpha=galpha,
+                     linewidth=1, linestyle='-', transform=PlateCarree())
+        self.ax.text(-150, 88, "150°W", color=tcolor, size=tsize,
+                     transform=Geodetic(), ha="center")
+        self.ax.text(-120, 88, "120°W", color=tcolor, size=tsize,
+                     transform=Geodetic(), ha="center")
+        self.ax.text(-90, 88, "90°W", color=tcolor, size=tsize,
+                     transform=Geodetic(), ha="center")
+        self.ax.text(-60, 88, "60°W", color=tcolor, size=tsize,
+                     transform=Geodetic(), ha="center")
+        self.ax.text(-30, 88, "30°W", color=tcolor, size=tsize,
+                     transform=Geodetic(), ha="center")
+        self.ax.text(0, 88, "0°", color=tcolor, size=tsize,
+                     transform=Geodetic(), ha="center")
+        self.ax.text(30, 88, "30°E", color=tcolor, size=tsize,
+                     transform=Geodetic(), ha="center")
+        self.ax.text(60, 88, "60°E", color=tcolor, size=tsize,
+                     transform=Geodetic(), ha="center")
+        self.ax.text(90, 88, "90°E", color=tcolor, size=tsize,
+                     transform=Geodetic(), ha="center")
+        self.ax.text(120, 88, "120°E", color=tcolor, size=tsize,
+                     transform=Geodetic(), ha="center")
+        self.ax.text(150, 88, "150°E", color=tcolor, size=tsize,
+                     transform=Geodetic(), ha="center")
+        self.ax.text(-179.5, 60, "60°N", color=tcolor, size=tsize,
+                     transform=Geodetic(), va="center")
+        self.ax.text(-179.5, 30, "30°N", color=tcolor, size=tsize,
+                     transform=Geodetic(), va="center")
+        self.ax.text(-178, 0, "0°", color=tcolor, size=tsize,
+                     transform=Geodetic(), va="center")
+        self.ax.text(-179.5, -30, "30°S", color=tcolor, size=tsize,
+                     transform=Geodetic(), va="center")
+        self.ax.text(-179.5, -60, "60°S", color=tcolor, size=tsize,
+                     transform=Geodetic(), va="center")
 
     def data_gen(self):
         self.ax_saa, = self.ax.fill([0,0], [0,0], color='green',
@@ -181,6 +229,7 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         self.ax_sat, = self.ax.plot([], [], 'yo', ms=6)
         self.sats_lngs = []
         self.sats_lats = []
+        self.readAllSats()
         self.updateSatellites()
         self.resetCov()
         self.fillSAA()
@@ -405,12 +454,22 @@ class ApplicationWindow(QtWidgets.QMainWindow):
                 }
         return dump
 
-    def saveAs(self):
-        file_name = QtWidgets.QFileDialog.getSaveFileName(self, "Save file", "",
+    def savePicture(self):
+        file_name = QtWidgets.QFileDialog.getSaveFileName(self, "Save picture", "",
                                                           "Images (*.png *.xpm *.jpg)")
-        if file_name is None:
+        if file_name[0] is None:
             return
-        self.fig.savefig(file_name[0])
+        self.fig.savefig(file_name[0], bbox_inches="tight", pad_inches=0)
+
+    def saveTLEs(self):
+        file_name = QtWidgets.QFileDialog.getSaveFileName(self, "Save TLE date into file", "",
+                                                          "Text files (*.txt)")
+        if file_name[0] is '':
+            return
+        with open(file_name[0], "w") as f:
+            for Sat in self.Sats:
+                f.write(Sat.getTLE())
+                f.write("\n")
 
     def notAvailable(self):
         print("This command is not available yet")
@@ -530,7 +589,6 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         self.avail_sats.sort()
 
     def showAvailSats(self):
-        self.readAllSats()
         for sat in self.avail_sats:
             self.popup.avail_sats_lst.addItem(sat)
 
@@ -603,6 +661,8 @@ class ApplicationWindow(QtWidgets.QMainWindow):
             self.createSatFromFile(add_sat, "TLE/weather.txt", "Weather")
         elif (add_sat in self.x_comm):
             self.createSatFromFile(add_sat, "TLE/x-comm.txt", "Experimental")
+        elif (add_sat in self.usr_sats):
+            self.createSatFromFile(add_sat, self.usr_tle_file, "Added by user")
         else:
             self.Sats.append(Sat(add_sat, tle=tlefile.read(add_sat)))
         self.sortSats()
@@ -671,6 +731,15 @@ class ApplicationWindow(QtWidgets.QMainWindow):
             tlefile.TLE_URLS = (link, )
             tlefile.fetch("TLE/{}.txt".format(file_name))
 
+    def updateTLEfromFile(self):
+        file_name = QtWidgets.QFileDialog.getOpenFileName(self, "Open file", "",
+                                                          "Text files (*.txt)")
+        self.usr_tle_file = file_name[0]
+        self.usr_sats = []
+        self.readSatsFromFile(self.usr_tle_file, self.usr_sats)
+        self.avail_sats += self.usr_sats
+        self.avail_sats.sort()
+
     def refreshBackgroundImg(self, img=None):
         if (img is None):
             self.map.set_data(self.world_map.fillDarkSideFromPicture(self.date))
@@ -702,8 +771,10 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         Dialog.exec_()
 
     def setMenu(self):
-        self.ui.actionSave_as.triggered.connect(self.saveAs)
+        self.ui.actionSave_picture.triggered.connect(self.savePicture)
+        self.ui.actionSave_TLEs.triggered.connect(self.saveTLEs)
         self.ui.actionUpdate_TLE_from_net.triggered.connect(self.updateTLEfromNet)
+        self.ui.actionUpdate_TLE_from_file.triggered.connect(self.updateTLEfromFile)
         self.ui.actionEnable_database.triggered.connect(self.enableDB)
         self.ui.actionAdd_south_atlantic_anomaly.triggered.connect(self.addSAA)
         self.ui.actionRemove_coverage.triggered.connect(self.removeCoverage)
