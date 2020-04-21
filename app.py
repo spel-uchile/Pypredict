@@ -36,7 +36,6 @@ from pyorbital import tlefile
 from matplotlib.pyplot import imread, figure
 from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
 from datetime import datetime, timedelta
-from tkinter.filedialog import asksaveasfilename
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
 from sat import Sat
 from SAA import SAA
@@ -407,10 +406,11 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         return dump
 
     def saveAs(self):
-        file_name = asksaveasfilename()
+        file_name = QtWidgets.QFileDialog.getSaveFileName(self, "Save file", "",
+                                                          "Images (*.png *.xpm *.jpg)")
         if file_name is None:
             return
-        self.fig.savefig(file_name)
+        self.fig.savefig(file_name[0])
 
     def notAvailable(self):
         print("This command is not available yet")
