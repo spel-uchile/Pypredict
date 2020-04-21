@@ -648,8 +648,7 @@ class Sat(Node):
         self.updateGST0()
 
     def getTLE(self):
-        print("{}\n{}\n{}".format(self.name, self.line1, self.line2))
-        return self.name, self.line1, self.line2
+        return "{}\n{}\n{}".format(self.name, self.line1, self.line2)
 
     def checksum(self, line):
         check = 0
