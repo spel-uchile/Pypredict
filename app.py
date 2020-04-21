@@ -87,7 +87,6 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         self.cov_lat = empty(360)
         self.updateTableContent()
         self.setTableConnections()
-        self.changeMainSat(0)
         self.showMaximized()
         self.fig.canvas.mpl_connect('scroll_event',self.zoom)
         self.run()
@@ -231,6 +230,11 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         self.sats_lats = []
         self.readAllSats()
         self.updateSatellites()
+        self.mainSat = self.Sats[0]
+        tf = int(self.mainSat.getPeriod()*3)
+        self.mainSat_lats, self.mainSat_lngs = self.mainSat.getTrayectory(tf, 50, self.date)
+        self.ax_tray.set_data(self.mainSat_lngs, self.mainSat_lats)
+        self.canvas.draw_idle()
         self.resetCov()
         self.fillSAA()
 
@@ -248,18 +252,19 @@ class ApplicationWindow(QtWidgets.QMainWindow):
             self.sats_lats.append(Sat.getLat())
 
     def updateCanvas(self):
-        for i, Sat in  enumerate(self.Sats):
-            self.sats_lngs[i] = Sat.getLng(date=self.date)
-            lng = self.sats_lngs[i] - 5*(self.sats_lngs[i] > 174) + 5*(self.sats_lngs[i] < -174)
-            self.sats_lats[i] = Sat.getLat()
-            lat = self.sats_lats[i] - (1 - 2*(self.sats_lats[i] < -85))*4
-            self.sat_txt[i].set_position((lng, lat))
-            if (self.cov_alpha > 0):
-                self.plotCoverage(Sat.getCoverage(), Sat.getPlanetRadius(),
-                                  self.sats_lats[i], self.sats_lngs[i], i)
-        self.ax_sat.set_data(self.sats_lngs, self.sats_lats)
-        self.canvas.draw_idle()
-        self.ui.datetime.setDateTime(self.date)
+        if (self.ui.tabWidget.tabText(self.ui.tabWidget.currentIndex()) == "World Map"):
+            for i, Sat in  enumerate(self.Sats):
+                self.sats_lngs[i] = Sat.getLng(date=self.date)
+                lng = self.sats_lngs[i] - 6*(self.sats_lngs[i] > 173) + 6*(self.sats_lngs[i] < -173)
+                self.sats_lats[i] = Sat.getLat()
+                lat = self.sats_lats[i] - (1 - 2*(self.sats_lats[i] < -85))*4
+                self.sat_txt[i].set_position((lng, lat))
+                if (self.cov_alpha > 0):
+                    self.plotCoverage(Sat.getCoverage(), Sat.getPlanetRadius(),
+                                      self.sats_lats[i], self.sats_lngs[i], i)
+            self.ax_sat.set_data(self.sats_lngs, self.sats_lats)
+            self.canvas.draw_idle()
+            self.ui.datetime.setDateTime(self.date)
 
     def plotCoverage(self, ang, p_radius, sat_lat, sat_lng, n):
         """
@@ -401,43 +406,43 @@ class ApplicationWindow(QtWidgets.QMainWindow):
     def updateTableContent(self):
         rad2deg = 180/pi
         self.ui.Table.setRowCount(len(self.Sats))
-        #self.ui.Table.setColumnWidth(0, 50)
-        for i, Sat in enumerate(self.Sats):
-            self.ui.Table.setItem(i, 0, QtWidgets.QTableWidgetItem(Sat.name))
-            self.ui.Table.setItem(i, 1, QtWidgets.QTableWidgetItem(Sat.getCategory()))
-            Lat = QtWidgets.QTableWidgetItem("{:0.4f}°".format(Sat.getLat()))
-            Lat.setTextAlignment(QtCore.Qt.AlignVCenter | QtCore.Qt.AlignRight)
-            self.ui.Table.setItem(i, 2, Lat)
-            Lng = QtWidgets.QTableWidgetItem("{:0.4f}°".format(Sat.getLng(date=self.date)))
-            Lng.setTextAlignment(QtCore.Qt.AlignVCenter | QtCore.Qt.AlignRight)
-            self.ui.Table.setItem(i, 3, Lng)
-            Alt = QtWidgets.QTableWidgetItem("{:0.1f}".format((Sat.getAlt()*0.001)))
-            Alt.setTextAlignment(QtCore.Qt.AlignVCenter | QtCore.Qt.AlignRight)
-            self.ui.Table.setItem(i, 4, Alt)
-            Spd = QtWidgets.QTableWidgetItem("{}".format(int(Sat.getSpeed())))
-            Spd.setTextAlignment(QtCore.Qt.AlignVCenter | QtCore.Qt.AlignRight)
-            self.ui.Table.setItem(i, 5, Spd)
-            a = QtWidgets.QTableWidgetItem("{:0.1f}".format((Sat.getSemiMajorAxis()*0.001)))
-            a.setTextAlignment(QtCore.Qt.AlignVCenter | QtCore.Qt.AlignRight)
-            self.ui.Table.setItem(i, 6, a)
-            H = QtWidgets.QTableWidgetItem("{:0.1f}".format(Sat.getSpecAngMomentum()*0.000001))
-            H.setTextAlignment(QtCore.Qt.AlignVCenter | QtCore.Qt.AlignRight)
-            self.ui.Table.setItem(i, 7, H)
-            e = QtWidgets.QTableWidgetItem("{:0.4f}".format(Sat.getEccentricity()))
-            e.setTextAlignment(QtCore.Qt.AlignVCenter | QtCore.Qt.AlignRight)
-            self.ui.Table.setItem(i, 8, e)
-            RAAN = QtWidgets.QTableWidgetItem("{:0.2f}°".format((Sat.getRAAN()*rad2deg)))
-            RAAN.setTextAlignment(QtCore.Qt.AlignVCenter | QtCore.Qt.AlignRight)
-            self.ui.Table.setItem(i, 9, RAAN)
-            incl = QtWidgets.QTableWidgetItem("{:0.2f}°".format((Sat.getInclination()*rad2deg)))
-            incl.setTextAlignment(QtCore.Qt.AlignVCenter | QtCore.Qt.AlignRight)
-            self.ui.Table.setItem(i, 10, incl)
-            w = QtWidgets.QTableWidgetItem("{:0.2f}°".format((Sat.getArgPerigee()*rad2deg)))
-            w.setTextAlignment(QtCore.Qt.AlignVCenter | QtCore.Qt.AlignRight)
-            self.ui.Table.setItem(i, 11, w)
-            theta = QtWidgets.QTableWidgetItem("{:0.2f}°".format((Sat.getAnomaly()*rad2deg)))
-            theta.setTextAlignment(QtCore.Qt.AlignVCenter | QtCore.Qt.AlignRight)
-            self.ui.Table.setItem(i, 12, theta)
+        if (self.ui.tabWidget.tabText(self.ui.tabWidget.currentIndex()) == "Table"):
+            for i, Sat in enumerate(self.Sats):
+                self.ui.Table.setItem(i, 0, QtWidgets.QTableWidgetItem(Sat.name))
+                self.ui.Table.setItem(i, 1, QtWidgets.QTableWidgetItem(Sat.getCategory()))
+                Lat = QtWidgets.QTableWidgetItem("{:0.4f}°".format(Sat.getLat()))
+                Lat.setTextAlignment(QtCore.Qt.AlignVCenter | QtCore.Qt.AlignRight)
+                self.ui.Table.setItem(i, 2, Lat)
+                Lng = QtWidgets.QTableWidgetItem("{:0.4f}°".format(Sat.getLng(date=self.date)))
+                Lng.setTextAlignment(QtCore.Qt.AlignVCenter | QtCore.Qt.AlignRight)
+                self.ui.Table.setItem(i, 3, Lng)
+                Alt = QtWidgets.QTableWidgetItem("{:0.1f}".format((Sat.getAlt()*0.001)))
+                Alt.setTextAlignment(QtCore.Qt.AlignVCenter | QtCore.Qt.AlignRight)
+                self.ui.Table.setItem(i, 4, Alt)
+                Spd = QtWidgets.QTableWidgetItem("{}".format(int(Sat.getSpeed())))
+                Spd.setTextAlignment(QtCore.Qt.AlignVCenter | QtCore.Qt.AlignRight)
+                self.ui.Table.setItem(i, 5, Spd)
+                a = QtWidgets.QTableWidgetItem("{:0.1f}".format((Sat.getSemiMajorAxis()*0.001)))
+                a.setTextAlignment(QtCore.Qt.AlignVCenter | QtCore.Qt.AlignRight)
+                self.ui.Table.setItem(i, 6, a)
+                H = QtWidgets.QTableWidgetItem("{:0.1f}".format(Sat.getSpecAngMomentum()*0.000001))
+                H.setTextAlignment(QtCore.Qt.AlignVCenter | QtCore.Qt.AlignRight)
+                self.ui.Table.setItem(i, 7, H)
+                e = QtWidgets.QTableWidgetItem("{:0.4f}".format(Sat.getEccentricity()))
+                e.setTextAlignment(QtCore.Qt.AlignVCenter | QtCore.Qt.AlignRight)
+                self.ui.Table.setItem(i, 8, e)
+                RAAN = QtWidgets.QTableWidgetItem("{:0.2f}°".format((Sat.getRAAN()*rad2deg)))
+                RAAN.setTextAlignment(QtCore.Qt.AlignVCenter | QtCore.Qt.AlignRight)
+                self.ui.Table.setItem(i, 9, RAAN)
+                incl = QtWidgets.QTableWidgetItem("{:0.2f}°".format((Sat.getInclination()*rad2deg)))
+                incl.setTextAlignment(QtCore.Qt.AlignVCenter | QtCore.Qt.AlignRight)
+                self.ui.Table.setItem(i, 10, incl)
+                w = QtWidgets.QTableWidgetItem("{:0.2f}°".format((Sat.getArgPerigee()*rad2deg)))
+                w.setTextAlignment(QtCore.Qt.AlignVCenter | QtCore.Qt.AlignRight)
+                self.ui.Table.setItem(i, 11, w)
+                theta = QtWidgets.QTableWidgetItem("{:0.2f}°".format((Sat.getAnomaly()*rad2deg)))
+                theta.setTextAlignment(QtCore.Qt.AlignVCenter | QtCore.Qt.AlignRight)
+                self.ui.Table.setItem(i, 12, theta)
 
     def formatDump(self, Sat):
         dump = {
@@ -787,19 +792,19 @@ class ApplicationWindow(QtWidgets.QMainWindow):
     def run(self):
         self.time_timer = QtCore.QTimer()
         self.time_timer.timeout.connect(self.updateTime)
-        self.time_timer.start(700)
+        self.time_timer.start(500)
 
         self.sats_timer = QtCore.QTimer()
         self.sats_timer.timeout.connect(self.updateSatellites)
-        self.sats_timer.start(800)
+        self.sats_timer.start(700)
 
         self.table_timer = QtCore.QTimer()
         self.table_timer.timeout.connect(self.updateTableContent)
-        self.table_timer.start(900)
+        self.table_timer.start(700)
 
         self.canvas_timer = QtCore.QTimer()
         self.canvas_timer.timeout.connect(self.updateCanvas)
-        self.canvas_timer.start(1000)
+        self.canvas_timer.start(900)
 
         self.bg_timer = QtCore.QTimer()
         self.bg_timer.timeout.connect(self.refreshBackgroundImg)
