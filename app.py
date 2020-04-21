@@ -58,7 +58,8 @@ class ApplicationWindow(QtWidgets.QMainWindow):
                  "dpl_img", "tdoa_img", "world_map", "dpl", "cov_lat",
                  "cov_lng", "dmin", "canvas", "saa", "date", "db",
                  "en_db", "time_timer", "sats_timer", "canvas_timer",
-                 "bg_timer", "Dialog", "table_timer"]
+                 "bg_timer", "Dialog", "table_timer", "sats_lngs",
+                 "sats_lats"]
 
     def __init__(self, Sats):
         self.Sats = Sats
@@ -87,7 +88,7 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         self.cov_lat = empty(360)
         self.updateTableContent()
         self.setTableConnections()
-        self.changeMainSat(0, 0)
+        self.changeMainSat(0)
         self.showMaximized()
         self.fig.canvas.mpl_connect('scroll_event',self.zoom)
         self.run()
@@ -179,16 +180,13 @@ class ApplicationWindow(QtWidgets.QMainWindow):
                                      linewidth=1.5, linestyle='--',
                                      transform=Geodetic())
         self.ax_sat, = self.ax.plot([], [], 'yo', ms=6)
-        self.ax_cov = []
-        self.sat_txt = []
+        self.sats_lngs = []
+        self.sats_lats = []
         self.updateSatellites()
         self.resetCov()
         self.fillSAA()
 
     def resetCov(self):
-        for i in range(0, len(self.sat_txt)):
-            self.ax_cov[i].remove()
-            self.sat_txt[i].remove()
         self.ax_cov = []
         self.sat_txt = []
         for i, Sat in enumerate(self.Sats):
@@ -198,20 +196,20 @@ class ApplicationWindow(QtWidgets.QMainWindow):
                                              Sat.getLat(), Sat.name,
                                              color='yellow', size=8,
                                              transform=Geodetic(), ha="center"))
+            self.sats_lngs.append(Sat.getLng(date=self.date))
+            self.sats_lats.append(Sat.getLat())
 
     def updateCanvas(self):
-        sats_lngs = [] 
-        sats_lats = [] 
         for i, Sat in  enumerate(self.Sats):
-            sats_lngs.append(Sat.getLng(date=self.date))
-            lng = sats_lngs[i] - 5*(sats_lngs[i] > 174) + 5*(sats_lngs[i] < -174)
-            sats_lats.append(Sat.getLat())
-            lat = sats_lats[i] - (1 - 2*(sats_lats[i] < -85))*4
+            self.sats_lngs[i] = Sat.getLng(date=self.date)
+            lng = self.sats_lngs[i] - 5*(self.sats_lngs[i] > 174) + 5*(self.sats_lngs[i] < -174)
+            self.sats_lats[i] = Sat.getLat()
+            lat = self.sats_lats[i] - (1 - 2*(self.sats_lats[i] < -85))*4
             self.sat_txt[i].set_position((lng, lat))
             if (self.cov_alpha > 0):
                 self.plotCoverage(Sat.getCoverage(), Sat.getPlanetRadius(),
-                                  sats_lats[i], sats_lngs[i], i)
-        self.ax_sat.set_data(sats_lngs, sats_lats)
+                                  self.sats_lats[i], self.sats_lngs[i], i)
+        self.ax_sat.set_data(self.sats_lngs, self.sats_lats)
         self.canvas.draw_idle()
         self.ui.datetime.setDateTime(self.date)
 
@@ -236,7 +234,7 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         geom = Polygon(circle_points)
         self.ax_cov[n].set_xy(array(geom.exterior.coords.xy).transpose())
 
-    def changeMainSat(self, row, col):
+    def changeMainSat(self, row):
         selectedSat = self.ui.Table.item(row, 0).text()
         for sat in self.Sats:
             if (sat.name == selectedSat):
@@ -244,6 +242,7 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         tf = int(self.mainSat.getPeriod()*3)
         self.mainSat_lats, self.mainSat_lngs = self.mainSat.getTrayectory(tf, 50, self.date)
         self.ax_tray.set_data(self.mainSat_lngs, self.mainSat_lats)
+        self.canvas.draw_idle()
 
     def setButtons(self):
         self.ui.dpl_button.clicked.connect(self.deployPopup)
@@ -288,9 +287,13 @@ class ApplicationWindow(QtWidgets.QMainWindow):
                 dplyd_mass, name, [spdx, spdy, spdz], date=self.date)
         self.ax_cov.append(self.ax.fill([0,0], [0,0], transform=Geodetic(),
                            color='white', alpha=self.cov_alpha)[0])
-        self.sat_txt.append(self.ax.text([], [], "", color='yellow', size=8,
-                            transform=Geodetic(), ha="center"))
+        self.sat_txt.append(self.ax.text(newSat.getLng(date=self.date),
+                                         newSat.getLat(), newSat.name,
+                                         color='yellow', size=8,
+                                         transform=Geodetic(), ha="center"))
         self.Sats.append(newSat)
+        self.sats_lngs.append(newSat.getLng(date=self.date))
+        self.sats_lats.append(newSat.getLat())
         self.sortSats()
         self.Dialog.close()
 
@@ -425,12 +428,14 @@ class ApplicationWindow(QtWidgets.QMainWindow):
     def removeSAA(self):
         self.saa_alpha = 0
         self.ax_saa.set_alpha(self.saa_alpha)
+        self.canvas.draw_idle()
         self.ui.actionAdd_south_atlantic_anomaly.setText("Add south atlantic anomaly")
         self.ui.actionAdd_south_atlantic_anomaly.triggered.connect(self.addSAA)
 
     def addSAA(self):
         self.saa_alpha = 0.2
         self.ax_saa.set_alpha(self.saa_alpha)
+        self.canvas.draw_idle()
         self.ui.actionAdd_south_atlantic_anomaly.setText("Remove south atlantic anomaly")
         self.ui.actionAdd_south_atlantic_anomaly.triggered.connect(self.removeSAA)
 
@@ -438,7 +443,7 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         self.cov_alpha = 0
         for i, Sat in enumerate(self.Sats):
             self.ax_cov[i].set_alpha(self.cov_alpha)
-        self.updateCanvas()
+        self.canvas.draw_idle()
         self.ui.actionRemove_coverage.setText("Add coverage")
         self.ui.actionRemove_coverage.triggered.connect(self.addCoverage)
 
@@ -446,7 +451,7 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         self.cov_alpha = 0.2
         for i, Sat in enumerate(self.Sats):
             self.ax_cov[i].set_alpha(self.cov_alpha)
-        self.updateCanvas()
+        self.canvas.draw_idle()
         self.ui.actionRemove_coverage.setText("Remove coverage")
         self.ui.actionRemove_coverage.triggered.connect(self.removeCoverage)
 
@@ -604,9 +609,13 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         self.popup.curr_sats_tab.clearContents()
         self.popup.curr_sats_tab.setRowCount(len(self.Sats))
         self.popup.srch_box.setFocus()
+        self.sats_lngs.append(0.0)
+        self.sats_lats.append(0.0)
         for i, Sat in enumerate(self.Sats):
             self.popup.curr_sats_tab.setItem(i, 0, QtWidgets.QTableWidgetItem(Sat.name))
             self.sat_txt[i].set_text(Sat.name)
+            self.sats_lngs[i] = Sat.getLng(date=self.date)
+            self.sats_lats[i] = Sat.getLat()
 
     def createSatFromFile(self, sat_name, file_name, category):
         newSat = Sat(sat_name, tle=tlefile.read(sat_name, file_name), cat=category)
@@ -619,7 +628,14 @@ class ApplicationWindow(QtWidgets.QMainWindow):
             if (del_sat == sat.name):
                 self.Sats.remove(sat)
                 self.popup.curr_sats_tab.removeRow(i)
-        self.resetCov()
+                self.ax_cov[i].remove()
+                self.ax_cov.remove(self.ax_cov[i])
+                self.sat_txt[i].remove()
+                self.sat_txt.remove(self.sat_txt[i])
+                self.sats_lngs.remove(self.sats_lngs[i])
+                self.sats_lats.remove(self.sats_lats[i])
+        self.ax_sat.remove()
+        self.ax_sat, = self.ax.plot([], [], 'yo', ms=6)
         
     def addRemoveSat(self):
         Dialog = QtWidgets.QDialog()
