@@ -30,11 +30,9 @@ from addRemove.addRemove_window import Ui_addRemove
 from cartopy.crs import Geodetic, PlateCarree, RotatedPole
 from dayNightMap import Map
 from dpl import Dpl
-from matplotlib.ticker import FixedLocator
 from numpy import abs, array, cos, empty, log, pi, sin, tan
 from pyorbital import tlefile
 from matplotlib.pyplot import imread, figure
-from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
 from datetime import datetime, timedelta
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
 from sat import Sat
