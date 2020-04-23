@@ -73,7 +73,8 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         self.cov_alpha = 0.2
         self.saa = SAA()
         self.dmin = 0
-        self.ui.datetime.setDateTime(datetime.utcnow())
+        self.date = datetime.utcnow()
+        self.ui.datetime.setDateTime(self.date)
         self.setButtons()
         self.world_map = Map("img/earth_nasa_day.png",
                              "img/earth_nasa_night.png")
@@ -141,7 +142,6 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         self.fig = figure(figsize=(16, 8))
         self.ax = self.fig.add_axes([0, 0, 1, 1], projection=PlateCarree(), frameon=False)
         img_extent = (-180, 180, -90, 90)
-        self.date = datetime.utcnow()
         self.map = self.ax.imshow(self.world_map.fillDarkSideFromPicture(self.date),
                 origin='upper', extent=img_extent, transform=PlateCarree())
         self.gridAndFormat("gray", 0.5, "white", 9)
@@ -262,7 +262,6 @@ class ApplicationWindow(QtWidgets.QMainWindow):
                                       self.sats_lats[i], self.sats_lngs[i], i)
             self.ax_sat.set_data(self.sats_lngs, self.sats_lats)
             self.canvas.draw_idle()
-            self.ui.datetime.setDateTime(self.date)
 
     def plotCoverage(self, ang, p_radius, sat_lat, sat_lng, n):
         """
@@ -378,12 +377,18 @@ class ApplicationWindow(QtWidgets.QMainWindow):
             self.date = datetime.utcnow() + timedelta(minutes=self.dmin)
         else:
             self.date = date
+        if (self.ui.tabWidget.tabText(self.ui.tabWidget.currentIndex()) == "World Map"):
+            qdt = QtCore.QDateTime(self.date.year,self.date.month,self.date.day,
+                                   self.date.hour,self.date.minute,self.date.second)
+            self.ui.datetime.setDateTime(qdt)
 
     def newDate(self):
         date = self.ui.datetime.dateTime().toPyDateTime()
-        self.dmin += (date - self.date).total_seconds()/60.0
+        time_diff = (date - self.date).total_seconds()/60.0
+        self.dmin += time_diff
         self.date = date
-        self.refreshBackgroundImg()
+        if (time_diff >= 1):
+            self.refreshBackgroundImg()
 
     def updateSatellites(self):
         for Sat in self.Sats:
@@ -395,16 +400,16 @@ class ApplicationWindow(QtWidgets.QMainWindow):
     def setCanvas(self):
         self.canvas = FigureCanvasQTAgg(self.fig)
         self.canvas.setParent(self)
-        self.canvas.draw()
+        self.canvas.draw_idle()
         self.ui.frame_plot.layout().addWidget(self.canvas)
 
     def setTableConnections(self):
         self.ui.Table.cellClicked.connect(self.changeMainSat)
 
     def updateTableContent(self):
-        rad2deg = 180/pi
-        self.ui.Table.setRowCount(len(self.Sats))
         if (self.ui.tabWidget.tabText(self.ui.tabWidget.currentIndex()) == "Table"):
+            rad2deg = 180/pi
+            self.ui.Table.setRowCount(len(self.Sats))
             for i, Sat in enumerate(self.Sats):
                 self.ui.Table.setItem(i, 0, QtWidgets.QTableWidgetItem(Sat.name))
                 self.ui.Table.setItem(i, 1, QtWidgets.QTableWidgetItem(Sat.getCategory()))
@@ -744,12 +749,12 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         self.avail_sats.sort()
 
     def refreshBackgroundImg(self, img=None):
-        if (img is None):
-            self.map.set_data(self.world_map.fillDarkSideFromPicture(self.date))
-        else:
-            self.map.set_data(imread(img))
-        self.canvas.draw_idle()
-        self.fig.canvas.draw_idle()
+        if (self.ui.tabWidget.tabText(self.ui.tabWidget.currentIndex()) == "World Map"):
+            if (img is None):
+                self.map.set_data(self.world_map.fillDarkSideFromPicture(self.date))
+            else:
+                self.map.set_data(imread(img))
+            self.canvas.draw_idle()
 
     def earth(self):
         self.refreshBackgroundImg()
