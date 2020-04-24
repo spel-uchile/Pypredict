@@ -26,6 +26,7 @@ from PyQt5 import QtWidgets, QtGui, QtCore
 from ui.main_window import Ui_MainWindow
 from about.about_window import Ui_About
 from deployment.dpl_window import Ui_DPL
+from updateTLE.updateTLE_dialog import Ui_updateTLE
 from addRemove.addRemove_window import Ui_addRemove
 from cartopy.crs import Geodetic, PlateCarree, RotatedPole
 from dayNightMap import Map
@@ -727,17 +728,41 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         self.ui.actionFullscreen.setText("Fullscreen")
         self.ui.actionFullscreen.triggered.connect(self.fullscreen)
 
+    def updateTLEDialog(self):
+        """
+        Creates a dialog to give the user the option to update all the
+        TLE files from celestrack. The user can see the link of each
+        downloaded file in a text box and can also watch the progress
+        bar to know when it is finished.
+        """
+        self.Dialog = QtWidgets.QDialog()
+        self.popup = Ui_updateTLE()
+        self.popup.setupUi(self.Dialog)
+        self.popup.buttonBox.accepted.connect(self.updateTLEfromNet)
+        self.popup.buttonBox.rejected.connect(self.Dialog.reject)
+        self.Dialog.setWindowTitle("Update TLE from network")
+        self.Dialog.exec_()
+
     def updateTLEfromNet(self):
+        """
+        Updates the TLE files from the celestrack web page. It also handles
+        the display of the current downloaded file and the progress bar of
+        the QDialog.
+        """
         self.tle_files = ["argos", "beidou", "cubesat", "dmc", "education",
                           "geodetic", "goes", "intelsat", "iridium",
                           "iridium-NEXT", "military", "molniya", "noaa",
                           "oneweb", "planet", "radar", "resource", "sarsat",
                           "spire", "starlink", "tdrss", "tle-new", "visual",
                           "weather", "x-comm"]
-        for file_name in self.tle_files:
+        for i, file_name in enumerate(self.tle_files):
             link = "https://celestrak.com/NORAD/elements/{}.txt".format(file_name)
+            self.popup.plainTextEdit.insertPlainText("Downloading: {}".format(link))
             tlefile.TLE_URLS = (link, )
             tlefile.fetch("TLE/{}.txt".format(file_name))
+            self.popup.plainTextEdit.insertPlainText("\nDone!\n")
+            self.popup.progressBar.setValue(int((i + 1)*100/len(self.tle_files)))
+        self.popup.plainTextEdit.insertPlainText("Finished!")
 
     def updateTLEfromFile(self):
         file_name = QtWidgets.QFileDialog.getOpenFileName(self, "Open file", "",
@@ -781,7 +806,7 @@ class ApplicationWindow(QtWidgets.QMainWindow):
     def setMenu(self):
         self.ui.actionSave_picture.triggered.connect(self.savePicture)
         self.ui.actionSave_TLEs.triggered.connect(self.saveTLEs)
-        self.ui.actionUpdate_TLE_from_net.triggered.connect(self.updateTLEfromNet)
+        self.ui.actionUpdate_TLE_from_net.triggered.connect(self.updateTLEDialog)
         self.ui.actionUpdate_TLE_from_file.triggered.connect(self.updateTLEfromFile)
         self.ui.actionEnable_database.triggered.connect(self.enableDB)
         self.ui.actionAdd_south_atlantic_anomaly.triggered.connect(self.addSAA)
