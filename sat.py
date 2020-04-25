@@ -125,75 +125,196 @@ class Sat(Node):
         return self
 
     def setMu(self, mu):
-        """Sets the standard gravitational parameter."""
+        """
+        Sets the standard gravitational parameter.
+
+        Parameters
+        ----------
+        mu : float
+             The new standard gravitational parameter
+        """
         self.mu = mu
 
     def setInclination(self, incl):
-        """Sets the inclination of the orbit."""
+        """
+        Sets the inclination of the orbit.
+
+        Parameters
+        ----------
+        incl : float
+               The new satellite's orbit inclination in
+               radians
+        """
         self.incl = incl
 
     def setRAAN(self, RAAN):
-        """Sets the orbit's right ascension of the ascending node."""
+        """
+        Sets the orbit's right ascension of the ascending node.
+
+        Parameters
+        ----------
+        RAAN : float
+               The new Right Ascension of the Ascending Node
+               in radians
+        """
         self.RAAN = RAAN
 
     def setRAAN0(self, RAAN0):
-        """Sets the orbit's initial RAAN."""
+        """
+        Sets the orbit's initial RAAN.
+
+        Parameters:
+        -----------
+        RAAN0 : float
+                The initial Right Ascension of the Ascending
+                Node in radians
+        """
         self.RAAN0 = RAAN0
 
     def setArgPerigee(self, w):
-        """Sets the orbit's argument of the perigee."""
+        """
+        Sets the orbit's argument of the perigee.
+
+        Parameters
+        ----------
+        w : float
+            The new orbit's argument of the perigee in radians
+        """
         self.w = w
 
     def setArgPerigee0(self, w0):
-        """Sets the orbit's initial argument of the perigee."""
+        """
+        Sets the orbit's initial argument of the perigee.
+
+        Parameters
+        ----------
+        w0 : float
+             The initial orbit's argument of the perigee in
+             radians
+        """
         self.w0 = w0
 
     def setEccentricity(self, e):
-        """Sets the orbit's eccentricity."""
+        """
+        Sets the orbit's eccentricity.
+
+        Parameters
+        ----------
+        e : float
+            The new orbit's eccentricity
+        """
         self.e = e
 
     def setMeanAnomaly(self, MA):
-        """Sets the orbit's mean anomaly."""
+        """
+        Sets the orbit's mean anomaly.
+
+        Parameters
+        ----------
+        MA : float
+             The new orbit's mean anomaly in radians
+        """
         self.MA = MA
 
     def setMeanAnomaly0(self, MA0):
-        """Sets the orbit's initial mean anomaly."""
+        """
+        Sets the orbit's initial mean anomaly.
+
+        Parameters
+        ----------
+        MA0 : float
+              The initial orbit's mean aomaly in
+              radians
+        """
         self.MA0 = MA0
 
     def setMeanMotion(self, n):
-        """Sets the satellite's mean motion."""
+        """
+        Sets the satellite's mean motion.
+
+        Parameters
+        ----------
+        n = float
+            The satellite's mean motion
+        """
         self.n = n
 
     def setTrueAnomaly(self, theta):
-        """Sets the orbit's true anomaly."""
+        """
+        Sets the orbit's true anomaly.
+
+        Parameters
+        ----------
+        theta : float
+                The new orbit's true anomaly in radians
+        """
         self.theta = theta
 
     def setSemiMajorAxis(self, a):
-        """Sets the orbit's semi-major axis."""
+        """
+        Sets the orbit's semi-major axis.
+
+        Parameters
+        ----------
+        a = float
+            The new orbit's semi-major axis in meters
+        """
         self.a = a
 
     def setSemilatusRectum(self, p):
-        """Sets the orbit's semilatus rectum."""
+        """
+        Sets the orbit's semilatus rectum.
+
+        Parameters
+        ----------
+        p : float
+            The new orbit's semilatus rectum in meters
+        """
         self.p = p
 
-    def setMeanVelocity(self, n):
-        """Sets the orbit's mean motion."""
-        self.n = n
-
     def setBallisticCoeff(self, B):
-        """Sets the ballistic coefficient of the satellite."""
+        """
+        Sets the ballistic coefficient of the satellite.
+
+        Parameters
+        ----------
+        B : float
+            Ballistic coefficient
+        """
         self.B = B
 
     def setSpecAngMomentum(self, h):
-        """Sets the satellite's specific relative angular momentum."""
+        """
+        Sets the satellite's specific relative angular momentum.
+
+        Parameters
+        ----------
+        h : float
+            The new specific relative angular momentum in squared
+            meters per second
+        """
         self.h = h
 
     def setName(self, name):
-        """Sets the satellite's name."""
+        """
+        Sets the satellite's name.
+
+        Parameters
+        ----------
+        name : string
+               The satellite's new name
+        """
         self.name = name
     
     def setCategory(self, cat):
-        """Sets the satellite's category."""
+        """
+        Sets the satellite's category.
+
+        Parameters
+        ----------
+        cat : string
+              The satellite's new category
+        """
         self.cat = cat
 
     def getCategory(self):
@@ -299,10 +420,11 @@ class Sat(Node):
         """
         Calculates the days and months from an epoch day parameter,
         assuming it is a leap year.
+
         Parameters
         ----------
         ep_day : float
-            Satellite's epoch day from TLE.
+                 Satellite's epoch day from TLE.
         """
         Month = 1 + (ep_day > 31) + (ep_day > 60) + (ep_day > 91) + (ep_day > 121)
         Month = Month + (ep_day > 152) + (ep_day > 182) + (ep_day > 213) + (ep_day > 244)
@@ -317,10 +439,11 @@ class Sat(Node):
         """
         Calculates the days and months from an epoch day parameter,
         assuming it is not a leap year.
+
         Parameters
         ----------
         ep_day : float
-            Satellite's epoch day from TLE.
+                 Satellite's epoch day from TLE.
         """
         Month = 1 + (ep_day > 31) + (ep_day > 59) + (ep_day > 90) + (ep_day > 120)
         Month = Month + (ep_day > 151) + (ep_day > 181) + (ep_day > 212) + (ep_day > 243)
@@ -356,7 +479,7 @@ class Sat(Node):
         Parameters
         ----------
         date : datetime.utcnow()
-            Current date
+               Current date
         """
         seconds = date.hour*3600 + date.minute*60 + date.second
         return seconds + date.microsecond*0.000001
@@ -368,7 +491,7 @@ class Sat(Node):
         Parameters
         ----------
         date : datetime
-            Date from the datetime library
+               Date from the datetime library
         """
         days = date.day
         month = date.month
@@ -444,6 +567,13 @@ class Sat(Node):
         Returns the angle of the coverage of the comunication link
         considering the transmit and receive power, the antenna
         gain, the sensibility and the losses.
+
+        Parameters
+        ----------
+        E_r : float
+              The Earth radius in meters
+        c   : int
+              The speed of light in meters per second
         """
         # FSPL = Ptx + Ant_tx + Ant_rx - Cable + Sens - margin
         #SUCHAI
@@ -455,6 +585,12 @@ class Sat(Node):
     def getTnow(self, date=None):
         """
         Returns the number of seconds since the last TLE data.
+
+        Parameters
+        ----------
+        date : datetime
+               The date used to calculate the number of
+               seconds
         """
         if (date is None):
             date = datetime.utcnow()                  # Use current time in UTC.
@@ -465,6 +601,21 @@ class Sat(Node):
         return tnow + daysdiff*dayinsec               # Time in seconds from TLE to present time
 
     def getLocation(self, T, dt, dmin=0):
+        """
+        Returns the trayectory of the satellite from
+        tnow with a dmin minutes gap, to the next T
+        periods with a step of dt seconds.
+
+        Parameters
+        ----------
+        T    : int
+               Period of time in seconds to be
+               calculated
+        dt   : int
+               Time step in seconds
+        dmin : int
+               Number of minutes of gap from tnow
+        """
         tnow = self.getTnow() + dmin*60
         self.tray_lat[:] = []
         self.tray_lng[:] = []
@@ -509,6 +660,19 @@ class Sat(Node):
         return self.tray_lat, self.tray_lng
 
     def getTrayectory(self, T, dt, date=None):
+        """
+        Calculates the future trayectory of the satellite
+        using the SGP4 library.
+
+        Parameters
+        ----------
+        T    : int
+               Period of time in seconds to be calculated
+        dt   : int
+               Time step in seconds
+        date : datetime
+               Date from which the trayectory is calculated
+        """
         self.tray_lat[:] = []
         self.tray_lng[:] = []
         self.tray_alt[:] = []
@@ -525,6 +689,25 @@ class Sat(Node):
         return self.tray_lat, self.tray_lng
 
     def changePlanet(self, M=5.9722*10**24, P_r=6371000, Eq_r=6378000, Po_r=6356000, J2=0.00108263, P_w=7.29211505*10**(-5)):
+        """
+        Changes the planet's parameters.
+
+        Parameters
+        ----------
+        M    : float
+               The planet's mass in kilograms
+        P_r  : int
+               The planet's mean radius in meters
+        Eq_r : int
+               The planet's equatorial radius in meters
+        Po_r : int
+               The planet's polar radius in meters
+        J2   : float
+               The planet's J2 harmonic
+        P_w  : float
+               The planet's angular velocity in radians
+               per second
+        """
         G = 6.67408*10**(-11)                       # Gravitational constant
         self.mu = G*M                               # Gravitational parameter
         self.n = sqrt(self.mu/(self.a**3))          # Mean motion
@@ -541,6 +724,15 @@ class Sat(Node):
         #self.updateOrbitalParameters3()
 
     def updateOrbitalParameters(self, tnow=None):
+        """
+        Calculates the orbital parameters just
+        considering the J2 harminic effect.
+
+        Parameters
+        ----------
+        tnow : int
+               Time since TLE in seconds
+        """
         if (tnow is None):
             tnow = self.getTnow()
         rad2deg = 180/pi                                # Radian to degrees
@@ -596,6 +788,14 @@ class Sat(Node):
         #self.v = sqrt(self.v_p**2 + self.v_q**2)
 
     def updateOrbitalParameters3(self, date=None):
+        """
+        Updates all the orbital parameters with the
+        SGP4 propagation model.
+
+        date : datetime
+               The orbital elements are updated for
+               this date
+        """
         if (date is None):
             date = datetime.utcnow()
         year = date.year
@@ -633,10 +833,23 @@ class Sat(Node):
         self.v_peri[1,0] = self.mu*(e + cos(theta))/self.h
 
     def updateGST0(self):
+        """
+        Returns the Greenwich Sidereal Time of the
+        TLE data.
+        """
         D, Month, Y = self.getDMY()
         self.GST0 = self.getGST(int(D), Month, Y)
 
     def updateEpoch(self, date=None):
+        """
+        Updates the epoch day, year and the GST0
+        to now or to the received date.
+
+        Parameters
+        ----------
+        date : datetime
+               Date received to update the epoch
+        """
         if (date is None):
             date = datetime.utcnow()              # Use current time in UTC.
         tnow = self.getCurrentTimeInSeconds(date) # Current time in seconds
@@ -648,9 +861,18 @@ class Sat(Node):
         self.updateGST0()
 
     def getTLE(self):
+        """
+        Return the satellite's TLE as a string.
+        """
         return "{}\n{}\n{}".format(self.name, self.line1, self.line2)
 
     def checksum(self, line):
+        """
+        Calculates the line's checksum.
+
+        line : string
+               String used to calculate its checksum
+        """
         check = 0
         for char in line[:-1]:
             if char.isdigit():
@@ -660,6 +882,16 @@ class Sat(Node):
         return check % 10
 
     def createTLE(self, date):
+        """
+        Creates a new TLE for the received date.
+
+        Parameters
+        ----------
+        date : datetime
+               Date used to obtain the epoch of
+               the TLE.
+        """
+        rad2deg = 180/pi
         self.updateEpoch(date)
         aux="{:+.9f}".format(self.mean_motion_derivative)
         mean_motion_derivative = "{}{}".format(aux[0],aux[2:-1])
@@ -687,11 +919,11 @@ class Sat(Node):
                                 "7")
         line2 = "{} {} {:8.4f} {:8.4f} {} {:8.4f} {:08.4f} {:02.8f}{}{}".format("2",
                                                              self.satnumber,
-                                                             self.incl*180/pi,
-                                                             self.RAAN*180/pi,
+                                                             self.incl*rad2deg,
+                                                             self.RAAN*rad2deg,
                                                              e,
-                                                             self.w*180/pi,
-                                                             self.MA*180/pi,
+                                                             self.w*rad2deg,
+                                                             self.MA*rad2deg,
                                                              86400/self.getPeriod(),
                                                              "    0",
                                                              "7")
@@ -699,9 +931,5 @@ class Sat(Node):
         checksum2 = self.checksum(line2)
         line1 = "{}{}".format(line1[0:-1], checksum1)
         line2 = "{}{}".format(line2[0:-1], checksum2)
-        print(self.name)
-        print(line1)
-        print(line2)
         self.sat = twoline2rv(line1, line2, wgs72)
         return self.name, line1, line2
-

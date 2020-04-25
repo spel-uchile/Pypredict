@@ -98,6 +98,11 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         """
         Enables the fullscreen mode by pressing the F11 key.
         It exits the fullscreen mode by pressing Esc.
+
+        Parameters
+        ----------
+        e : event
+            Key pressed event
         """
         if e.key() == QtCore.Qt.Key_Escape:
             self.exitFullscreen()
@@ -166,6 +171,9 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         This method creates the grid and the labels of the angles.
         It gives has the option to change some properties of the grid
         and labels.
+
+        Parameters
+        ----------
         gcolor : string
                  Color of the grid lines
         galpha : float
@@ -303,6 +311,8 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         """
         Returns the coordinates of the satellite's coverage.
 
+        Parameters
+        ----------
         ang      : float
                    Angle of the satellite's coverage
         p_radius : float
@@ -324,6 +334,11 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         """
         It changes the program's main satellite. This satellite
         is the one which trayectory is being displayed.
+
+        Parameters
+        ----------
+        row : int
+              The number of the table's row
         """
         selectedSat = self.ui.Table.item(row, 0).text()
         for sat in self.Sats:
@@ -369,6 +384,12 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         Obtains the deployer's name that the user wrote
         in the table. Sets this name in the deployer's
         label.
+
+        Parameters
+        ----------
+        item : QTableWidgetItem
+               The table's item selected by the user. In
+               this case, the deployer's name.
         """
         deployer_name = item.text()
         self.popup.deployer_name_lbl.setText(deployer_name)
@@ -463,6 +484,11 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         minutes, dmin, that may be changed by the user.
         The new date is displayed in the QDateTimeEdit
         widget.
+
+        Parameters
+        ----------
+        date = datetime
+               Datetime object to set the new date.
         """
         if (date is None):
             self.date = datetime.utcnow() + timedelta(minutes=self.dmin)
@@ -572,6 +598,11 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         """
         Formats some basic data of a satellite for a
         database.
+
+        Parameters
+        ----------
+        Sat : Sat
+              Object of the class Sat
         """
         dump = {
                 "id": Sat.satnumber,
@@ -689,6 +720,12 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         for a satellite's name that matches that
         text. All the matches are displayed in a
         list.
+
+        Parameters
+        ----------
+        text : string
+               String input of the user used to
+               search for a satellite's name
         """
         srch = text.upper()
         self.match = [s for s in self.avail_sats if srch in s]
@@ -701,6 +738,15 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         """
         Gets all the satellites' names from a file
         and adds them in a list.
+
+        Parameters
+        ----------
+        file : string
+               Path to the file that contains the
+               TLE data
+        lst  : list
+               List used to append the satellite's
+               names from the file
         """
         with open(file, 'r') as f:
             for count, line in enumerate(f):
@@ -889,6 +935,9 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         """
         Creates a new satellite given its name, TLE file
         and category.
+
+        Parameters
+        ----------
         sat_name  : string
                     The name of the new satellite
         file_name : string
@@ -941,6 +990,11 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         This method is called when the user uses the
         F11 key. It calls a method to set the
         fullscreen mode.
+
+        Parameters
+        ----------
+        event : event
+                Key pressed event
         """
         self.showFullScreen()
         self.ui.actionFullscreen.setText("Exit fullscreen")
@@ -951,6 +1005,11 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         This method is called when the user presses
         the ESC key. It calls a method to exit the
         fullscreen mode.
+
+        Parameters
+        ----------
+        event : event
+                Key pressed event
         """
         self.showMaximized()
         self.ui.actionFullscreen.setText("Fullscreen")
@@ -1016,6 +1075,8 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         position of the sun in the sky. It is only done
         if the World Map tab is selected.
 
+        Parameters
+        ----------
         img : String
               Path to the background image
         """
