@@ -67,39 +67,30 @@ class Sat(Node):
         self.tray_lng = []
         self.tray_alt = []
         dayinsec = 24*3600                                        # Day in seconds
-        if (tle is not None):
-            self.incl = tle.inclination*deg2rad
-            self.RAAN0 = tle.right_ascension*deg2rad
-            self.e = tle.excentricity
-            self.w0 = tle.arg_perigee*deg2rad
-            self.MA0 = tle.mean_anomaly*deg2rad
-            rpd2radps = (2*pi/dayinsec)                           # Revolutions per day to radians per second
-            self.n = tle.mean_motion*rpd2radps                    # Radians per second
-            self.epoch_year = tle.epoch_year
-            self.epoch_day = tle.epoch_day
-            self.bstar = tle.bstar
-            self.B = 2*self.bstar/(2.461*10**(-5)*6378.135)
-            self.sat = twoline2rv(tle.line1, tle.line2, wgs72)
-            self.mean_motion_derivative = tle.mean_motion_derivative
-            self.id_launch_year = tle.id_launch_year
-            self.id_launch_number = tle.id_launch_number
-            self.id_launch_piece = tle.id_launch_piece
-            self.element_number = tle.element_number
-            self.satnumber = tle.satnumber
-            self.line1 = tle.line1
-            self.line2 = tle.line2
-            print(self.name + " TLE found!")
-        else:
-            self.incl = 97.39*deg2rad
-            self.RAAN0 = 281.63*deg2rad
-            self.e = 0.001
-            self.w0 = 248*deg2rad
-            self.MA0 = 112*deg2rad
-            self.n = 0.0011
-            self.B = 2.2*0.0025*0.0085/0.08
-            self.updateEpoch()
-            self.element_number = 999
+        if (tle is None):
+            tle = tlefile.read("SUCHAI", "TLE/cubesat.txt")
             print("No TLE found, used default parameters instead")
+        self.incl = tle.inclination*deg2rad
+        self.RAAN0 = tle.right_ascension*deg2rad
+        self.e = tle.excentricity
+        self.w0 = tle.arg_perigee*deg2rad
+        self.MA0 = tle.mean_anomaly*deg2rad
+        rpd2radps = (2*pi/dayinsec)                           # Revolutions per day to radians per second
+        self.n = tle.mean_motion*rpd2radps                    # Radians per second
+        self.epoch_year = tle.epoch_year
+        self.epoch_day = tle.epoch_day
+        self.bstar = tle.bstar
+        self.B = 2*self.bstar/(2.461*10**(-5)*6378.135)
+        self.sat = twoline2rv(tle.line1, tle.line2, wgs72)
+        self.mean_motion_derivative = tle.mean_motion_derivative
+        self.id_launch_year = tle.id_launch_year
+        self.id_launch_number = tle.id_launch_number
+        self.id_launch_piece = tle.id_launch_piece
+        self.element_number = tle.element_number
+        self.satnumber = tle.satnumber
+        self.line1 = tle.line1
+        self.line2 = tle.line2
+        print(self.name + " TLE found!")
         self.RAAN = self.RAAN0
         self.w = self.w0
         self.MA = self.MA0
