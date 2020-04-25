@@ -1,10 +1,10 @@
-'''
+"""
                                 Pypredict
     Orbit prediction software. Displays the satellites' position and
     orbital parameters in real time. Simulates satellite localization
     and deployment.
     
-    Copyright (C) 2018-2019, Matías Vidal Valladares, matvidal.
+    Copyright (C) 2018-2020, Matías Vidal Valladares, matvidal.
     Authors: Matías Vidal Valladares <matias.vidal.v@gmail.com>
 
     This program is free software: you can redistribute it and/or modify
@@ -19,7 +19,7 @@
 
     You should have received a copy of the GNU General Public License
     along with this program. If not, see <https://www.gnu.org/licenses/>.
-'''
+"""
 from numpy import abs, arccos, arctan, argmin, cos, cross, dot, pi, sin, sqrt, tan, zeros 
 
 class Calc():
