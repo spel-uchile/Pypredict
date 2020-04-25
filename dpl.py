@@ -91,10 +91,9 @@ class Dpl(object):
         sat.setMeanAnomaly(self.calc.MA)
         sat.setTrueAnomaly(self.calc.theta)
         sat.setSemiMajorAxis(self.calc.a)
+        sat.setMeanMotion(self.calc.n)
         sat.setSemilatusRectum(sat.a*(1 - sat.e**2))
-        sat.setMeanVelocity(self.calc.n)
         sat.setSpecAngMomentum(sqrt(sat.a*sat.mu*(1 - sat.e**2)))
-        sat.setMeanMotion(sqrt(sat.mu/(sat.a**3)))
         sat.updateEpoch(date=date)
 
     def deploy(self, category, deployer, dplyr_mass, dplyd_mass, name, vel, date=None):
