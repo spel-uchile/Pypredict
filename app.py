@@ -113,16 +113,31 @@ class ApplicationWindow(QtWidgets.QMainWindow):
                 self.showFullScreen()
 
     def zoom(self, event):
+        """
+        This method handles the zoom in and zoom out of the
+        world map figure. It first centers the view in the
+        middle of the map, and then scales it and moves it
+        to the mouse position.
+
+        Parameters
+        ----------
+        event : event
+                Mouse wheel event
+        """
         lng = event.xdata
         lat = event.ydata
         if (event.button == "up"):
-            scale = 0.6
+            scale = 0.8
         else:
-            scale = 1.4
-        lng_min = self.ax.get_xlim()[0]*scale + lng
-        lng_max = self.ax.get_xlim()[1]*scale + lng
-        lat_min = self.ax.get_ylim()[0]*scale + lat
-        lat_max = self.ax.get_ylim()[1]*scale + lat
+            scale = 1.6
+        lng_min2 = -(abs(self.ax.get_xlim()[1]) + abs(self.ax.get_xlim()[0]))/2
+        lng_max2 = (abs(self.ax.get_xlim()[1]) + abs(self.ax.get_xlim()[0]))/2
+        lat_min2 = -(abs(self.ax.get_ylim()[1]) + abs(self.ax.get_ylim()[0]))/2
+        lat_max2 = (abs(self.ax.get_ylim()[1]) + abs(self.ax.get_ylim()[0]))/2
+        lng_min = lng_min2*scale + lng
+        lng_max = lng_max2*scale + lng
+        lat_min = lat_min2*scale + lat
+        lat_max = lat_max2*scale + lat
         if (lng_min < -180 and lng_max > 180 or lat_min < -90 and lat_max > 90):
             self.ax.set_extent([-180, 180, -90, 90], crs=PlateCarree())
         else:
