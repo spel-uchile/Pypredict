@@ -297,9 +297,9 @@ class ApplicationWindow(QtWidgets.QMainWindow):
             self.ax_cov.append(self.ax.fill([0,0], [0,0], transform=Geodetic(),
                                color='white', alpha=self.cov_alpha)[0])
             self.sat_txt.append(self.ax.text(Sat.getLng(date=self.date),
-                                             Sat.getLat(), Sat.name,
-                                             color='yellow', size=8,
-                                             transform=Geodetic(), ha="center"))
+                                             Sat.getLat(), Sat.name, color="yellow",
+                                             size=7, transform=Geodetic(),
+                                             ha="center", va="center"))
             self.sats_lngs.append(Sat.getLng(date=self.date))
             self.sats_lats.append(Sat.getLat())
 
@@ -314,7 +314,7 @@ class ApplicationWindow(QtWidgets.QMainWindow):
                 self.sats_lngs[i] = Sat.getLng(date=self.date)
                 lng = self.sats_lngs[i] - 6*(self.sats_lngs[i] > 173) + 6*(self.sats_lngs[i] < -173)
                 self.sats_lats[i] = Sat.getLat()
-                lat = self.sats_lats[i] - (1 - 2*(self.sats_lats[i] < -85))*4
+                lat = self.sats_lats[i] - 2.5 + 5*(self.sats_lats[i] < -85)
                 self.sat_txt[i].set_position((lng, lat))
                 if (self.cov_alpha > 0):
                     self.plotCoverage(Sat.getCoverage(), Sat.getPlanetRadius(),
@@ -434,9 +434,9 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         self.ax_cov.append(self.ax.fill([0,0], [0,0], transform=Geodetic(),
                            color='white', alpha=self.cov_alpha)[0])
         self.sat_txt.append(self.ax.text(newSat.getLng(date=self.date),
-                                         newSat.getLat(), newSat.name,
-                                         color='yellow', size=8,
-                                         transform=Geodetic(), ha="center"))
+                                         newSat.getLat(), newSat.name, color="yellow",
+                                         size=7, transform=Geodetic(),
+                                         ha="center", va="center"))
         self.Sats.append(newSat)
         self.sats_lngs.append(newSat.getLng(date=self.date))
         self.sats_lats.append(newSat.getLat())
@@ -878,8 +878,8 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         add_sat = self.popup.avail_sats_lst.currentItem().text()
         self.ax_cov.append(self.ax.fill([0,0], [0,0], transform=Geodetic(),
                            color='white', alpha=self.cov_alpha)[0])
-        self.sat_txt.append(self.ax.text([], [], "", color='yellow', size=8,
-                            transform=Geodetic(), ha="center"))
+        self.sat_txt.append(self.ax.text([], [], "", color='yellow', size=7,
+                            transform=Geodetic(), ha="center", va="center"))
         if (add_sat in self.argos):
             self.createSatFromFile(add_sat, "TLE/argos.txt", "Argos Data Collection System")
         elif (add_sat in self.beidou):
