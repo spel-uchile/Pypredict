@@ -19,7 +19,7 @@ class Ui_MainWindow(object):
         self.centralwidget.setBaseSize(QtCore.QSize(0, 0))
         self.centralwidget.setObjectName("centralwidget")
         self.verticalLayout_2 = QtWidgets.QVBoxLayout(self.centralwidget)
-        self.verticalLayout_2.setContentsMargins(5, 2, 0, 0)
+        self.verticalLayout_2.setContentsMargins(0, 0, 0, 0)
         self.verticalLayout_2.setSpacing(0)
         self.verticalLayout_2.setObjectName("verticalLayout_2")
         self.tabWidget = QtWidgets.QTabWidget(self.centralwidget)

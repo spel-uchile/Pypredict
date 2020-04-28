@@ -2,7 +2,7 @@
 
 This software is a python version of "Gpredict". It displays any satellite's position and orbital parameters in real time. It can also simulate satellite deployments with different velocities, considering the mass of the satellites. In the near future it will be able to simulate range-based localization systems using TDOA.
 
-Current version: 3.0.0
+Current version: 3.1.0
 
 ![](img/Screenshot.png)
 

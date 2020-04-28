@@ -20,14 +20,14 @@
     You should have received a copy of the GNU General Public License
     along with this program. If not, see <https://www.gnu.org/licenses/>.
 """
-__version__ = "3.0.0"
+__version__ = "3.1.0"
 
 from PyQt5 import QtWidgets, QtGui, QtCore
 from ui.main_window import Ui_MainWindow
-from about.about_window import Ui_About
-from deployment.dpl_window import Ui_DPL
-from updateTLE.updateTLE_dialog import Ui_updateTLE
-from addRemove.addRemove_window import Ui_addRemove
+from ui.about_dialog import Ui_About
+from ui.dpl_dialog import Ui_DPL
+from ui.updateTLE_dialog import Ui_updateTLE
+from ui.addRemove_dialog import Ui_addRemove
 from cartopy.crs import Geodetic, PlateCarree, RotatedPole
 from dayNightMap import Map
 from dpl import Dpl
@@ -41,7 +41,6 @@ from SAA import SAA
 from pymongo import MongoClient
 from cartopy.geodesic import Geodesic
 from shapely.geometry import Polygon
-import time
 
 class ApplicationWindow(QtWidgets.QMainWindow):
     #@profile
