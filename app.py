@@ -41,6 +41,7 @@ from SAA import SAA
 from pymongo import MongoClient
 from cartopy.geodesic import Geodesic
 from shapely.geometry import Polygon
+import time
 
 class ApplicationWindow(QtWidgets.QMainWindow):
     #@profile
@@ -74,8 +75,7 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         self.cov_alpha = 0.2
         self.saa = SAA()
         self.dmin = 0
-        self.date = datetime.utcnow()
-        self.ui.datetime.setDateTime(self.date)
+        self.updateTime()
         self.setButtons()
         self.world_map = Map("img/earth_nasa_day.png",
                              "img/earth_nasa_night.png")
@@ -490,7 +490,9 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         refreshes the background image of the map.
         """
         self.updateTime()
+        oldState = self.ui.datetime.blockSignals(True)
         self.ui.datetime.setDateTime(self.date)
+        self.ui.datetime.blockSignals(oldState)
         self.refreshBackgroundImg()
 
     def updateTime(self, date=None):
@@ -511,8 +513,11 @@ class ApplicationWindow(QtWidgets.QMainWindow):
             self.date = date
         if (self.ui.tabWidget.tabText(self.ui.tabWidget.currentIndex()) == "World Map"):
             qdt = QtCore.QDateTime(self.date.year,self.date.month,self.date.day,
-                                   self.date.hour,self.date.minute,self.date.second)
+                                   self.date.hour,self.date.minute,
+                                   self.date.second + self.date.microsecond*0.000001)
+            oldState = self.ui.datetime.blockSignals(True)
             self.ui.datetime.setDateTime(qdt)
+            self.ui.datetime.blockSignals(oldState)
 
     def newDate(self):
         """
@@ -520,7 +525,7 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         value of the QDateTimeEdit widget. When this
         happens, the new date is obtained to update the
         program's date. If the time difference is greater
-        than one minut, the background image is refreshed.
+        than one minute, the background image is refreshed.
         """
         date = self.ui.datetime.dateTime().toPyDateTime()
         time_diff = (date - self.date).total_seconds()/60.0
@@ -651,8 +656,8 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         displayed. This data is saved as a txt file in
         the folder that the user decides.
         """
-        file_name = QtWidgets.QFileDialog.getSaveFileName(self, "Save TLE date into file", "",
-                                                          "Text files (*.txt)")
+        file_name = QtWidgets.QFileDialog.getSaveFileName(self, "Save TLE data into file",
+                                                          "", "Text files (*.txt)")
         if file_name[0] is '':
             return
         with open(file_name[0], "w") as f:
