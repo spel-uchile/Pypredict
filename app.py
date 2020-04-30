@@ -20,7 +20,7 @@
     You should have received a copy of the GNU General Public License
     along with this program. If not, see <https://www.gnu.org/licenses/>.
 """
-__version__ = "3.1.0"
+__version__ = "3.1.1"
 
 from PyQt5 import QtWidgets, QtGui, QtCore
 from ui.main_window import Ui_MainWindow
@@ -41,6 +41,7 @@ from SAA import SAA
 from pymongo import MongoClient
 from cartopy.geodesic import Geodesic
 from shapely.geometry import Polygon
+from navigation import Toolbar
 
 class ApplicationWindow(QtWidgets.QMainWindow):
     #@profile
@@ -57,7 +58,7 @@ class ApplicationWindow(QtWidgets.QMainWindow):
                  "cov_lng", "dmin", "canvas", "saa", "date", "db",
                  "en_db", "time_timer", "sats_timer", "canvas_timer",
                  "bg_timer", "Dialog", "table_timer", "sats_lngs",
-                 "sats_lats", "usr_tle_file", "usr_sats"]
+                 "sats_lats", "usr_tle_file", "usr_sats", "toolbar"]
 
     def __init__(self, Sats):
         self.Sats = Sats
@@ -80,6 +81,7 @@ class ApplicationWindow(QtWidgets.QMainWindow):
                              "img/earth_nasa_night.png")
         self.plotData()
         self.setCanvas()
+        self.setCustomStatusBar()
         self.setMenu()
         self.data_gen()
         self.cov_lng = empty(360)
@@ -366,8 +368,9 @@ class ApplicationWindow(QtWidgets.QMainWindow):
     def setButtons(self):
         """
         Conects the program's buttons to the associated
-        methods.
+        methods. Adds tool tips and icons.
         """
+        self.ui.download_button.clicked.connect(self.updateTLEDialog)
         self.ui.dpl_button.clicked.connect(self.deployPopup)
         self.ui.loc_button.clicked.connect(self.notAvailable)
         self.ui.prev_day.clicked.connect(self.previousDay)
@@ -376,6 +379,10 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         self.ui.next_min.clicked.connect(self.nextMinute)
         self.ui.next_day.clicked.connect(self.nextDay)
         self.ui.datetime.dateTimeChanged.connect(self.newDate)
+        self.ui.download_button.setToolTip("Update TLE from network")
+        self.ui.dpl_button.setToolTip("Simulates the deployment\nof a satellite from another")
+        self.ui.loc_button.setToolTip("Simulate localization (not implemented yet)")
+        self.ui.loc_button.setIcon(QtGui.QIcon("img/locicon.png"))
 
     def deployPopup(self):
         """
@@ -510,13 +517,12 @@ class ApplicationWindow(QtWidgets.QMainWindow):
             self.date = datetime.utcnow() + timedelta(minutes=self.dmin)
         else:
             self.date = date
-        if (self.ui.tabWidget.tabText(self.ui.tabWidget.currentIndex()) == "World Map"):
-            qdt = QtCore.QDateTime(self.date.year,self.date.month,self.date.day,
-                                   self.date.hour,self.date.minute,
-                                   self.date.second + self.date.microsecond*0.000001)
-            oldState = self.ui.datetime.blockSignals(True)
-            self.ui.datetime.setDateTime(qdt)
-            self.ui.datetime.blockSignals(oldState)
+        qdt = QtCore.QDateTime(self.date.year,self.date.month,self.date.day,
+                               self.date.hour,self.date.minute,
+                               self.date.second + self.date.microsecond*0.000001)
+        oldState = self.ui.datetime.blockSignals(True)
+        self.ui.datetime.setDateTime(qdt)
+        self.ui.datetime.blockSignals(oldState)
 
     def newDate(self):
         """
@@ -557,6 +563,39 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         self.canvas.setParent(self)
         self.canvas.draw_idle()
         self.ui.frame_plot.layout().addWidget(self.canvas)
+
+    def setCustomStatusBar(self):
+        """
+        Moves some buttons into the status bar. Adds a
+        navigation toolbar into the status bar. Formats
+        the displayed coordinates of the cursor.
+        """
+        self.toolbar = Toolbar(self.canvas, self)
+        self.ui.statusbar.layout().addWidget(self.ui.download_button)
+        self.ui.statusbar.layout().addWidget(self.ui.dpl_button)
+        self.ui.statusbar.layout().addWidget(self.ui.loc_button)
+        self.ui.statusbar.layout().addWidget(self.ui.prev_day)
+        self.ui.statusbar.layout().addWidget(self.ui.prev_min)
+        self.ui.statusbar.layout().addWidget(self.ui.play)
+        self.ui.statusbar.layout().addWidget(self.ui.next_min)
+        self.ui.statusbar.layout().addWidget(self.ui.next_day)
+        self.ui.statusbar.layout().addWidget(self.ui.datetime)
+        self.ui.statusbar.layout().addWidget(self.toolbar)
+        self.ax.format_coord = self.formatCoordinates
+        self.map.format_cursor_data = self.formatCursorData
+
+    def formatCoordinates(self, lng, lat):
+        """
+        Overrrides the default format to show only
+        latitude and longitude.
+        """
+        return "Lon: {:7.1f}, Lat: {:7.1f}".format(lng, lat)
+
+    def formatCursorData(self, data):
+        """
+        Removes the RGBA data.
+        """
+        return ""
 
     def setTableConnections(self):
         """
@@ -729,6 +768,8 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         self.cov_alpha = 0.2
         for i, Sat in enumerate(self.Sats):
             self.ax_cov[i].set_alpha(self.cov_alpha)
+            self.plotCoverage(Sat.getCoverage(), Sat.getPlanetRadius(),
+                              self.sats_lats[i], self.sats_lngs[i], i)
         self.canvas.draw_idle()
         self.ui.actionRemove_coverage.setText("Remove coverage")
         self.ui.actionRemove_coverage.triggered.connect(self.removeCoverage)

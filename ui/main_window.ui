@@ -77,28 +77,34 @@
          <number>0</number>
         </property>
         <item>
-         <widget class="QFrame" name="frame_2">
+         <widget class="QFrame" name="frame_plot">
           <property name="sizePolicy">
-           <sizepolicy hsizetype="Expanding" vsizetype="Minimum">
+           <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
             <horstretch>0</horstretch>
             <verstretch>0</verstretch>
            </sizepolicy>
           </property>
-          <property name="frameShape">
-           <enum>QFrame::NoFrame</enum>
+          <property name="maximumSize">
+           <size>
+            <width>16777215</width>
+            <height>16777215</height>
+           </size>
           </property>
-          <property name="frameShadow">
-           <enum>QFrame::Raised</enum>
+          <property name="lineWidth">
+           <number>1</number>
           </property>
-          <layout class="QHBoxLayout" name="horizontalLayout_3">
+          <layout class="QHBoxLayout" name="horizontalLayout">
            <property name="spacing">
-            <number>6</number>
+            <number>0</number>
+           </property>
+           <property name="sizeConstraint">
+            <enum>QLayout::SetMaximumSize</enum>
            </property>
            <property name="leftMargin">
-            <number>6</number>
+            <number>0</number>
            </property>
            <property name="topMargin">
-            <number>2</number>
+            <number>0</number>
            </property>
            <property name="rightMargin">
             <number>0</number>
@@ -107,6 +113,13 @@
             <number>0</number>
            </property>
            <item>
+            <widget class="QToolButton" name="download_button">
+             <property name="text">
+              <string>⬇</string>
+             </property>
+            </widget>
+           </item>
+           <item>
             <widget class="QPushButton" name="dpl_button">
              <property name="text">
               <string>Simulate deployment</string>
@@ -114,9 +127,32 @@
             </widget>
            </item>
            <item>
-            <widget class="QPushButton" name="loc_button">
+            <widget class="QToolButton" name="loc_button">
+             <property name="enabled">
+              <bool>true</bool>
+             </property>
+             <property name="sizePolicy">
+              <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+               <horstretch>0</horstretch>
+               <verstretch>0</verstretch>
+              </sizepolicy>
+             </property>
+             <property name="font">
+              <font>
+               <pointsize>11</pointsize>
+               <weight>50</weight>
+               <bold>false</bold>
+               <kerning>true</kerning>
+              </font>
+             </property>
+             <property name="toolTip">
+              <string/>
+             </property>
+             <property name="whatsThis">
+              <string/>
+             </property>
              <property name="text">
-              <string>Simulate localization</string>
+              <string>⌖</string>
              </property>
             </widget>
            </item>
@@ -174,58 +210,6 @@
              </property>
             </widget>
            </item>
-           <item>
-            <spacer name="horizontalSpacer">
-             <property name="orientation">
-              <enum>Qt::Horizontal</enum>
-             </property>
-             <property name="sizeHint" stdset="0">
-              <size>
-               <width>40</width>
-               <height>20</height>
-              </size>
-             </property>
-            </spacer>
-           </item>
-          </layout>
-         </widget>
-        </item>
-        <item>
-         <widget class="QFrame" name="frame_plot">
-          <property name="sizePolicy">
-           <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
-            <horstretch>0</horstretch>
-            <verstretch>0</verstretch>
-           </sizepolicy>
-          </property>
-          <property name="maximumSize">
-           <size>
-            <width>16777215</width>
-            <height>16777215</height>
-           </size>
-          </property>
-          <property name="lineWidth">
-           <number>1</number>
-          </property>
-          <layout class="QVBoxLayout" name="verticalLayout">
-           <property name="spacing">
-            <number>0</number>
-           </property>
-           <property name="sizeConstraint">
-            <enum>QLayout::SetMaximumSize</enum>
-           </property>
-           <property name="leftMargin">
-            <number>0</number>
-           </property>
-           <property name="topMargin">
-            <number>0</number>
-           </property>
-           <property name="rightMargin">
-            <number>0</number>
-           </property>
-           <property name="bottomMargin">
-            <number>0</number>
-           </property>
           </layout>
          </widget>
         </item>
