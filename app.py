@@ -439,14 +439,16 @@ class ApplicationWindow(QtWidgets.QMainWindow):
                 dplyd_mass, name, [spdx, spdy, spdz], date=self.date)
         self.ax_cov.append(self.ax.fill([0,0], [0,0], transform=Geodetic(),
                            color='white', alpha=self.cov_alpha)[0])
-        self.sat_txt.append(self.ax.text(newSat.getLng(date=self.date),
-                                         newSat.getLat(), newSat.name, color="yellow",
-                                         size=7, transform=Geodetic(),
-                                         ha="center", va="center"))
+        self.sat_txt.append(self.ax.text([], [], "", color='yellow', size=7,
+                            transform=Geodetic(), ha="center", va="center"))
         self.Sats.append(newSat)
-        self.sats_lngs.append(newSat.getLng(date=self.date))
-        self.sats_lats.append(newSat.getLat())
         self.sortSats()
+        self.sats_lngs.append(0.0)
+        self.sats_lats.append(0.0)
+        for i, Sat in enumerate(self.Sats):
+            self.sat_txt[i].set_text(Sat.name)
+            self.sats_lngs[i] = Sat.getLng(date=self.date)
+            self.sats_lats[i] = Sat.getLat()
         self.Dialog.close()
 
     def previousDay(self):

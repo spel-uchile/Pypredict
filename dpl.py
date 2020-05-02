@@ -65,8 +65,6 @@ class Dpl(object):
         return self.Q_op*v
 
     def calcPosAndVel(self, deployer, vel):
-        #deployer.updateWithDragEffect()
-        #deployer.updateOrbitalParameters3()
         aux = deployer.getXYZ()
         self.r = [aux[0,0], aux[1,0], aux[2,0]]
         v_p, v_q = deployer.getPerifocalVel()
@@ -92,8 +90,8 @@ class Dpl(object):
         sat.setTrueAnomaly(self.calc.theta)
         sat.setSemiMajorAxis(self.calc.a)
         sat.setMeanMotion(self.calc.n)
-        sat.setSemilatusRectum(sat.a*(1 - sat.e**2))
-        sat.setSpecAngMomentum(sqrt(sat.a*sat.mu*(1 - sat.e**2)))
+        sat.setSemilatusRectum(self.calc.a*(1 - self.calc.e_scalar**2))
+        sat.setSpecAngMomentum(sqrt(sat.a*sat.mu*(1 - self.calc.e_scalar**2)))
         sat.updateEpoch(date=date)
 
     def deploy(self, category, deployer, dplyr_mass, dplyd_mass, name, vel, date=None):

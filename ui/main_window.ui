@@ -121,6 +121,11 @@
            </item>
            <item>
             <widget class="QPushButton" name="dpl_button">
+             <property name="font">
+              <font>
+               <family>Ubuntu</family>
+              </font>
+             </property>
              <property name="text">
               <string>Simulate deployment</string>
              </property>
