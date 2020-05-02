@@ -1,6 +1,9 @@
 # Pypredict
 
-This software is a python version of "Gpredict". It displays any satellite's position and orbital parameters in real time. It can also simulate satellite deployments with different velocities, considering the mass of the satellites. In the near future it will be able to simulate range-based localization systems using TDOA.
+[![GitHub tag](https://img.shields.io/github/tag/spel-uchile/Pypredict.svg)](https://github.com/spel-uchile/Pypredict/releases)
+[![license](https://img.shields.io/github/license/spel-uchile/Pypredict)](https://www.gnu.org/licenses/gpl-3.0.en.html)
+
+This software is a python version of "Gpredict". It displays any satellite's position and orbital parameters in real time. It can also simulate satellite deployments from one satellite to another with different velocities, considering the mass of the satellites. In the near future it will be able to simulate range-based localization systems using TDOA.
 
 Current version: 3.1.1
 
