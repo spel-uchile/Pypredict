@@ -1,7 +1,4 @@
 sudo apt-get install python3.7-dev
-#sudo apt-get install python3-pyorbital
-#sudo apt-get install python3-matplotlib
-#sudo apt-get install python3-scipy
 sudo apt-get install proj-bin
 sudo apt-get install libjs-proj4
 sudo apt-get install libproj-dev
@@ -28,6 +25,3 @@ pip3 install --upgrade pykdtree
 pip3 install --upgrade cartopy
 pip3 install --upgrade sgp4
 pip3 install --upgrade pymongo
-#sudo apt-get install libtcmalloc-minimal4
-#export LD_PRELOAD="/usr/lib/x86_64-linux-gnu/libtcmalloc_minimal.so.4.3.0"
-
