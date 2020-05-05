@@ -594,7 +594,7 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         Overrrides the default format to show only
         latitude and longitude.
         """
-        return "Lon: {:7.1f}, Lat: {:7.1f}".format(lng, lat)
+        return "Lon: {:6.1f}, Lat: {:5.1f}".format(lng, lat)
 
     def formatCursorData(self, data):
         """
