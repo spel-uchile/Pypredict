@@ -7,5 +7,5 @@ Comment=Real-time satellite tracker and orbit propagator
 Terminal=false
 Categories=Application;Science;DataVisualization;Engineering
 StartupNotify=true
-Exec=/home/mati/.local/bin/pypredict
-Icon=/home/mati/.local/lib/python3.7/site-packages/pypredict/img/favicon.png
+Exec=~/.local/bin/pypredict
+Icon=~/.local/lib/python3.7/site-packages/pypredict/img/favicon.png
