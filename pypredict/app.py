@@ -55,12 +55,11 @@ class ApplicationWindow(QtWidgets.QMainWindow):
                  "military", "molniya", "noaa", "oneweb", "planet",
                  "radar", "resource", "sarsat", "spire", "tdrss",
                  "tle_new", "weather", "x_comm", "tle_files", "map",
-                 "dpl_img", "tdoa_img", "world_map", "dpl", "cov_lat",
-                 "cov_lng", "dmin", "canvas", "saa", "date", "db",
-                 "en_db", "time_timer", "sats_timer", "canvas_timer",
-                 "bg_timer", "Dialog", "table_timer", "sats_lngs",
-                 "sats_lats", "usr_tle_file", "usr_sats", "toolbar",
-                 "img_path", "tle_path"]
+                 "dpl_img", "tdoa_img", "world_map", "dpl", "dmin",
+                 "canvas", "saa", "date", "db", "en_db", "time_timer",
+                 "sats_timer", "canvas_timer", "bg_timer", "Dialog",
+                 "table_timer", "sats_lngs", "sats_lats", "usr_sats",
+                 "usr_tle_file", "toolbar", "img_path", "tle_path"]
 
     def __init__(self, Sats):
         self.Sats = Sats
@@ -87,8 +86,6 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         self.setCustomStatusBar()
         self.setMenu()
         self.data_gen()
-        self.cov_lng = empty(360)
-        self.cov_lat = empty(360)
         self.updateTableContent()
         self.setTableConnections()
         self.showMaximized()
