@@ -371,6 +371,8 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         methods. Adds tool tips and icons.
         """
         self.ui.download_button.clicked.connect(self.updateTLEDialog)
+        self.ui.cov_button.clicked.connect(self.removeCoverage)
+        self.ui.sat_button.clicked.connect(self.addRemoveSat)
         self.ui.dpl_button.clicked.connect(self.deployPopup)
         self.ui.loc_button.clicked.connect(self.notAvailable)
         self.ui.prev_day.clicked.connect(self.previousDay)
@@ -380,6 +382,8 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         self.ui.next_day.clicked.connect(self.nextDay)
         self.ui.datetime.dateTimeChanged.connect(self.newDate)
         self.ui.download_button.setToolTip("Update TLE from network")
+        self.ui.cov_button.setToolTip("Add/remove sat's coverage")
+        self.ui.sat_button.setToolTip("Add/remove satellites")
         self.ui.dpl_button.setToolTip("Simulates the deployment\nof a satellite from another")
         self.ui.loc_button.setToolTip("Simulate localization (not implemented yet)")
         self.ui.loc_button.setIcon(QtGui.QIcon("{}locicon.png".format(self.img_path)))
@@ -574,6 +578,8 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         """
         self.toolbar = Toolbar(self.canvas, self)
         self.ui.statusbar.layout().addWidget(self.ui.download_button)
+        self.ui.statusbar.layout().addWidget(self.ui.cov_button)
+        self.ui.statusbar.layout().addWidget(self.ui.sat_button)
         self.ui.statusbar.layout().addWidget(self.ui.dpl_button)
         self.ui.statusbar.layout().addWidget(self.ui.loc_button)
         self.ui.statusbar.layout().addWidget(self.ui.prev_day)
@@ -760,6 +766,7 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         self.canvas.draw_idle()
         self.ui.actionRemove_coverage.setText("Add coverage")
         self.ui.actionRemove_coverage.triggered.connect(self.addCoverage)
+        self.ui.cov_button.clicked.connect(self.addCoverage)
 
     def addCoverage(self):
         """
@@ -775,6 +782,7 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         self.canvas.draw_idle()
         self.ui.actionRemove_coverage.setText("Remove coverage")
         self.ui.actionRemove_coverage.triggered.connect(self.removeCoverage)
+        self.ui.cov_button.clicked.connect(self.removeCoverage)
 
     def searchSat(self, text):
         """
