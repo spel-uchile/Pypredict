@@ -20,7 +20,7 @@
     You should have received a copy of the GNU General Public License
     along with this program. If not, see <https://www.gnu.org/licenses/>.
 """
-__version__ = "3.2.0"
+__version__ = "3.2.1"
 
 from cartopy.crs import Geodetic, PlateCarree, RotatedPole
 from cartopy.geodesic import Geodesic
@@ -59,7 +59,8 @@ class ApplicationWindow(QtWidgets.QMainWindow):
                  "canvas", "saa", "date", "db", "en_db", "time_timer",
                  "sats_timer", "canvas_timer", "bg_timer", "Dialog",
                  "table_timer", "sats_lngs", "sats_lats", "usr_sats",
-                 "usr_tle_file", "toolbar", "img_path", "tle_path"]
+                 "usr_tle_file", "toolbar", "img_path", "tle_path",
+                 "forward", "backward", "pause"]
 
     def __init__(self, Sats):
         self.Sats = Sats
@@ -77,6 +78,9 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         self.cov_alpha = 0.2
         self.saa = SAA()
         self.dmin = 0
+        self.forward = False
+        self.backward = False
+        self.pause = False
         self.updateTime()
         self.setButtons()
         self.world_map = Map("{}earth_nasa_day.png".format(self.img_path),
@@ -310,7 +314,8 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         satellites names, position and coverage. This method
         is executed only if the World Map tab is selected.
         """
-        if (self.ui.tabWidget.tabText(self.ui.tabWidget.currentIndex()) == "World Map"):
+        worldTab = self.ui.tabWidget.tabText(self.ui.tabWidget.currentIndex()) == "World Map"
+        if (worldTab and self.pause is False):
             for i, Sat in  enumerate(self.Sats):
                 self.sats_lngs[i] = Sat.getLng(date=self.date)
                 lng = self.sats_lngs[i] - 6*(self.sats_lngs[i] > 173) + 6*(self.sats_lngs[i] < -173)
@@ -375,17 +380,20 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         self.ui.sat_button.clicked.connect(self.addRemoveSat)
         self.ui.dpl_button.clicked.connect(self.deployPopup)
         self.ui.loc_button.clicked.connect(self.notAvailable)
-        self.ui.prev_day.clicked.connect(self.previousDay)
-        self.ui.prev_min.clicked.connect(self.previousMinute)
-        self.ui.play.clicked.connect(self.currentMinute)
-        self.ui.next_min.clicked.connect(self.nextMinute)
-        self.ui.next_day.clicked.connect(self.nextDay)
+        self.ui.backward.clicked.connect(self.speed_up_backward)
+        self.ui.play.clicked.connect(self.pause_time)
+        self.ui.stop.clicked.connect(self.stop_time)
+        self.ui.forward.clicked.connect(self.speed_up_forward)
         self.ui.datetime.dateTimeChanged.connect(self.newDate)
         self.ui.download_button.setToolTip("Update TLE from network")
         self.ui.cov_button.setToolTip("Add/remove sat's coverage")
         self.ui.sat_button.setToolTip("Add/remove satellites")
         self.ui.dpl_button.setToolTip("Simulates the deployment\nof a satellite from another")
         self.ui.loc_button.setToolTip("Simulate localization (not implemented yet)")
+        self.ui.backward.setToolTip("Fast backward")
+        self.ui.play.setToolTip("Resume or pause the time")
+        self.ui.stop.setToolTip("Back to current time")
+        self.ui.forward.setToolTip("Fast forward")
         self.ui.loc_button.setIcon(QtGui.QIcon("{}locicon.png".format(self.img_path)))
 
     def deployPopup(self):
@@ -455,44 +463,55 @@ class ApplicationWindow(QtWidgets.QMainWindow):
             self.sats_lats[i] = Sat.getLat()
         self.Dialog.close()
 
-    def previousDay(self):
+    def speed_up_backward(self):
         """
-        Substracts 1440 minutes to the delta minutes, so
-        that the program's date moves one day to the past.
+        Enables the program to speed up the time into the
+        past.
         """
-        self.dmin -= 1440
+        self.forward = False
+        self.backward = True
+        self.pause = False
         self.format_dt()
 
-    def previousMinute(self):
-        """
-        Substracts one minute to the delta minutes, so
-        that the program's date moves one minute to the past.
-        """
-        self.dmin -= 1
-        self.format_dt()
-
-    def currentMinute(self):
+    def resume_time(self):
         """
         Sets the delta minutes to zero, so that the program's
         date is the current date.
         """
+        self.forward = False
+        self.backward = False
+        self.pause = False
+        self.ui.play.setText("| |")
+        self.ui.play.clicked.connect(self.pause_time)
+        self.format_dt()
+
+    def pause_time(self):
+        "It pauses the program's time."
+        self.forward = False
+        self.backward = False
+        self.pause = True
+        self.ui.play.setText("▶️")
+        self.ui.play.clicked.connect(self.resume_time)
+        self.format_dt()
+
+    def stop_time(self):
+        "Returns the time to the present."
+        self.forward = False
+        self.backward = False
+        self.pause = False
         self.dmin = 0
+        self.ui.play.setText("| |")
+        self.ui.play.clicked.connect(self.pause_time)
         self.format_dt()
 
-    def nextMinute(self):
+    def speed_up_forward(self):
         """
-        Adds one minute to the delta minutes, so that the
-        program's date moves one minute to the future.
+        Enables the program to speed up the time into the
+        future.
         """
-        self.dmin += 1
-        self.format_dt()
-
-    def nextDay(self):
-        """
-        Substracts 1440 minutes to the delta minutes, so
-        that the program's date moves one day to the past.
-        """
-        self.dmin += 1440
+        self.forward = True
+        self.backward = False
+        self.pause = False
         self.format_dt()
 
     def format_dt(self):
@@ -519,16 +538,23 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         date = datetime
                Datetime object to set the new date.
         """
-        if (date is None):
-            self.date = datetime.utcnow() + timedelta(minutes=self.dmin)
-        else:
-            self.date = date
-        qdt = QtCore.QDateTime(self.date.year,self.date.month,self.date.day,
-                               self.date.hour,self.date.minute,
-                               self.date.second + self.date.microsecond*0.000001)
-        oldState = self.ui.datetime.blockSignals(True)
-        self.ui.datetime.setDateTime(qdt)
-        self.ui.datetime.blockSignals(oldState)
+        if (self.pause is False):
+            if (self.forward is True):
+                self.dmin += 2
+            elif (self.backward is True):
+                self.dmin -= 2
+            else:
+                pass
+            if (date is None):
+                self.date = datetime.utcnow() + timedelta(minutes=self.dmin)
+            else:
+                self.date = date
+            qdt = QtCore.QDateTime(self.date.year,self.date.month,self.date.day,
+                                   self.date.hour,self.date.minute,
+                                   self.date.second + self.date.microsecond*0.000001)
+            oldState = self.ui.datetime.blockSignals(True)
+            self.ui.datetime.setDateTime(qdt)
+            self.ui.datetime.blockSignals(oldState)
 
     def newDate(self):
         """
@@ -552,11 +578,12 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         the user enabled the database, part of the
         data is dumped into the database.
         """
-        for Sat in self.Sats:
-            Sat.updateOrbitalParameters3(self.date)
-            if (self.en_db):
-                col = self.db[Sat.name]
-                col.insert_one(self.formatDump(Sat))
+        if (self.pause is False):
+            for Sat in self.Sats:
+                Sat.updateOrbitalParameters3(self.date)
+                if (self.en_db):
+                    col = self.db[Sat.name]
+                    col.insert_one(self.formatDump(Sat))
  
     def setCanvas(self):
         """
@@ -582,11 +609,10 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         self.ui.statusbar.layout().addWidget(self.ui.sat_button)
         self.ui.statusbar.layout().addWidget(self.ui.dpl_button)
         self.ui.statusbar.layout().addWidget(self.ui.loc_button)
-        self.ui.statusbar.layout().addWidget(self.ui.prev_day)
-        self.ui.statusbar.layout().addWidget(self.ui.prev_min)
+        self.ui.statusbar.layout().addWidget(self.ui.backward)
         self.ui.statusbar.layout().addWidget(self.ui.play)
-        self.ui.statusbar.layout().addWidget(self.ui.next_min)
-        self.ui.statusbar.layout().addWidget(self.ui.next_day)
+        self.ui.statusbar.layout().addWidget(self.ui.stop)
+        self.ui.statusbar.layout().addWidget(self.ui.forward)
         self.ui.statusbar.layout().addWidget(self.ui.datetime)
         self.ui.statusbar.layout().addWidget(self.toolbar)
         self.ax.format_coord = self.formatCoordinates

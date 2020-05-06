@@ -5,7 +5,7 @@
 
 This software is a real-time satellite tracker and orbit propagator. It displays any satellite's position and orbital parameters in real time. It can also simulate satellite deployments from one satellite to another with different velocities, considering the mass of the satellites. In the near future it will be able to simulate range-based localization systems using TDOA.
 
-Current version: 3.2.0
+Current version: 3.2.1
 
 ![](pypredict/img/Screenshot.png)
 

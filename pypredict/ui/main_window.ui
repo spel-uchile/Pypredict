@@ -114,6 +114,27 @@
            </property>
            <item>
             <widget class="QToolButton" name="download_button">
+             <property name="font">
+              <font>
+               <pointsize>14</pointsize>
+              </font>
+             </property>
+             <property name="styleSheet">
+              <string notr="true">QToolButton {
+    border:none;
+	background-color: rgb(238, 238, 236);
+}
+
+QToolButton:hover {
+	border: 1px solid rgb(186, 189, 182);
+	background-color: rgb(255, 255, 255);
+}
+
+QToolButton:pressed {
+	border: 1px solid rgb(186, 189, 182);
+	background-color: rgb(211, 215, 207);
+}</string>
+             </property>
              <property name="text">
               <string>⬇</string>
              </property>
@@ -121,6 +142,27 @@
            </item>
            <item>
             <widget class="QToolButton" name="cov_button">
+             <property name="font">
+              <font>
+               <pointsize>14</pointsize>
+              </font>
+             </property>
+             <property name="styleSheet">
+              <string notr="true">QToolButton {
+    border:none;
+	background-color: rgb(238, 238, 236);
+}
+
+QToolButton:hover {
+	border: 1px solid rgb(186, 189, 182);
+	background-color: rgb(255, 255, 255);
+}
+
+QToolButton:pressed {
+	border: 1px solid rgb(186, 189, 182);
+	background-color: rgb(211, 215, 207);
+}</string>
+             </property>
              <property name="text">
               <string>⬭</string>
              </property>
@@ -128,20 +170,57 @@
            </item>
            <item>
             <widget class="QToolButton" name="sat_button">
+             <property name="font">
+              <font>
+               <pointsize>14</pointsize>
+              </font>
+             </property>
+             <property name="styleSheet">
+              <string notr="true">QToolButton {
+    border:none;
+	background-color: rgb(238, 238, 236);
+}
+
+QToolButton:hover {
+	border: 1px solid rgb(186, 189, 182);
+	background-color: rgb(255, 255, 255);
+}
+
+QToolButton:pressed {
+	border: 1px solid rgb(186, 189, 182);
+	background-color: rgb(211, 215, 207);
+}</string>
+             </property>
              <property name="text">
               <string>🛰</string>
              </property>
             </widget>
            </item>
            <item>
-            <widget class="QPushButton" name="dpl_button">
+            <widget class="QToolButton" name="dpl_button">
              <property name="font">
               <font>
-               <family>Ubuntu</family>
+               <pointsize>14</pointsize>
               </font>
              </property>
+             <property name="styleSheet">
+              <string notr="true">QToolButton {
+    border:none;
+	background-color: rgb(238, 238, 236);
+}
+
+QToolButton:hover {
+	border: 1px solid rgb(186, 189, 182);
+	background-color: rgb(255, 255, 255);
+}
+
+QToolButton:pressed {
+	border: 1px solid rgb(186, 189, 182);
+	background-color: rgb(211, 215, 207);
+}</string>
+             </property>
              <property name="text">
-              <string>Simulate deployment</string>
+              <string>🌠</string>
              </property>
             </widget>
            </item>
@@ -158,7 +237,7 @@
              </property>
              <property name="font">
               <font>
-               <pointsize>11</pointsize>
+               <pointsize>14</pointsize>
                <weight>50</weight>
                <bold>false</bold>
                <kerning>true</kerning>
@@ -170,43 +249,136 @@
              <property name="whatsThis">
               <string/>
              </property>
+             <property name="styleSheet">
+              <string notr="true">QToolButton {
+    border:none;
+	background-color: rgb(238, 238, 236);
+}
+
+QToolButton:hover {
+	border: 1px solid rgb(186, 189, 182);
+	background-color: rgb(255, 255, 255);
+}
+
+QToolButton:pressed {
+	border: 1px solid rgb(186, 189, 182);
+	background-color: rgb(211, 215, 207);
+}</string>
+             </property>
              <property name="text">
               <string>⌖</string>
              </property>
             </widget>
            </item>
            <item>
-            <widget class="QToolButton" name="prev_day">
-             <property name="text">
-              <string>|◀◀</string>
+            <widget class="QToolButton" name="backward">
+             <property name="font">
+              <font>
+               <pointsize>14</pointsize>
+              </font>
              </property>
-            </widget>
-           </item>
-           <item>
-            <widget class="QToolButton" name="prev_min">
+             <property name="styleSheet">
+              <string notr="true">QToolButton {
+    border:none;
+	background-color: rgb(238, 238, 236);
+}
+
+QToolButton:hover {
+	border: 1px solid rgb(186, 189, 182);
+	background-color: rgb(255, 255, 255);
+}
+
+QToolButton:pressed {
+	border: 1px solid rgb(186, 189, 182);
+	background-color: rgb(211, 215, 207);
+}</string>
+             </property>
              <property name="text">
-              <string>|◀</string>
+              <string>◀◀</string>
              </property>
             </widget>
            </item>
            <item>
             <widget class="QToolButton" name="play">
+             <property name="font">
+              <font>
+               <pointsize>14</pointsize>
+              </font>
+             </property>
+             <property name="styleSheet">
+              <string notr="true">QToolButton {
+    border:none;
+	background-color: rgb(238, 238, 236);
+}
+
+QToolButton:hover {
+	border: 1px solid rgb(186, 189, 182);
+	background-color: rgb(255, 255, 255);
+}
+
+QToolButton:pressed {
+	border: 1px solid rgb(186, 189, 182);
+	background-color: rgb(211, 215, 207);
+}</string>
+             </property>
              <property name="text">
-              <string>▶️</string>
+              <string>| |</string>
              </property>
             </widget>
            </item>
            <item>
-            <widget class="QToolButton" name="next_min">
+            <widget class="QToolButton" name="stop">
+             <property name="font">
+              <font>
+               <pointsize>14</pointsize>
+              </font>
+             </property>
+             <property name="styleSheet">
+              <string notr="true">QToolButton {
+    border:none;
+	background-color: rgb(238, 238, 236);
+}
+
+QToolButton:hover {
+	border: 1px solid rgb(186, 189, 182);
+	background-color: rgb(255, 255, 255);
+}
+
+QToolButton:pressed {
+	border: 1px solid rgb(186, 189, 182);
+	background-color: rgb(211, 215, 207);
+}</string>
+             </property>
              <property name="text">
-              <string>▶️|</string>
+              <string>■</string>
              </property>
             </widget>
            </item>
            <item>
-            <widget class="QToolButton" name="next_day">
+            <widget class="QToolButton" name="forward">
+             <property name="font">
+              <font>
+               <pointsize>14</pointsize>
+              </font>
+             </property>
+             <property name="styleSheet">
+              <string notr="true">QToolButton {
+    border:none;
+	background-color: rgb(238, 238, 236);
+}
+
+QToolButton:hover {
+	border: 1px solid rgb(186, 189, 182);
+	background-color: rgb(255, 255, 255);
+}
+
+QToolButton:pressed {
+	border: 1px solid rgb(186, 189, 182);
+	background-color: rgb(211, 215, 207);
+}</string>
+             </property>
              <property name="text">
-              <string>▶️▶️|</string>
+              <string>▶️▶️</string>
              </property>
             </widget>
            </item>
@@ -220,9 +392,14 @@
              </property>
              <property name="minimumSize">
               <size>
-               <width>145</width>
+               <width>155</width>
                <height>0</height>
               </size>
+             </property>
+             <property name="font">
+              <font>
+               <pointsize>12</pointsize>
+              </font>
              </property>
              <property name="displayFormat">
               <string>dd-MM-yy HH:mm:ss</string>

@@ -51,18 +51,83 @@ class Ui_MainWindow(object):
         self.horizontalLayout.setSpacing(0)
         self.horizontalLayout.setObjectName("horizontalLayout")
         self.download_button = QtWidgets.QToolButton(self.frame_plot)
+        font = QtGui.QFont()
+        font.setPointSize(14)
+        self.download_button.setFont(font)
+        self.download_button.setStyleSheet("QToolButton {\n"
+"    border:none;\n"
+"    background-color: rgb(238, 238, 236);\n"
+"}\n"
+"\n"
+"QToolButton:hover {\n"
+"    border: 1px solid rgb(186, 189, 182);\n"
+"    background-color: rgb(255, 255, 255);\n"
+"}\n"
+"\n"
+"QToolButton:pressed {\n"
+"    border: 1px solid rgb(186, 189, 182);\n"
+"    background-color: rgb(211, 215, 207);\n"
+"}")
         self.download_button.setObjectName("download_button")
         self.horizontalLayout.addWidget(self.download_button)
         self.cov_button = QtWidgets.QToolButton(self.frame_plot)
+        font = QtGui.QFont()
+        font.setPointSize(14)
+        self.cov_button.setFont(font)
+        self.cov_button.setStyleSheet("QToolButton {\n"
+"    border:none;\n"
+"    background-color: rgb(238, 238, 236);\n"
+"}\n"
+"\n"
+"QToolButton:hover {\n"
+"    border: 1px solid rgb(186, 189, 182);\n"
+"    background-color: rgb(255, 255, 255);\n"
+"}\n"
+"\n"
+"QToolButton:pressed {\n"
+"    border: 1px solid rgb(186, 189, 182);\n"
+"    background-color: rgb(211, 215, 207);\n"
+"}")
         self.cov_button.setObjectName("cov_button")
         self.horizontalLayout.addWidget(self.cov_button)
         self.sat_button = QtWidgets.QToolButton(self.frame_plot)
+        font = QtGui.QFont()
+        font.setPointSize(14)
+        self.sat_button.setFont(font)
+        self.sat_button.setStyleSheet("QToolButton {\n"
+"    border:none;\n"
+"    background-color: rgb(238, 238, 236);\n"
+"}\n"
+"\n"
+"QToolButton:hover {\n"
+"    border: 1px solid rgb(186, 189, 182);\n"
+"    background-color: rgb(255, 255, 255);\n"
+"}\n"
+"\n"
+"QToolButton:pressed {\n"
+"    border: 1px solid rgb(186, 189, 182);\n"
+"    background-color: rgb(211, 215, 207);\n"
+"}")
         self.sat_button.setObjectName("sat_button")
         self.horizontalLayout.addWidget(self.sat_button)
-        self.dpl_button = QtWidgets.QPushButton(self.frame_plot)
+        self.dpl_button = QtWidgets.QToolButton(self.frame_plot)
         font = QtGui.QFont()
-        font.setFamily("Ubuntu")
+        font.setPointSize(14)
         self.dpl_button.setFont(font)
+        self.dpl_button.setStyleSheet("QToolButton {\n"
+"    border:none;\n"
+"    background-color: rgb(238, 238, 236);\n"
+"}\n"
+"\n"
+"QToolButton:hover {\n"
+"    border: 1px solid rgb(186, 189, 182);\n"
+"    background-color: rgb(255, 255, 255);\n"
+"}\n"
+"\n"
+"QToolButton:pressed {\n"
+"    border: 1px solid rgb(186, 189, 182);\n"
+"    background-color: rgb(211, 215, 207);\n"
+"}")
         self.dpl_button.setObjectName("dpl_button")
         self.horizontalLayout.addWidget(self.dpl_button)
         self.loc_button = QtWidgets.QToolButton(self.frame_plot)
@@ -73,37 +138,119 @@ class Ui_MainWindow(object):
         sizePolicy.setHeightForWidth(self.loc_button.sizePolicy().hasHeightForWidth())
         self.loc_button.setSizePolicy(sizePolicy)
         font = QtGui.QFont()
-        font.setPointSize(11)
+        font.setPointSize(14)
         font.setBold(False)
         font.setWeight(50)
         font.setKerning(True)
         self.loc_button.setFont(font)
         self.loc_button.setToolTip("")
         self.loc_button.setWhatsThis("")
+        self.loc_button.setStyleSheet("QToolButton {\n"
+"    border:none;\n"
+"    background-color: rgb(238, 238, 236);\n"
+"}\n"
+"\n"
+"QToolButton:hover {\n"
+"    border: 1px solid rgb(186, 189, 182);\n"
+"    background-color: rgb(255, 255, 255);\n"
+"}\n"
+"\n"
+"QToolButton:pressed {\n"
+"    border: 1px solid rgb(186, 189, 182);\n"
+"    background-color: rgb(211, 215, 207);\n"
+"}")
         self.loc_button.setObjectName("loc_button")
         self.horizontalLayout.addWidget(self.loc_button)
-        self.prev_day = QtWidgets.QToolButton(self.frame_plot)
-        self.prev_day.setObjectName("prev_day")
-        self.horizontalLayout.addWidget(self.prev_day)
-        self.prev_min = QtWidgets.QToolButton(self.frame_plot)
-        self.prev_min.setObjectName("prev_min")
-        self.horizontalLayout.addWidget(self.prev_min)
+        self.backward = QtWidgets.QToolButton(self.frame_plot)
+        font = QtGui.QFont()
+        font.setPointSize(14)
+        self.backward.setFont(font)
+        self.backward.setStyleSheet("QToolButton {\n"
+"    border:none;\n"
+"    background-color: rgb(238, 238, 236);\n"
+"}\n"
+"\n"
+"QToolButton:hover {\n"
+"    border: 1px solid rgb(186, 189, 182);\n"
+"    background-color: rgb(255, 255, 255);\n"
+"}\n"
+"\n"
+"QToolButton:pressed {\n"
+"    border: 1px solid rgb(186, 189, 182);\n"
+"    background-color: rgb(211, 215, 207);\n"
+"}")
+        self.backward.setObjectName("backward")
+        self.horizontalLayout.addWidget(self.backward)
         self.play = QtWidgets.QToolButton(self.frame_plot)
+        font = QtGui.QFont()
+        font.setPointSize(14)
+        self.play.setFont(font)
+        self.play.setStyleSheet("QToolButton {\n"
+"    border:none;\n"
+"    background-color: rgb(238, 238, 236);\n"
+"}\n"
+"\n"
+"QToolButton:hover {\n"
+"    border: 1px solid rgb(186, 189, 182);\n"
+"    background-color: rgb(255, 255, 255);\n"
+"}\n"
+"\n"
+"QToolButton:pressed {\n"
+"    border: 1px solid rgb(186, 189, 182);\n"
+"    background-color: rgb(211, 215, 207);\n"
+"}")
         self.play.setObjectName("play")
         self.horizontalLayout.addWidget(self.play)
-        self.next_min = QtWidgets.QToolButton(self.frame_plot)
-        self.next_min.setObjectName("next_min")
-        self.horizontalLayout.addWidget(self.next_min)
-        self.next_day = QtWidgets.QToolButton(self.frame_plot)
-        self.next_day.setObjectName("next_day")
-        self.horizontalLayout.addWidget(self.next_day)
+        self.stop = QtWidgets.QToolButton(self.frame_plot)
+        font = QtGui.QFont()
+        font.setPointSize(14)
+        self.stop.setFont(font)
+        self.stop.setStyleSheet("QToolButton {\n"
+"    border:none;\n"
+"    background-color: rgb(238, 238, 236);\n"
+"}\n"
+"\n"
+"QToolButton:hover {\n"
+"    border: 1px solid rgb(186, 189, 182);\n"
+"    background-color: rgb(255, 255, 255);\n"
+"}\n"
+"\n"
+"QToolButton:pressed {\n"
+"    border: 1px solid rgb(186, 189, 182);\n"
+"    background-color: rgb(211, 215, 207);\n"
+"}")
+        self.stop.setObjectName("stop")
+        self.horizontalLayout.addWidget(self.stop)
+        self.forward = QtWidgets.QToolButton(self.frame_plot)
+        font = QtGui.QFont()
+        font.setPointSize(14)
+        self.forward.setFont(font)
+        self.forward.setStyleSheet("QToolButton {\n"
+"    border:none;\n"
+"    background-color: rgb(238, 238, 236);\n"
+"}\n"
+"\n"
+"QToolButton:hover {\n"
+"    border: 1px solid rgb(186, 189, 182);\n"
+"    background-color: rgb(255, 255, 255);\n"
+"}\n"
+"\n"
+"QToolButton:pressed {\n"
+"    border: 1px solid rgb(186, 189, 182);\n"
+"    background-color: rgb(211, 215, 207);\n"
+"}")
+        self.forward.setObjectName("forward")
+        self.horizontalLayout.addWidget(self.forward)
         self.datetime = QtWidgets.QDateTimeEdit(self.frame_plot)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Fixed)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.datetime.sizePolicy().hasHeightForWidth())
         self.datetime.setSizePolicy(sizePolicy)
-        self.datetime.setMinimumSize(QtCore.QSize(145, 0))
+        self.datetime.setMinimumSize(QtCore.QSize(155, 0))
+        font = QtGui.QFont()
+        font.setPointSize(12)
+        self.datetime.setFont(font)
         self.datetime.setObjectName("datetime")
         self.horizontalLayout.addWidget(self.datetime)
         self.verticalLayout_4.addWidget(self.frame_plot)
@@ -231,13 +378,12 @@ class Ui_MainWindow(object):
         self.download_button.setText(_translate("MainWindow", "⬇"))
         self.cov_button.setText(_translate("MainWindow", "⬭"))
         self.sat_button.setText(_translate("MainWindow", "🛰"))
-        self.dpl_button.setText(_translate("MainWindow", "Simulate deployment"))
+        self.dpl_button.setText(_translate("MainWindow", "🌠"))
         self.loc_button.setText(_translate("MainWindow", "⌖"))
-        self.prev_day.setText(_translate("MainWindow", "|◀◀"))
-        self.prev_min.setText(_translate("MainWindow", "|◀"))
-        self.play.setText(_translate("MainWindow", "▶️"))
-        self.next_min.setText(_translate("MainWindow", "▶️|"))
-        self.next_day.setText(_translate("MainWindow", "▶️▶️|"))
+        self.backward.setText(_translate("MainWindow", "◀◀"))
+        self.play.setText(_translate("MainWindow", "| |"))
+        self.stop.setText(_translate("MainWindow", "■"))
+        self.forward.setText(_translate("MainWindow", "▶️▶️"))
         self.datetime.setDisplayFormat(_translate("MainWindow", "dd-MM-yy HH:mm:ss"))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab), _translate("MainWindow", "World Map"))
         self.Table.setSortingEnabled(True)
