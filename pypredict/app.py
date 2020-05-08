@@ -277,7 +277,7 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         self.ax_saa, = self.ax.fill([0,0], [0,0], color='green',
                                           alpha=self.saa_alpha)
         self.ax_tray, = self.ax.plot([], [], color='green',
-                                     linewidth=1.5, linestyle='--',
+                                     linewidth=1.4, linestyle='-',
                                      transform=Geodetic())
         self.ax_sat, = self.ax.plot([], [], 'yo', ms=6)
         self.sats_lngs = []
