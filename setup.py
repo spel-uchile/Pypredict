@@ -176,7 +176,6 @@ setup(
                       'geos>=0.2.2',
                       'shapely>=1.5.6',
                       'pyshp>=1.1.4',
-                      'six>=1.14',
                       'Pillow>=7.1.1',
                       'Fiona>=1.8.13.post1',
                       'pykdtree>=1.3.1',
