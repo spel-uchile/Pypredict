@@ -16,9 +16,9 @@ The following are some of the key features of Pypredict:
 * The satellites' coverage can be added or removed.
 * It can show the South Atlantic Anomaly (SAA).
 * The time and date can be changed, speed up forward, backwards and paused.
-* Simulates deployments of one satellite from another and changes their TLEs according to the mass and the velocity.
+* Simulates deployments of one satellite from another and changes their TLEs according to their mass and the deployment speed velocity.
 * Displays the names, categories, position and orbital parameters in a table.
-* [Day](https://visibleearth.nasa.gov/images/73751/july-blue-marble-next-generation-w-topography-and-bathymetry) and [night](https://visibleearth.nasa.gov/images/144898/earth-at-night-black-marble-2016-color-maps) backround images from NASA
+* [Day](https://visibleearth.nasa.gov/images/73751/july-blue-marble-next-generation-w-topography-and-bathymetry) and [night](https://visibleearth.nasa.gov/images/144898/earth-at-night-black-marble-2016-color-maps) background images from [NASA](https://www.nasa.gov/).
 
 Current version: 3.2.1
 
@@ -46,7 +46,9 @@ The following are the current dependencies:
 ## Supported software
 
 * [Python 3.6 or later](https://www.python.org/downloads/)
-* [Ubuntu 19.10](https://ubuntu.com/download/desktop) or later, [Zorin OS Lite 15.2](https://zorinos.com/download/) or later or [Raspbian Buster](https://www.raspberrypi.org/downloads/raspbian/) or later.
+* [Ubuntu 19.10](https://ubuntu.com/download/desktop) or later
+* [Zorin OS Lite 15.2](https://zorinos.com/download/) or later
+* [Raspbian Buster](https://www.raspberrypi.org/downloads/raspbian/) or later.
 
 ## Installation
 
@@ -58,7 +60,7 @@ sudo apt-get install python3-cairocffi
 sudo apt-get install libatlas-base-dev
 ```
 
-After this, the rest is the same.
+After this, the rest is the same for all GNU/linux based systems.
 
 1. Install dependencies:
 ```bash
