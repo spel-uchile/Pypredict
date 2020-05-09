@@ -20,18 +20,16 @@
     You should have received a copy of the GNU General Public License
     along with this program. If not, see <https://www.gnu.org/licenses/>.
 """
-from cartopy.crs import Geodetic, PlateCarree, RotatedPole
-from PIL import Image, ImageDraw
+from cartopy.crs import PlateCarree, RotatedPole
 from datetime import datetime
-from numpy import arange, arcsin, arctan2, argmax, argmin, cos, empty, log, pi, sin, tan
-from warnings import filterwarnings
-
-filterwarnings("ignore", category=RuntimeWarning)
+from numpy import arange, argmax, argmin, cos, empty, pi
+from PIL import Image, ImageDraw
 
 class Map(object):
     __slots__ = ["day", "night", "lat", "lng", "xy",
                  "sun_lat", "sun_lng", "dark_lat",
-                 "dark_lng", "x", "y"]
+                 "dark_lng", "x", "y", "day_img", "night_img"]
+
     def __init__(self, day, night):
         """
         Initialize Map class. This class creates a composite
@@ -40,14 +38,16 @@ class Map(object):
 
         Parameters
         ----------
-        day : string
-              Path to the picture in png of the world at day
+        day   : string
+                Path to the picture in png of the world at day
         night : string
                 Path to the picture in png of the world at
                 night
         """
         self.day = day
         self.night = night
+        self.day_img = Image.open(self.day).convert('RGBA')
+        self.night_img = Image.open(self.night).convert('RGBA')
         self.lat = empty(360)
         self.lng = empty(360)
         self.x = empty(360)
@@ -164,19 +164,13 @@ class Map(object):
         self.xy = sorted(self.xy, key=lambda x: x[0])
         self.xy.append((2200, 0))
         self.xy.append((0, 0))
-        img1 = Image.open(self.day).convert('RGBA')
-        #drw1 = ImageDraw.Draw(img1, 'RGBA')
-        #drw1.polygon(self.xy, fill=(255, 255, 255, 0))
-        #del drw1
         if (self.dark_lat > 0):
             self.xy[len(self.xy) - 1] = (0, 1100)
             self.xy[len(self.xy) - 2] = (2200, 1100)
-        img2 = Image.open(self.night).convert('RGBA')
-        drw2 = ImageDraw.Draw(img2, 'RGBA')
+        temp_night = self.night_img.copy()
+        drw2 = ImageDraw.Draw(temp_night, 'RGBA')
         drw2.polygon(self.xy, fill=(255, 255, 255, 0))
         del drw2
-
-        composite = Image.alpha_composite(img1, img2)
-        img1.close()
-        img2.close()
+        composite = Image.alpha_composite(self.day_img, temp_night)
+        temp_night.close()
         return composite
