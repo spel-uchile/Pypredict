@@ -20,7 +20,7 @@
     You should have received a copy of the GNU General Public License
     along with this program. If not, see <https://www.gnu.org/licenses/>.
 """
-__version__ = "3.2.1"
+__version__ = "3.3.0"
 
 from cartopy.crs import Geodetic, PlateCarree, RotatedPole
 from cartopy.geodesic import Geodesic
@@ -541,10 +541,10 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         if (self.pause is False):
             if (self.forward is True):
                 self.dmin += 2
-            elif (self.backward is True):
+                self.refreshBackgroundImg()
+            if (self.backward is True):
                 self.dmin -= 2
-            else:
-                pass
+                self.refreshBackgroundImg()
             if (date is None):
                 self.date = datetime.utcnow() + timedelta(minutes=self.dmin)
             else:
