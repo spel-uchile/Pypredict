@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file 'about_window.ui'
+# Form implementation generated from reading ui file 'about_dialog.ui'
 #
 # Created by: PyQt5 UI code generator 5.14.2
 #
@@ -42,7 +42,7 @@ class Ui_About(object):
     def retranslateUi(self, About):
         _translate = QtCore.QCoreApplication.translate
         About.setWindowTitle(_translate("About", "Dialog"))
-        self.version.setText(_translate("About", "Pypredict 2.2.0"))
+        self.version.setText(_translate("About", "Pypredict 3.3.0"))
         self.textEdit.setHtml(_translate("About", "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n"
 "<html><head><meta name=\"qrichtext\" content=\"1\" /><style type=\"text/css\">\n"
 "p, li { white-space: pre-wrap; }\n"

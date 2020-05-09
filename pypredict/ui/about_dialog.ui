@@ -39,7 +39,7 @@
       </font>
      </property>
      <property name="text">
-      <string>Pypredict 2.2.0</string>
+      <string>Pypredict 3.3.0</string>
      </property>
      <property name="alignment">
       <set>Qt::AlignCenter</set>
