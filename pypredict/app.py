@@ -566,7 +566,7 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         time_diff = (date - self.date).total_seconds()/60.0
         self.dmin += time_diff
         self.date = date
-        if (time_diff >= 1):
+        if (abs(time_diff) >= 1):
             self.refreshBackgroundImg()
 
     def updateSatellites(self):
