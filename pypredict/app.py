@@ -22,12 +22,12 @@
 """
 __version__ = "3.3.0"
 
-from cartopy.crs import Geodetic, PlateCarree, RotatedPole
+from cartopy.crs import Geodetic, PlateCarree
 from cartopy.geodesic import Geodesic
 from datetime import datetime, timedelta
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
 from matplotlib.pyplot import imread, figure
-from numpy import abs, array, cos, empty, log, pi, sin, tan
+from numpy import abs, asarray, cos, pi
 from pkg_resources import resource_filename
 from PyQt5 import QtWidgets, QtGui, QtCore
 from pymongo import MongoClient
@@ -42,7 +42,6 @@ from pypredict.ui.about_dialog import Ui_About
 from pypredict.ui.dpl_dialog import Ui_DPL
 from pypredict.ui.updateTLE_dialog import Ui_updateTLE
 from pypredict.ui.addRemove_dialog import Ui_addRemove
-from shapely.geometry import Polygon
 
 class ApplicationWindow(QtWidgets.QMainWindow):
 
@@ -236,37 +235,37 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         self.ax.plot([-180, 180], [-60, -60], color=gcolor, alpha=galpha,
                      linewidth=1, linestyle='-', transform=PlateCarree())
         self.ax.text(-150, 88, "150°W", color=tcolor, size=tsize,
-                     transform=Geodetic(), ha="center")
+                     transform=PlateCarree(), ha="center")
         self.ax.text(-120, 88, "120°W", color=tcolor, size=tsize,
-                     transform=Geodetic(), ha="center")
+                     transform=PlateCarree(), ha="center")
         self.ax.text(-90, 88, "90°W", color=tcolor, size=tsize,
-                     transform=Geodetic(), ha="center")
+                     transform=PlateCarree(), ha="center")
         self.ax.text(-60, 88, "60°W", color=tcolor, size=tsize,
-                     transform=Geodetic(), ha="center")
+                     transform=PlateCarree(), ha="center")
         self.ax.text(-30, 88, "30°W", color=tcolor, size=tsize,
-                     transform=Geodetic(), ha="center")
+                     transform=PlateCarree(), ha="center")
         self.ax.text(0, 88, "0°", color=tcolor, size=tsize,
-                     transform=Geodetic(), ha="center")
+                     transform=PlateCarree(), ha="center")
         self.ax.text(30, 88, "30°E", color=tcolor, size=tsize,
-                     transform=Geodetic(), ha="center")
+                     transform=PlateCarree(), ha="center")
         self.ax.text(60, 88, "60°E", color=tcolor, size=tsize,
-                     transform=Geodetic(), ha="center")
+                     transform=PlateCarree(), ha="center")
         self.ax.text(90, 88, "90°E", color=tcolor, size=tsize,
-                     transform=Geodetic(), ha="center")
+                     transform=PlateCarree(), ha="center")
         self.ax.text(120, 88, "120°E", color=tcolor, size=tsize,
-                     transform=Geodetic(), ha="center")
+                     transform=PlateCarree(), ha="center")
         self.ax.text(150, 88, "150°E", color=tcolor, size=tsize,
-                     transform=Geodetic(), ha="center")
+                     transform=PlateCarree(), ha="center")
         self.ax.text(-179.5, 60, "60°N", color=tcolor, size=tsize,
-                     transform=Geodetic(), va="center")
+                     transform=PlateCarree(), va="center")
         self.ax.text(-179.5, 30, "30°N", color=tcolor, size=tsize,
-                     transform=Geodetic(), va="center")
+                     transform=PlateCarree(), va="center")
         self.ax.text(-178, 0, "0°", color=tcolor, size=tsize,
-                     transform=Geodetic(), va="center")
+                     transform=PlateCarree(), va="center")
         self.ax.text(-179.5, -30, "30°S", color=tcolor, size=tsize,
-                     transform=Geodetic(), va="center")
+                     transform=PlateCarree(), va="center")
         self.ax.text(-179.5, -60, "60°S", color=tcolor, size=tsize,
-                     transform=Geodetic(), va="center")
+                     transform=PlateCarree(), va="center")
 
     def data_gen(self):
         """
@@ -348,8 +347,7 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         radius = ang*p_radius*0.017453292519943295 # Angle in rads (pi/180)
         circle_points = Geodesic().circle(lon=sat_lng, lat=sat_lat, radius=radius,
                                           n_samples=200, endpoint=False)
-        geom = Polygon(circle_points)
-        self.ax_cov[n].set_xy(array(geom.exterior.coords.xy).transpose())
+        self.ax_cov[n].set_xy(asarray(circle_points))
 
     def changeMainSat(self, row):
         """

@@ -21,7 +21,7 @@
     along with this program. If not, see <https://www.gnu.org/licenses/>.
 """
 from datetime import datetime, timedelta
-from numpy import abs, arange, arccos, arcsin, arctan, arctan2, array, cos, matrix, pi, sin, sqrt, tan
+from numpy import abs, arccos, arcsin, arctan, arctan2, array, cos, matrix, pi, sin, sqrt, tan
 from pyorbital import tlefile
 from pypredict.node import Node
 from sgp4.earth_gravity import wgs72
@@ -393,19 +393,19 @@ class Sat(Node):
         Calculates the day, month and year from the TLE's epoch data and
         returns the result.
         """
-        Y = int(self.epoch_year) + 2000                                             # Year
+        year = int(self.epoch_year) + 2000
         ep_day = self.epoch_day
-        if (Y % 4 == 0):
-            if (Y % 100 == 0):
-                if (Y % 400 == 0):
-                    D, Month = self.leapYearDM(ep_day)
+        if (year % 4 == 0):
+            if (year % 100 == 0):
+                if (year % 400 == 0):
+                    day, month = self.leapYearDM(ep_day)
                 else:
-                    D, Month = self.notLeapYearDM(ep_day)
+                    day, month = self.notLeapYearDM(ep_day)
             else:
-                D, Month = self.leapYearDM(ep_day)
+                day, month = self.leapYearDM(ep_day)
         else:
-            D, Month = self.notLeapYearDM(ep_day)
-        return D, Month, Y
+            day, month = self.notLeapYearDM(ep_day)
+        return day, month, year
 
     def leapYearDM(self, ep_day):
         """
@@ -417,14 +417,18 @@ class Sat(Node):
         ep_day : float
                  Satellite's epoch day from TLE.
         """
-        Month = 1 + (ep_day > 31) + (ep_day > 60) + (ep_day > 91) + (ep_day > 121)
-        Month = Month + (ep_day > 152) + (ep_day > 182) + (ep_day > 213) + (ep_day > 244)
-        Month = Month + (ep_day > 274) + (ep_day > 305) + (ep_day > 335)            # Month
+        month = 1 + (ep_day > 31) + (ep_day > 60) + (ep_day > 91)
+        month += (ep_day > 121) + (ep_day > 152) + (ep_day > 182)
+        month += (ep_day > 213) + (ep_day > 244) + (ep_day > 274)
+        month += (ep_day > 305) + (ep_day > 335)
 
-        D = ep_day - (ep_day > 31)*31 - (ep_day > 59)*29 - (ep_day > 90)*31 - (ep_day > 120)*30
-        D = D - (ep_day > 151)*31 - (ep_day > 181)*30 - (ep_day > 212)*31 - (ep_day > 243)*31
-        D = D - (ep_day > 273)*30 - (ep_day > 304)*31 - (ep_day > 334)*30           # Day
-        return D, Month
+        day = ep_day - (ep_day > 31)*31 - (ep_day > 59)*29
+        day = day - (ep_day > 90)*31 - (ep_day > 120)*30
+        day = day - (ep_day > 151)*31 - (ep_day > 181)*30
+        day = day - (ep_day > 212)*31 - (ep_day > 243)*31
+        day = day - (ep_day > 273)*30 - (ep_day > 304)*31
+        day = day - (ep_day > 334)*30
+        return day, month
 
     def notLeapYearDM(self, ep_day):
         """
@@ -436,14 +440,18 @@ class Sat(Node):
         ep_day : float
                  Satellite's epoch day from TLE.
         """
-        Month = 1 + (ep_day > 31) + (ep_day > 59) + (ep_day > 90) + (ep_day > 120)
-        Month = Month + (ep_day > 151) + (ep_day > 181) + (ep_day > 212) + (ep_day > 243)
-        Month = Month + (ep_day > 273) + (ep_day > 304) + (ep_day > 334)            # Month
+        month = 1 + (ep_day > 31) + (ep_day > 59) + (ep_day > 90)
+        month += (ep_day > 120) + (ep_day > 151) + (ep_day > 181)
+        month += (ep_day > 212) + (ep_day > 243) + (ep_day > 273)
+        month += (ep_day > 304) + (ep_day > 334)
 
-        D = ep_day - (ep_day > 31)*31 - (ep_day > 59)*28 - (ep_day > 90)*31 - (ep_day > 120)*30
-        D = D - (ep_day > 151)*31 - (ep_day > 181)*30 - (ep_day > 212)*31 - (ep_day > 243)*31
-        D = D - (ep_day > 273)*30 - (ep_day > 304)*31 - (ep_day > 334)*30           # Day
-        return D, Month
+        day = ep_day - (ep_day > 31)*31 - (ep_day > 59)*28
+        day = day- (ep_day > 90)*31 - (ep_day > 120)*30
+        day = day - (ep_day > 151)*31 - (ep_day > 181)*30
+        day = day - (ep_day > 212)*31 - (ep_day > 243)*31
+        day = day - (ep_day > 273)*30 - (ep_day > 304)*31
+        day = day - (ep_day > 334)*30
+        return day, month
 
     def getGST(self, D, M, Y):
         """
@@ -458,7 +466,7 @@ class Sat(Node):
         Y : int
             Current year
         """
-        JD = 367*Y - int(7/4*(Y + int((M + 9)/12))) + int(275*M/9) + D + 1721013.5  # Julian day
+        JD = 367*Y - int(7/4*(Y + int((M + 9)/12))) + int(275*M/9) + D + 1721013.5 # Julian day
         T0 = (JD - 2451545)/36525
         GST0 = (100.4606184 + 36000.77004*T0 + 0.000387933*T0**2 - 2.583*10**(-8)*T0**3)*pi/180
         return GST0
@@ -591,65 +599,6 @@ class Sat(Node):
         daysdiff = days - int(self.epoch_day)         # Difference between TLE date and current date in days
         return tnow + daysdiff*dayinsec               # Time in seconds from TLE to present time
 
-    def getLocation(self, T, dt, dmin=0):
-        """
-        Returns the trayectory of the satellite from
-        tnow with a dmin minutes gap, to the next T
-        periods with a step of dt seconds.
-
-        Parameters
-        ----------
-        T    : int
-               Period of time in seconds to be
-               calculated
-        dt   : int
-               Time step in seconds
-        dmin : int
-               Number of minutes of gap from tnow
-        """
-        tnow = self.getTnow() + dmin*60
-        self.tray_lat[:] = []
-        self.tray_lng[:] = []
-        rad2deg = 180/pi                             # Radian to degrees
-        twopi = 2*pi                                 # Two times pi
-        aux = self.n*(self.P_r**2/self.p**2)*self.J2 # Calculate only one time
-        cos_incl = cos(self.incl)
-        sin_incl = sin(self.incl)
-        for t in range(tnow, T + tnow, dt):
-            RAAN = self.RAAN0 - 1.5*aux*cos_incl*(t - self.t0)
-            w = self.w0 + 0.75*aux*(5*cos_incl**2 - 1)*(t - self.t0)
-            MA = self.MA0 + (self.n + 0.75*aux*(sqrt(1 - self.e**2))*(2 - 3*sin_incl**2))*(t - self.t0)
-            E = self.M2E(MA)
-            theta = self.E2theta(E)
-
-            cos_RAAN = cos(RAAN)
-            sin_RAAN = sin(RAAN)
-            cos_w = cos(w)
-            sin_w = sin(w)
-            cos_theta = cos(theta)
-            sin_theta = sin(theta)
-
-            self.Rot_Mat[0,0] = cos_RAAN*cos_w - sin_RAAN*cos_incl*sin_w
-            self.Rot_Mat[0,1] = -sin_RAAN*cos_incl*cos_w - cos_RAAN*sin_w
-            self.Rot_Mat[1,0] = cos_RAAN*cos_incl*sin_w + sin_RAAN*cos_w
-            self.Rot_Mat[1,1] = cos_RAAN*cos_incl*cos_w - sin_RAAN*sin_w
-            self.Rot_Mat[2,0] = sin_incl*sin_w
-            self.Rot_Mat[2,1] = sin_incl*cos_w
-            r0 = self.p/(1 + self.e*cos_theta)
-            self.r_vect0[0,0] = r0*cos_theta
-            self.r_vect0[1,0] = r0*sin_theta
-            r_vectf = self.Rot_Mat*self.r_vect0
-            r_s = sqrt(r_vectf.item(0)**2 + r_vectf.item(1)**2 + r_vectf.item(2)**2)
-            
-            #decl_s = arcsin(r_vectf.item(2)/r_s)
-            self.tray_lat.append(arcsin(r_vectf.item(2)/r_s)*rad2deg)
-            RAAN_s = arctan2(r_vectf.item(1),r_vectf.item(0))
-            #lat = arctan(self.Er_Pr2*tan(decl_s)) % pi
-            lng = (RAAN_s - self.GST0 - self.P_w*t)  % twopi
-            #self.tray_lat.append(((lat > pi/2)*(lat - pi) + (lat <= pi/2)*lat)*rad2deg)
-            self.tray_lng.append(((lng > pi)*(lng - twopi) + (lng <= pi)*lng)*rad2deg)
-        return self.tray_lat, self.tray_lng
-
     def getTrayectory(self, T, dt, date=None):
         """
         Calculates the future trayectory of the satellite
@@ -744,9 +693,6 @@ class Sat(Node):
         cos_theta = cos(self.theta)
         sin_theta = sin(self.theta)
 
-        #Rot_Mat = matrix((((cos_RAAN*cos_w - sin_RAAN*cos_incl*sin_w), (-sin_RAAN*cos_incl*cos_w - cos_RAAN*sin_w), (sin_RAAN*sin_incl)),
-        #                  ((cos_RAAN*cos_incl*sin_w + sin_RAAN*cos_w), (cos_RAAN*cos_incl*cos_w - sin_RAAN*sin_w), (-cos_RAAN*sin_incl)),
-        #                  ((sin_incl*sin_w), (sin_incl*cos_w), (cos_incl))))
         self.Rot_Mat[0,0] = cos_RAAN*cos_w - sin_RAAN*cos_incl*sin_w
         self.Rot_Mat[0,1] = -sin_RAAN*cos_incl*cos_w - cos_RAAN*sin_w
         self.Rot_Mat[1,0] = cos_RAAN*cos_incl*sin_w + sin_RAAN*cos_w
