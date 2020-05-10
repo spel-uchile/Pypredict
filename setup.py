@@ -27,7 +27,7 @@ def write_desktop_file():
         f.write('[Desktop Entry]\n')
         f.write('Type=Application\n')
         f.write('Name=Pypredict\n')
-        f.write('Version=3.2.0\n')
+        f.write('Version=3.3.0\n')
         f.write('GenericName=Orbit propagator\n')
         f.write('Comment={}\n'.format(description))
         f.write('Terminal=false\n')
