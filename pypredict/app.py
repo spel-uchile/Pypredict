@@ -26,8 +26,9 @@ from cartopy.crs import Geodetic, PlateCarree
 from cartopy.geodesic import Geodesic
 from datetime import datetime, timedelta
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
+from matplotlib.patches import Polygon
 from matplotlib.pyplot import imread, figure
-from numpy import abs, asarray, cos, pi
+from numpy import abs, asarray, cos, ndarray, pi
 from pkg_resources import resource_filename
 from PyQt5 import QtWidgets, QtGui, QtCore
 from pymongo import MongoClient
@@ -67,15 +68,9 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         super(ApplicationWindow, self).__init__()
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
-        client = MongoClient("localhost", 27017)
-        self.db = client["SatConstellation"]
-        self.en_db = False
         self.img_path = resource_filename("pypredict","img/")
         self.setWindowIcon(QtGui.QIcon("{}favicon.png".format(self.img_path)))
         self.setWindowTitle('Pypredict')
-        self.saa_alpha = 0
-        self.cov_alpha = 0.2
-        self.saa = SAA()
         self.dmin = 0
         self.forward = False
         self.backward = False
@@ -88,6 +83,9 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         self.setCanvas()
         self.setCustomStatusBar()
         self.setMenu()
+        client = MongoClient("localhost", 27017)
+        self.db = client["SatConstellation"]
+        self.en_db = False
         self.data_gen()
         self.updateTableContent()
         self.setTableConnections()
@@ -164,8 +162,10 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         """
         Plot a fill on the south atlantic anomaly (3 sigma).
         """
-        self.ax_saa.set_xy(self.saa.vertices)
-        self.ax_saa.set_alpha(self.saa_alpha)
+        self.saa = SAA()
+        self.saa_alpha = 0
+        self.ax_saa, = self.ax.fill(self.saa.lng, self.saa.lat,
+                                    color='g', alpha=self.saa_alpha)
 
     def plotData(self):
         """
@@ -273,8 +273,6 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         satellites, their coverage, their names and their trajectories.
         It also sets the south atlantic anomaly (SAA) data.
         """
-        self.ax_saa, = self.ax.fill([0,0], [0,0], color='green',
-                                          alpha=self.saa_alpha)
         self.ax_tray, = self.ax.plot([], [], color='green',
                                      linewidth=1.4, linestyle='-',
                                      transform=Geodetic())
@@ -297,11 +295,14 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         """
         self.ax_cov = []
         self.sat_txt = []
+        self.cov_alpha = 0.2
+        xy = ndarray(shape=(200,2), dtype=float)
         for i, Sat in enumerate(self.Sats):
-            self.ax_cov.append(self.ax.fill([0,0], [0,0], transform=Geodetic(),
-                               color='white', alpha=self.cov_alpha)[0])
+            self.ax_cov.append(self.ax.add_patch(Polygon(xy, color='w',
+                                                         transform=Geodetic(),
+                                                         alpha=self.cov_alpha)))
             self.sat_txt.append(self.ax.text(Sat.getLng(date=self.date),
-                                             Sat.getLat(), Sat.name, color="yellow",
+                                             Sat.getLat(), Sat.name, c="yellow",
                                              size=7, transform=Geodetic(),
                                              ha="center", va="center"))
             self.sats_lngs.append(Sat.getLng(date=self.date))
@@ -322,32 +323,12 @@ class ApplicationWindow(QtWidgets.QMainWindow):
                 lat = self.sats_lats[i] - 2.5 + 5*(self.sats_lats[i] < -85)
                 self.sat_txt[i].set_position((lng, lat))
                 if (self.cov_alpha > 0):
-                    self.plotCoverage(Sat.getCoverage(), Sat.getPlanetRadius(),
-                                      self.sats_lats[i], self.sats_lngs[i], i)
+                    radius = Sat.getCoverage()*Sat.getPlanetRadius()*0.017453292519943295 # to rads
+                    xy_data = asarray(Geodesic().circle(lon=self.sats_lngs[i], lat=self.sats_lats[i],
+                                                        radius=radius, n_samples=200, endpoint=True))
+                    self.ax_cov[i].set_xy(xy_data)
             self.ax_sat.set_data(self.sats_lngs, self.sats_lats)
             self.canvas.draw_idle()
-
-    def plotCoverage(self, ang, p_radius, sat_lat, sat_lng, n):
-        """
-        Returns the coordinates of the satellite's coverage.
-
-        Parameters
-        ----------
-        ang      : float
-                   Angle of the satellite's coverage
-        p_radius : float
-                   Planet's radius at the satellite's coordinates
-        sat_lat  : float
-                   Center latitude of the satellite in degrees
-        sat_lng  : float
-                   Center longitude of the satellite in degrees
-        n        : int
-                   Coverage number
-        """
-        radius = ang*p_radius*0.017453292519943295 # Angle in rads (pi/180)
-        circle_points = Geodesic().circle(lon=sat_lng, lat=sat_lat, radius=radius,
-                                          n_samples=200, endpoint=False)
-        self.ax_cov[n].set_xy(asarray(circle_points))
 
     def changeMainSat(self, row):
         """
@@ -447,8 +428,10 @@ class ApplicationWindow(QtWidgets.QMainWindow):
                 break
         newSat = self.dpl.deploy(cat, deployer, dplyr_mass,
                 dplyd_mass, name, [spdx, spdy, spdz], date=self.date)
-        self.ax_cov.append(self.ax.fill([0,0], [0,0], transform=Geodetic(),
-                           color='white', alpha=self.cov_alpha)[0])
+        xy = ndarray(shape=(200,2), dtype=float)
+        self.ax_cov.append(self.ax.add_patch(Polygon(xy, color='w',
+                                                     transform=Geodetic(),
+                                                     alpha=self.cov_alpha)))
         self.sat_txt.append(self.ax.text([], [], "", color='yellow', size=7,
                             transform=Geodetic(), ha="center", va="center"))
         self.Sats.append(newSat)
@@ -801,8 +784,6 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         self.cov_alpha = 0.2
         for i, Sat in enumerate(self.Sats):
             self.ax_cov[i].set_alpha(self.cov_alpha)
-            self.plotCoverage(Sat.getCoverage(), Sat.getPlanetRadius(),
-                              self.sats_lats[i], self.sats_lngs[i], i)
         self.canvas.draw_idle()
         self.ui.actionRemove_coverage.setText("Remove coverage")
         self.ui.actionRemove_coverage.triggered.connect(self.removeCoverage)
@@ -956,8 +937,10 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         finally the satellites are sorted by name.
         """
         add_sat = self.popup.avail_sats_lst.currentItem().text()
-        self.ax_cov.append(self.ax.fill([0,0], [0,0], transform=Geodetic(),
-                           color='white', alpha=self.cov_alpha)[0])
+        xy = ndarray(shape=(200,2), dtype=float)
+        self.ax_cov.append(self.ax.add_patch(Polygon(xy, color='w',
+                                                     transform=Geodetic(),
+                                                     alpha=self.cov_alpha)))
         self.sat_txt.append(self.ax.text([], [], "", color='yellow', size=7,
                             transform=Geodetic(), ha="center", va="center"))
         if (add_sat in self.argos):
