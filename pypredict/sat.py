@@ -346,7 +346,10 @@ class Sat(Node):
 
     def getSpeed(self):
         """Returns the speed of the satellite."""
-        self.v = sqrt(self.v_peri[0,0]**2 + self.v_peri[1,0]**2)
+        mu_div_h = self.mu/self.h
+        v_peri_p = -sin(self.theta)*mu_div_h
+        v_peri_q = (self.e + cos(self.theta))*mu_div_h
+        self.v = sqrt(v_peri_p**2 + v_peri_q**2)
         return self.v
 
     def getPerifocalVel(self):
@@ -354,6 +357,9 @@ class Sat(Node):
         Returns the satellite's velocity with respect to the
         perifocal frame.
         """
+        mu_div_h = self.mu/self.h
+        self.v_peri[0,0] = -sin(self.theta)*mu_div_h
+        self.v_peri[1,0] = (self.e + cos(self.theta))*mu_div_h
         return self.v_peri[0,0], self.v_peri[1,0]
 
     def getInertialVel(self):
@@ -766,8 +772,6 @@ class Sat(Node):
         self.MA = m
         self.n = sqrt(self.mu/(self.a**3))
         self.h = sqrt(self.a*self.mu*(1 - self.e**2))
-        self.v_peri[0,0] = -self.mu*sin(theta)/self.h
-        self.v_peri[1,0] = self.mu*(e + cos(theta))/self.h
 
     def updateGST0(self):
         """
