@@ -179,7 +179,7 @@ setup(
                       'Pillow>=7.1.1',
                       'Fiona>=1.8.13.post1',
                       'pykdtree>=1.3.1',
-                      'cartopy>=0.17',
+                      'cartopy>=0.18',
                       'sgp4>=2.7',
                       'pymongo>=3.10.1'],  # Optional
 

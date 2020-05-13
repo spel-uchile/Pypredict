@@ -28,26 +28,26 @@ Current version: 3.3.0
 
 The following are the current dependencies:
 
-* [cartopy 0.17 or later](https://github.com/SciTools/cartopy)
-* [cython 0.28 or later](https://github.com/cython/cython)
-* [Fiona 1.8.13.post1 or later](https://github.com/Toblerity/Fiona)
-* [geos 0.2.2 or later](https://github.com/grst/geos)
-* [matplotlib 3.2.1 or later](https://github.com/matplotlib/matplotlib)
-* [numpy 1.18.2 or later](https://github.com/numpy/numpy)
-* [Pillow 7.1.1 or later](https://github.com/python-pillow/Pillow)
-* [pykdtree 1.3.1 or later](https://github.com/storpipfugl/pykdtree)
-* [pymongo 3.10.1 or later](https://github.com/mongodb/mongo-python-driver)
-* [pyorbital 1.5 or later](https://github.com/pytroll/pyorbital)
-* [PyQt5 5.14 or later](https://pypi.org/project/PyQt5/)
-* [pyshp 1.1.4 or later](https://github.com/GeospatialPython/pyshp)
-* [sgp4 2.7 or later](https://github.com/brandon-rhodes/python-sgp4)
-* [shapely 1.5.6 or later](https://github.com/simplegeo/shapely)
+* [cartopy](https://github.com/SciTools/cartopy) 0.18 or later.
+* [cython](https://github.com/cython/cython) 0.28 or later.
+* [Fiona](https://github.com/Toblerity/Fiona) 1.8.13.post1 or later.
+* [geos](https://github.com/grst/geos) 0.2.2 or later.
+* [matplotlib](https://github.com/matplotlib/matplotlib) 3.2.1 or later.
+* [numpy](https://github.com/numpy/numpy) 1.18.2 or later.
+* [Pillow](https://github.com/python-pillow/Pillow) 7.1.1 or later.
+* [pykdtree](https://github.com/storpipfugl/pykdtree) 1.3.1 or later.
+* [pymongo](https://github.com/mongodb/mongo-python-driver) 3.10.1 or later.
+* [pyorbital](https://github.com/pytroll/pyorbital) 1.5 or later.
+* [PyQt5](https://pypi.org/project/PyQt5/) 5.14 or later.
+* [pyshp](https://github.com/GeospatialPython/pyshp) 1.1.4 or later.
+* [sgp4](https://github.com/brandon-rhodes/python-sgp4) 2.7 or later.
+* [shapely](https://github.com/simplegeo/shapely) 1.5.6 or later.
 
 ## Supported software
 
-* [Python 3.6 or later](https://www.python.org/downloads/)
-* [Ubuntu 19.10](https://ubuntu.com/download/desktop) or later
-* [Zorin OS Lite 15.2](https://zorinos.com/download/) or later
+* [Python 3.6](https://www.python.org/downloads/) or later.
+* [Ubuntu 19.10](https://ubuntu.com/download/desktop) or later.
+* [Zorin OS Lite 15.2](https://zorinos.com/download/) or later.
 * [Raspbian Buster](https://www.raspberrypi.org/downloads/raspbian/) or later.
 
 ## Installation
