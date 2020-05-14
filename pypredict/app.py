@@ -20,7 +20,7 @@
     You should have received a copy of the GNU General Public License
     along with this program. If not, see <https://www.gnu.org/licenses/>.
 """
-__version__ = "3.3.0"
+__version__ = "3.3.1"
 
 from cartopy.crs import Geodetic, PlateCarree
 from cartopy.geodesic import Geodesic
@@ -40,9 +40,9 @@ from pypredict.sat import Sat
 from pypredict.SAA import SAA
 from pypredict.ui.main_window import Ui_MainWindow
 from pypredict.ui.about_dialog import Ui_About
+from pypredict.ui.addRemove_dialog import Ui_addRemove
 from pypredict.ui.dpl_dialog import Ui_DPL
 from pypredict.ui.updateTLE_dialog import Ui_updateTLE
-from pypredict.ui.addRemove_dialog import Ui_addRemove
 
 class ApplicationWindow(QtWidgets.QMainWindow):
 

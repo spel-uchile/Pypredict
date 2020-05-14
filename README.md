@@ -20,8 +20,6 @@ The following are some of the key features of Pypredict:
 * Displays the names, categories, position and orbital parameters in a table.
 * [Day](https://visibleearth.nasa.gov/images/73751/july-blue-marble-next-generation-w-topography-and-bathymetry) and [night](https://visibleearth.nasa.gov/images/144898/earth-at-night-black-marble-2016-color-maps) background images from [NASA](https://www.nasa.gov/).
 
-Current version: 3.3.0
-
 ![](pypredict/img/Screenshot.png)
 
 ## Dependencies
@@ -45,10 +43,10 @@ The following are the current dependencies:
 
 ## Supported software
 
-* [Python 3.6](https://www.python.org/downloads/) or later.
-* [Ubuntu 19.10](https://ubuntu.com/download/desktop) or later.
-* [Zorin OS Lite 15.2](https://zorinos.com/download/) or later.
-* [Raspbian Buster](https://www.raspberrypi.org/downloads/raspbian/) or later.
+* [Python](https://www.python.org/downloads/) 3.6 or later.
+* [Ubuntu](https://ubuntu.com/download/desktop) 19.10 or later.
+* [Zorin OS Lite](https://zorinos.com/download/) 15.2 or later.
+* [Raspbian](https://www.raspberrypi.org/downloads/raspbian/) Buster or later.
 
 ## Installation
 
