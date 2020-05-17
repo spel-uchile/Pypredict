@@ -36,25 +36,27 @@ class Sat(Node):
                  "v_peri", "v_iner", "r_iner", "Rot_Mat", "r_vect0", "sat",
                  "mean_motion_derivative", "id_launch_year", "id_launch_number",
                  "id_launch_piece",  "element_number", "satnumber", "tray_alt",
-                 "line1", "line2"]
-    def __init__(self, name="", lat=0, lng=0, alt=0, freq=437225000, tle=None, cat=""):
+                 "line1", "line2", "tlepath"]
+    def __init__(self, name="", lat=0, lng=0, alt=0, freq=437225000, tle=None, tlepath=None, cat=""):
         """
         Parameters
         ----------
-        name : str, optional
-            The satellite's name (default is )
-        lat : float, optional
-            The satellite's, latitude (default is 0)
-        lng : float, optional
-            The satellite's longitude (default is 0)
-        alt : float, optional
-            The satellite's altitude in meters (default is 0)
-        freq : int, optional
-            The satellite's frequency in Hz (default is 437225000)
-        tle : Tle, optional
-            The satellite's TLE (default is None)
-        cat : str
-            The satellite's category (default is )
+        name    : str, optional
+                  The satellite's name (default is )
+        lat     : float, optional
+                  The satellite's, latitude (default is 0)
+        lng     : float, optional
+                  The satellite's longitude (default is 0)
+        alt     : float, optional
+                  The satellite's altitude in meters (default is 0)
+        freq    : int, optional
+                  The satellite's frequency in Hz (default is 437225000)
+        tle     : str, optional
+                  tle object
+        tlepath : str, optional
+                  Path to the satellite's TLE (default is None)
+        cat     : str
+                  The satellite's category (default is )
         """
         deg2rad = pi/180
         self.name = name
@@ -68,8 +70,13 @@ class Sat(Node):
         self.tray_alt = []
         dayinsec = 24*3600                                        # Day in seconds
         if (tle is None):
-            tle = tlefile.read("SUCHAI", "data/cubesat.txt")
-            print("No TLE found, used default parameters instead")
+            if (tlepath is None):
+                self.tlepath = "data/cubesat.txt"
+                tle = tlefile.read("SUCHAI", self.tlepath)
+                print("No TLE found, used default parameters instead")
+            else:
+                tle = tlefile.read(self.name, tlepath)
+                self.tlepath = tlepath
         self.incl = tle.inclination*deg2rad
         self.RAAN0 = tle.right_ascension*deg2rad
         self.e = tle.excentricity

@@ -32,7 +32,6 @@ from numpy import abs, asarray, cos, ndarray, pi
 from pkg_resources import resource_filename
 from PyQt5 import QtWidgets, QtGui, QtCore
 from pymongo import MongoClient
-from pyorbital import tlefile
 from pypredict.dayNightMap import Map
 from pypredict.dpl import Dpl
 from pypredict.navigation import Toolbar
@@ -43,6 +42,7 @@ from pypredict.ui.about_dialog import Ui_About
 from pypredict.ui.addRemove_dialog import Ui_addRemove
 from pypredict.ui.dpl_dialog import Ui_DPL
 from pypredict.ui.updateTLE_dialog import Ui_updateTLE
+from urllib.request import urlopen
 
 class ApplicationWindow(QtWidgets.QMainWindow):
 
@@ -1018,10 +1018,8 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         elif (add_sat in self.x_comm):
             self.createSatFromFile(add_sat, "{}x-comm.txt".format(self.tle_path),
                                    "Experimental")
-        elif (add_sat in self.usr_sats):
-            self.createSatFromFile(add_sat, self.usr_tle_file, "Added by user")
         else:
-            self.Sats.append(Sat(add_sat, tle=tlefile.read(add_sat)))
+            self.createSatFromFile(add_sat, self.usr_tle_file, "Added by user")
         self.sortSats()
         self.popup.curr_sats_tab.clearContents()
         self.popup.curr_sats_tab.setRowCount(len(self.Sats))
@@ -1048,7 +1046,7 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         category  : string
                     The category of the new satellite
         """
-        newSat = Sat(sat_name, tle=tlefile.read(sat_name, file_name), cat=category)
+        newSat = Sat(sat_name, tlepath=file_name, cat=category)
         newSat.updateOrbitalParameters3(self.date)
         self.Sats.append(newSat)
 
@@ -1148,8 +1146,9 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         for i, file_name in enumerate(self.tle_files):
             link = "https://celestrak.com/NORAD/elements/{}.txt".format(file_name)
             self.popup.plainTextEdit.insertPlainText("Downloading: {}".format(link))
-            tlefile.TLE_URLS = (link, )
-            tlefile.fetch("{}{}.txt".format(self.tle_path, file_name))
+            with open("{}{}.txt".format(self.tle_path, file_name), "w") as dest:
+                response = urlopen(link)
+                dest.write(response.read().decode("utf-8"))
             self.popup.plainTextEdit.insertPlainText("\nDone!\n")
             self.popup.progressBar.setValue(int((i + 1)*100/len(self.tle_files)))
         self.popup.plainTextEdit.insertPlainText("Finished!")

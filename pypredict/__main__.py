@@ -21,20 +21,19 @@
     You should have received a copy of the GNU General Public License
     along with this program. If not, see <https://www.gnu.org/licenses/>.
 """
-from pyorbital import tlefile
+from pkg_resources import resource_filename
 from pypredict.sat import Sat
 from PyQt5 import QtWidgets
 from pypredict.app import ApplicationWindow
 import sys
-from pkg_resources import resource_filename
 
 data_path = resource_filename("pypredict","data/")
 
-SUCHAI = Sat(name="SUCHAI", tle=tlefile.read("SUCHAI", "{}cubesat.txt".format(data_path)), cat="CubeSat")
-HODOYOSHI3 = Sat(name="HODOYOSHI-3", tle=tlefile.read("HODOYOSHI-3", "{}resource.txt".format(data_path)), cat="Earth Resources")
-HODOYOSHI4 = Sat(name="HODOYOSHI-4", tle=tlefile.read("HODOYOSHI-4", "{}resource.txt".format(data_path)), cat="Earth Resources")
-CUBESATXI_IV = Sat(name="CUBESAT XI-IV (CO-57)", tle=tlefile.read("CUBESAT XI-IV (CO-57)", "{}cubesat.txt".format(data_path)), cat="CubeSat")
-ISS = Sat(name="ISS (ZARYA)", tle=tlefile.read("ISS (ZARYA)", "{}tdrss.txt".format(data_path)), cat="Tracking and Data Relay")
+SUCHAI = Sat(name="SUCHAI", tlepath="{}cubesat.txt".format(data_path), cat="CubeSat")
+HODOYOSHI3 = Sat(name="HODOYOSHI-3", tlepath="{}resource.txt".format(data_path), cat="Earth Resources")
+HODOYOSHI4 = Sat(name="HODOYOSHI-4", tlepath="{}resource.txt".format(data_path), cat="Earth Resources")
+CUBESATXI_IV = Sat(name="CUBESAT XI-IV (CO-57)", tlepath="{}cubesat.txt".format(data_path), cat="CubeSat")
+ISS = Sat(name="ISS (ZARYA)", tlepath="{}tdrss.txt".format(data_path), cat="Tracking and Data Relay")
 Sats = [CUBESATXI_IV, HODOYOSHI3, HODOYOSHI4, ISS, SUCHAI]
 
 def main(args=None):
