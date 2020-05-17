@@ -20,7 +20,7 @@
     You should have received a copy of the GNU General Public License
     along with this program. If not, see <https://www.gnu.org/licenses/>.
 """
-from numpy import matrix, sqrt
+from numpy import matrix, random, sqrt
 
 class TDOA(object):
     __slots__ = ["c"]
@@ -38,7 +38,7 @@ class TDOA(object):
     def __call__(self):
         return self
 
-    def calculateLocation(self, r0, r1, r2, r3, r4=None):
+    def calculateLocation(self, r0, r1, r2, r3, r4=None, std=0):
         """
         Simulates the localization of a point at r0, given
         reference points at r1, r2, r3 and r4. This is
@@ -66,10 +66,10 @@ class TDOA(object):
             r2 = [r2[0,0], r2[1,0], r2[2,0]]
             r3 = [r3[0,0], r3[1,0], r3[2,0]]
             r4 = [r4[0,0], r4[1,0], r4[2,0]]
-            x, y, z = self.getLocation(r0, r1, r2, r3, r4)
+            x, y, z = self.getLocation(r0, r1, r2, r3, r4, std)
         return matrix([[x[0,0]], [y[0,0]], [z[0,0]]])
 
-    def getdt(self, r0, r1, r2):
+    def getdt(self, r0, r1, r2, std=0):
         """
         Returns the difference in time between a signal
         sent from r1 to r0, and a signal sent from r2
@@ -86,7 +86,7 @@ class TDOA(object):
         """
         d1 = self.getDistance(r0, r1)
         d2 = self.getDistance(r0, r2)
-        return (d2 - d1)/self.c
+        return random.normal((d2 - d1)/self.c, std)
 
     def getDistance(self, ra, rb):
         """
@@ -146,7 +146,7 @@ class TDOA(object):
                         [d41**2 - (C4 - C1)]])
         return H
 
-    def getLocation(self, r0, r1, r2, r3, r4):
+    def getLocation(self, r0, r1, r2, r3, r4, std=0):
         """
         Simulates the localization of a point at r0, given
         reference points at r1, r2, r3 and r4. This is
@@ -180,9 +180,12 @@ class TDOA(object):
         M = matrix([[x21, y21, z21],
                     [x31, y31, z31],
                     [x41, y41, z41]])
-        d21 = self.getDistance(r0, r2) - self.getDistance(r0, r1)
-        d31 = self.getDistance(r0, r3) - self.getDistance(r0, r1)
-        d41 = self.getDistance(r0, r4) - self.getDistance(r0, r1)
+        #d21 = self.getDistance(r0, r2) - self.getDistance(r0, r1)
+        #d31 = self.getDistance(r0, r3) - self.getDistance(r0, r1)
+        #d41 = self.getDistance(r0, r4) - self.getDistance(r0, r1)
+        d21 = self.getdt(r0, r1, r2, std)*self.c
+        d31 = self.getdt(r0, r1, r3, std)*self.c
+        d41 = self.getdt(r0, r1, r4, std)*self.c
         C1 = self.getC(r1)
         C2 = self.getC(r2)
         C3 = self.getC(r3)
