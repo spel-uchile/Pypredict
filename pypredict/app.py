@@ -104,7 +104,7 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         Parameters
         ----------
         e : event
-            Key pressed event
+            Key pressed event.
         """
         if e.key() == QtCore.Qt.Key_Escape:
             self.exitFullscreen()
@@ -116,15 +116,14 @@ class ApplicationWindow(QtWidgets.QMainWindow):
 
     def zoom(self, event):
         """
-        This method handles the zoom in and zoom out of the
-        world map figure. It first centers the view in the
-        middle of the map, and then scales it and moves it
-        to the mouse position.
+        This method handles the zoom in and zoom out of the world map
+        figure. It first centers the view in the middle of the map, and
+        then scales it and moves it to the mouse position.
 
         Parameters
         ----------
         event : event
-                Mouse wheel event
+                Mouse wheel event.
         """
         lng = event.xdata
         lat = event.ydata
@@ -170,14 +169,17 @@ class ApplicationWindow(QtWidgets.QMainWindow):
     def plotData(self):
         """
         Plots the figure used by this program to display the world map.
-        It also creates the axes used to display the satellites.
-        The world map day and night is plotted according to the program's date.
+        It also creates the axes used to display the satellites. The
+        world map day and night is plotted according to the program's
+        date.
         """
         self.fig = figure(figsize=(16, 8))
-        self.ax = self.fig.add_axes([0, 0, 1, 1], projection=PlateCarree(), frameon=False)
+        self.ax = self.fig.add_axes([0, 0, 1, 1], projection=PlateCarree(),
+                                    frameon=False)
         img_extent = (-180, 180, -90, 90)
         self.map = self.ax.imshow(self.world_map.fillDarkSideFromPicture(self.date),
-                origin='upper', extent=img_extent, transform=PlateCarree())
+                                  origin='upper', extent=img_extent,
+                                  transform=PlateCarree())
         self.gridAndFormat("gray", 0.5, "white", 9)
         self.ax.outline_patch.set_visible(False)
         self.ax.spines['left'].set_visible(True)
@@ -187,20 +189,20 @@ class ApplicationWindow(QtWidgets.QMainWindow):
 
     def gridAndFormat(self, gcolor, galpha, tcolor, tsize):
         """
-        This method creates the grid and the labels of the angles.
-        It gives has the option to change some properties of the grid
-        and labels.
+        This method creates the grid and the labels of the angles. It
+        gives has the option to change some properties of the grid and
+        labels.
 
         Parameters
         ----------
-        gcolor : string
-                 Color of the grid lines
+        gcolor : str
+                 Color of the grid lines.
         galpha : float
-                 Alpha value of the grid lines
-        tcolor : string
-                 Color of the text labels
+                 Alpha value of the grid lines.
+        tcolor : str
+                 Color of the text labels.
         tsize  : int
-                 Size of the text labels
+                 Size of the text labels.
         """
         self.ax.plot([-150, -150], [-90, 90], color=gcolor, alpha=galpha,
                      linewidth=1, linestyle='-', transform=PlateCarree())
@@ -283,7 +285,8 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         self.updateSatellites()
         self.mainSat = self.Sats[0]
         tf = int(self.mainSat.getPeriod()*3)
-        self.mainSat_lats, self.mainSat_lngs = self.mainSat.getTrayectory(tf, 50, self.date)
+        lats, lngs = self.mainSat.getTrayectory(tf, 50, self.date)
+        self.mainSat_lats, self.mainSat_lngs = lats, lngs
         self.ax_tray.set_data(self.mainSat_lngs, self.mainSat_lats)
         self.canvas.draw_idle()
         self.resetCov()
@@ -314,45 +317,52 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         satellites names, position and coverage. This method
         is executed only if the World Map tab is selected.
         """
-        worldTab = self.ui.tabWidget.tabText(self.ui.tabWidget.currentIndex()) == "World Map"
+        tab_index = self.ui.tabWidget.currentIndex()
+        worldTab = self.ui.tabWidget.tabText(tab_index) == "World Map"
         if (worldTab and self.pause is False):
             for i, Sat in  enumerate(self.Sats):
                 self.sats_lngs[i] = Sat.getLng(date=self.date)
-                lng = self.sats_lngs[i] - 6*(self.sats_lngs[i] > 173) + 6*(self.sats_lngs[i] < -173)
+                lng = self.sats_lngs[i] - 6*(self.sats_lngs[i] > 173)
+                lng += 6*(self.sats_lngs[i] < -173)
                 self.sats_lats[i] = Sat.getLat()
                 lat = self.sats_lats[i] - 2.5 + 5*(self.sats_lats[i] < -85)
                 self.sat_txt[i].set_position((lng, lat))
                 if (self.cov_alpha > 0):
-                    radius = Sat.getCoverage()*Sat.getPlanetRadius()*0.017453292519943295 # to rads
-                    xy_data = asarray(Geodesic().circle(lon=self.sats_lngs[i], lat=self.sats_lats[i],
-                                                        radius=radius, n_samples=200, endpoint=True))
+                    coverage = Sat.getCoverage()*0.017453292519943295 # to rads
+                    radius = coverage*Sat.getPlanetRadius()
+                    xy_data = asarray(Geodesic().circle(lon=self.sats_lngs[i],
+                                                        lat=self.sats_lats[i],
+                                                        radius=radius,
+                                                        n_samples=200,
+                                                        endpoint=True))
                     self.ax_cov[i].set_xy(xy_data)
             self.ax_sat.set_data(self.sats_lngs, self.sats_lats)
             self.canvas.draw_idle()
 
     def changeMainSat(self, row):
         """
-        It changes the program's main satellite. This satellite
-        is the one which trayectory is being displayed.
+        It changes the program's main satellite. This satellite is the
+        one which trayectory is being displayed.
 
         Parameters
         ----------
         row : int
-              The number of the table's row
+              The number of the table's row.
         """
         selectedSat = self.ui.Table.item(row, 0).text()
         for sat in self.Sats:
             if (sat.name == selectedSat):
                 self.mainSat = sat
         tf = int(self.mainSat.getPeriod()*3)
-        self.mainSat_lats, self.mainSat_lngs = self.mainSat.getTrayectory(tf, 50, self.date)
+        lats, lngs = self.mainSat.getTrayectory(tf, 50, self.date)
+        self.mainSat_lats, self.mainSat_lngs = lats, lngs
         self.ax_tray.set_data(self.mainSat_lngs, self.mainSat_lats)
         self.canvas.draw_idle()
 
     def setButtons(self):
         """
-        Conects the program's buttons to the associated
-        methods. Adds tool tips and icons.
+        Conects the program's buttons to the associated methods. Adds
+        tool tips and icons.
         """
         self.ui.download_button.clicked.connect(self.updateTLEDialog)
         self.ui.cov_button.clicked.connect(self.removeCoverage)
@@ -377,8 +387,8 @@ class ApplicationWindow(QtWidgets.QMainWindow):
 
     def deployPopup(self):
         """
-        Instantiates the deployment dialog. Connects the
-        dialog's buttons to their respective methods.
+        Instantiates the deployment dialog. Connects the dialog's
+        buttons to their respective methods.
         """
         self.Dialog = QtWidgets.QDialog()
         self.popup = Ui_DPL()
@@ -393,9 +403,8 @@ class ApplicationWindow(QtWidgets.QMainWindow):
 
     def selectDeployer(self, item):
         """
-        Obtains the deployer's name that the user wrote
-        in the table. Sets this name in the deployer's
-        label.
+        Obtains the deployer's name that the user wrote in the table.
+        Sets this name in the deployer's label.
 
         Parameters
         ----------
@@ -408,11 +417,10 @@ class ApplicationWindow(QtWidgets.QMainWindow):
 
     def deploySat(self):
         """
-        Gets all the data the user input to simulate the
-        deployment of a satellite from another one. The
-        new satellite is created and added to Sats list.
-        A new axes fill and text is created for the new
-        satellite's coverage and name.
+        Gets all the data the user input to simulate the deployment of
+        a satellite from another one. The new satellite is created and
+        added to Sats list. A new axes fill and text is created for the
+        new satellite's coverage and name.
         """
         deployer_name = self.popup.deployer_name_lbl.text()
         dplyr_mass = float(self.popup.mass_box1.text())
@@ -446,8 +454,7 @@ class ApplicationWindow(QtWidgets.QMainWindow):
 
     def speed_up_backward(self):
         """
-        Enables the program to speed up the time into the
-        past.
+        Enables the program to speed up the time into the past.
         """
         self.forward = False
         self.backward = True
@@ -456,8 +463,8 @@ class ApplicationWindow(QtWidgets.QMainWindow):
 
     def resume_time(self):
         """
-        Sets the delta minutes to zero, so that the program's
-        date is the current date.
+        Sets the delta minutes to zero, so that the program's date is
+        the current date.
         """
         self.forward = False
         self.backward = False
@@ -487,8 +494,7 @@ class ApplicationWindow(QtWidgets.QMainWindow):
 
     def speed_up_forward(self):
         """
-        Enables the program to speed up the time into the
-        future.
+        Enables the program to speed up the time into the future.
         """
         self.forward = True
         self.backward = False
@@ -497,9 +503,9 @@ class ApplicationWindow(QtWidgets.QMainWindow):
 
     def format_dt(self):
         """
-        Updates the program's date and sets the new date
-        value into the QDateTimeEdit widget. It also
-        refreshes the background image of the map.
+        Updates the program's date and sets the new date value into the
+        QDateTimeEdit widget. It also refreshes the background image of
+        the map.
         """
         self.updateTime()
         oldState = self.ui.datetime.blockSignals(True)
@@ -509,10 +515,9 @@ class ApplicationWindow(QtWidgets.QMainWindow):
 
     def updateTime(self, date=None):
         """
-        Updates the program's date by adding the delta
-        minutes, dmin, that may be changed by the user.
-        The new date is displayed in the QDateTimeEdit
-        widget.
+        Updates the program's date by adding the delta minutes, dmin,
+        that may be changed by the user. The new date is displayed in
+        the QDateTimeEdit widget.
 
         Parameters
         ----------
@@ -530,20 +535,20 @@ class ApplicationWindow(QtWidgets.QMainWindow):
                 self.date = datetime.utcnow() + timedelta(minutes=self.dmin)
             else:
                 self.date = date
-            qdt = QtCore.QDateTime(self.date.year,self.date.month,self.date.day,
-                                   self.date.hour,self.date.minute,
-                                   self.date.second + self.date.microsecond*0.000001)
+            seconds = self.date.second + self.date.microsecond*0.000001
+            qdt = QtCore.QDateTime(self.date.year, self.date.month,
+                                   self.date.day,  self.date.hour,
+                                   self.date.minute, seconds)
             oldState = self.ui.datetime.blockSignals(True)
             self.ui.datetime.setDateTime(qdt)
             self.ui.datetime.blockSignals(oldState)
 
     def newDate(self):
         """
-        This method is called when the user changes the
-        value of the QDateTimeEdit widget. When this
-        happens, the new date is obtained to update the
-        program's date. If the time difference is greater
-        than one minute, the background image is refreshed.
+        This method is called when the user changes the value of the
+        QDateTimeEdit widget. When this happens, the new date is
+        obtained to update the program's date. If the time difference is
+        greater than one minute, the background image is refreshed.
         """
         date = self.ui.datetime.dateTime().toPyDateTime()
         time_diff = (date - self.date).total_seconds()/60.0
@@ -554,23 +559,21 @@ class ApplicationWindow(QtWidgets.QMainWindow):
 
     def updateSatellites(self):
         """
-        Updates the orbital parameters of all the
-        satellites that are on the list Sats. If
-        the user enabled the database, part of the
+        Updates the orbital parameters of all the satellites that are on
+        the list Sats. If the user enabled the database, part of the
         data is dumped into the database.
         """
         if (self.pause is False):
             for Sat in self.Sats:
-                Sat.updateOrbitalParameters3(self.date)
+                Sat.updateOrbitalParameters(self.date)
                 if (self.en_db):
                     col = self.db[Sat.name]
                     col.insert_one(self.formatDump(Sat))
  
     def setCanvas(self):
         """
-        Creates a canvas object to display the plot
-        of the background image and all the axis
-        artists. This canvas is added as a widget
+        Creates a canvas object to display the plot of the background
+        image and all the axis artists. This canvas is added as a widget
         into the QT user interface.
         """
         self.canvas = FigureCanvasQTAgg(self.fig)
@@ -580,9 +583,9 @@ class ApplicationWindow(QtWidgets.QMainWindow):
 
     def setCustomStatusBar(self):
         """
-        Moves some buttons into the status bar. Adds a
-        navigation toolbar into the status bar. Formats
-        the displayed coordinates of the cursor.
+        Moves some buttons into the status bar. Adds a navigation
+        toolbar into the status bar. Formats the displayed coordinates
+        of the cursor.
         """
         self.toolbar = Toolbar(self.canvas, self)
         self.ui.statusbar.layout().addWidget(self.ui.download_button)
@@ -601,8 +604,8 @@ class ApplicationWindow(QtWidgets.QMainWindow):
 
     def formatCoordinates(self, lng, lat):
         """
-        Overrrides the default format to show only
-        latitude and longitude.
+        Overrrides the default format to show only latitude and
+        longitude.
         """
         return "Lon: {:6.1f}, Lat: {:5.1f}".format(lng, lat)
 
@@ -614,20 +617,19 @@ class ApplicationWindow(QtWidgets.QMainWindow):
 
     def setTableConnections(self):
         """
-        Connects the cell clicks of the user with
-        the method that changes the main satellites
-        and displays its future trayectory.
+        Connects the cell clicks of the user with the method that
+        changes the main satellites and displays its future trayectory.
         """
         self.ui.Table.cellClicked.connect(self.changeMainSat)
 
     def updateTableContent(self):
         """
-        If the user selects the Table tab, then all
-        the current satellites are displayed in a
-        table with their respective orbital
-        parameters, names and categories.
+        If the user selects the Table tab, then all the current
+        satellites are displayed in a table with their respective
+        orbital parameters, names and categories.
         """
-        if (self.ui.tabWidget.tabText(self.ui.tabWidget.currentIndex()) == "Table"):
+        tab_index = self.ui.tabWidget.currentIndex()
+        if (self.ui.tabWidget.tabText(tab_index) == "Table"):
             rad2deg = 180/pi
             self.ui.Table.setRowCount(len(self.Sats))
             for i, Sat in enumerate(self.Sats):
@@ -669,13 +671,12 @@ class ApplicationWindow(QtWidgets.QMainWindow):
 
     def formatDump(self, Sat):
         """
-        Formats some basic data of a satellite for a
-        database.
+        Formats some basic data of a satellite for a database.
 
         Parameters
         ----------
-        Sat : Sat
-              Object of the class Sat
+        Sat : pypredict.sat.Sat object
+              Object of the class Sat.
         """
         dump = {
                 "id": Sat.satnumber,
@@ -693,8 +694,8 @@ class ApplicationWindow(QtWidgets.QMainWindow):
 
     def savePicture(self):
         """
-        Creates a dialog for the user to save a picture
-        of the world map with all the current satellites.
+        Creates a dialog for the user to save a picture of the world map
+        with all the current satellites.
         """
         file_name = QtWidgets.QFileDialog.getSaveFileName(self, "Save picture", "",
                                                           "Images (*.png *.xpm *.jpg)")
@@ -704,13 +705,13 @@ class ApplicationWindow(QtWidgets.QMainWindow):
 
     def saveTLEs(self):
         """
-        Creates a dialog for the user to save all the
-        TLE data of the satellites that are being
-        displayed. This data is saved as a txt file in
-        the folder that the user decides.
+        Creates a dialog for the user to save all the TLE data of the
+        satellites that are being displayed. This data is saved as a txt
+        file in the folder that the user decides.
         """
-        file_name = QtWidgets.QFileDialog.getSaveFileName(self, "Save TLE data into file",
-                                                          "", "Text files (*.txt)")
+        dlog_name = "Save TLE data into file"
+        file_name = QtWidgets.QFileDialog.getSaveFileName(self, dlog_name, "",
+                                                          "Text files (*.txt)")
         if file_name[0] is '':
             return
         with open(file_name[0], "w") as f:
@@ -723,8 +724,8 @@ class ApplicationWindow(QtWidgets.QMainWindow):
 
     def enableDB(self):
         """
-        Enables some basic data of the satellites to
-        be saved in a database.
+        Enables some basic data of the satellites to be saved in a
+        database.
         """
         self.en_db = True
         self.ui.actionEnable_database.setText("Disable database")
@@ -732,8 +733,8 @@ class ApplicationWindow(QtWidgets.QMainWindow):
 
     def disableDB(self):
         """
-        Disables the option to save some data of the
-        satellites in a database.
+        Disables the option to save some data of the satellites in a
+        database.
         """
         self.en_db = False
         self.ui.actionEnable_database.setText("Enable database")
@@ -741,8 +742,8 @@ class ApplicationWindow(QtWidgets.QMainWindow):
 
     def removeSAA(self):
         """
-        Removes the South Atlantic Anomaly (SAA) from
-        the map by setting its alpha value to zero.
+        Removes the South Atlantic Anomaly (SAA) from the map by setting
+        its alpha value to zero.
         """
         self.saa_alpha = 0
         self.ax_saa.set_alpha(self.saa_alpha)
@@ -752,9 +753,8 @@ class ApplicationWindow(QtWidgets.QMainWindow):
 
     def addSAA(self):
         """
-        Displays the South Atlantic Anomaly (SAA) on
-        the map by setting its alpha value to a number
-        more than zero.
+        Displays the South Atlantic Anomaly (SAA) on the map by setting
+        its alpha value to a number more than zero.
         """
         self.saa_alpha = 0.2
         self.ax_saa.set_alpha(self.saa_alpha)
@@ -764,8 +764,8 @@ class ApplicationWindow(QtWidgets.QMainWindow):
 
     def removeCoverage(self):
         """
-        Removes the satellites coverage from the plot
-        by setting their alpha value to zero.
+        Removes the satellites coverage from the plot by setting their
+        alpha value to zero.
         """
         self.cov_alpha = 0
         for i, Sat in enumerate(self.Sats):
@@ -777,9 +777,8 @@ class ApplicationWindow(QtWidgets.QMainWindow):
 
     def addCoverage(self):
         """
-        Displays the satellites coverage on the plot
-        by setting their alpha value to a number
-        grater than zero.
+        Displays the satellites coverage on the plot by setting their
+        alpha value to a number greater than zero.
         """
         self.cov_alpha = 0.2
         for i, Sat in enumerate(self.Sats):
@@ -791,16 +790,15 @@ class ApplicationWindow(QtWidgets.QMainWindow):
 
     def searchSat(self, text):
         """
-        Uses the text from the search box to search
-        for a satellite's name that matches that
-        text. All the matches are displayed in a
+        Uses the text from the search box to search for a satellite's
+        name that matches that text. All the matches are displayed in a
         list.
 
         Parameters
         ----------
-        text : string
+        text : str
                String input of the user used to
-               search for a satellite's name
+               search for a satellite's name.
         """
         srch = text.upper()
         self.match = [s for s in self.avail_sats if srch in s]
@@ -811,17 +809,17 @@ class ApplicationWindow(QtWidgets.QMainWindow):
 
     def readSatsFromFile(self, file, lst):
         """
-        Gets all the satellites' names from a file
-        and adds them in a list.
+        Gets all the satellites' names from a file and adds them in a
+        list.
 
         Parameters
         ----------
-        file : string
+        file : str
                Path to the file that contains the
-               TLE data
+               TLE data.
         lst  : list
                List used to append the satellite's
-               names from the file
+               names from the file.
         """
         with open(file, 'r') as f:
             for count, line in enumerate(f):
@@ -830,10 +828,9 @@ class ApplicationWindow(QtWidgets.QMainWindow):
 
     def readAllSats(self):
         """
-        Gets all the satellites' names from some files
-        that are on the TLE folder. Creates lists for
-        the satellites of every file and also a list
-        of the satellites of all the files.
+        Gets all the satellites' names from some files that are on the
+        TLE folder. Creates lists for the satellites of every file and
+        also a list of the satellites of all the files.
         """
         self.argos = []
         self.beidou = []
@@ -897,16 +894,14 @@ class ApplicationWindow(QtWidgets.QMainWindow):
 
     def showAvailSats(self):
         """
-        Displays all the available satellites on a list
-        in a dialog.
+        Displays all the available satellites on a list in a dialog.
         """
         for sat in self.avail_sats:
             self.popup.avail_sats_lst.addItem(sat)
 
     def showCurrentSats(self):
         """
-        Displays all the current satellites in a list
-        in a dialog.
+        Displays all the current satellites in a list in a dialog.
         """
         self.popup.curr_sats_tab.setRowCount(len(self.Sats))
         for i, sat in enumerate(self.Sats):
@@ -915,25 +910,23 @@ class ApplicationWindow(QtWidgets.QMainWindow):
 
     def addRemoveButtons(self):
         """
-        Connects the buttons of the add remove satellites
-        dialog with the associated methods.
+        Connects the buttons of the add remove satellites dialog with
+        the associated methods.
         """
         self.popup.add_sat_bt.clicked.connect(self.addSat)
         self.popup.remove_sat_bt.clicked.connect(self.removeSat)
 
     def sortSats(self):
         """
-        Sorts by name all the satellites that are
-        currently displayed.
+        Sorts by name all the satellites that are currently displayed.
         """
         self.Sats.sort(key = lambda s: s.name)
 
     def addSat(self):
         """
-        Adds the selected satellite into the list of
-        the current satellites. First the TLE is found
-        by name and category, second the satellite is
-        generated, third the satellite is added, and
+        Adds the selected satellite into the list of the current
+        satellites. First the TLE is found by name and category, second
+        the satellite is generated, third the satellite is added, and
         finally the satellites are sorted by name.
         """
         add_sat = self.popup.avail_sats_lst.currentItem().text()
@@ -1034,27 +1027,26 @@ class ApplicationWindow(QtWidgets.QMainWindow):
 
     def createSatFromFile(self, sat_name, file_name, category):
         """
-        Creates a new satellite given its name, TLE file
-        and category.
+        Creates a new satellite given its name, TLE file and category.
 
         Parameters
         ----------
-        sat_name  : string
-                    The name of the new satellite
-        file_name : string
-                    The name of the TLE file
-        category  : string
-                    The category of the new satellite
+        sat_name  : str
+                    The name of the new satellite.
+        file_name : str
+                    The name of the TLE file.
+        category  : str
+                    The category of the new satellite.
         """
         newSat = Sat(sat_name, tlepath=file_name, cat=category)
-        newSat.updateOrbitalParameters3(self.date)
+        newSat.updateOrbitalParameters(self.date)
         self.Sats.append(newSat)
 
     def removeSat(self):
         """
-        Removes the selected satellite from the list
-        of the current satellites (Sats). All the
-        associated data and plots are removed as well.
+        Removes the selected satellite from the list of the current
+        satellites (Sats). All the associated data and plots are removed
+        as well.
         """
         del_sat = self.popup.curr_sats_tab.currentItem().text()
         for i, sat in enumerate(self.Sats):
@@ -1072,8 +1064,7 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         
     def addRemoveSat(self):
         """
-        Creates a dialog for the user to add or
-        remove a satellite.
+        Creates a dialog for the user to add or remove a satellite.
         """
         Dialog = QtWidgets.QDialog()
         self.popup = Ui_addRemove()
@@ -1088,14 +1079,13 @@ class ApplicationWindow(QtWidgets.QMainWindow):
 
     def fullscreen(self, event=None):
         """
-        This method is called when the user uses the
-        F11 key. It calls a method to set the
-        fullscreen mode.
+        This method is called when the user uses the F11 key. It calls
+        a method to set the fullscreen mode.
 
         Parameters
         ----------
         event : event
-                Key pressed event
+                Key pressed event.
         """
         self.showFullScreen()
         self.ui.actionFullscreen.setText("Exit fullscreen")
@@ -1103,14 +1093,13 @@ class ApplicationWindow(QtWidgets.QMainWindow):
 
     def exitFullscreen(self, event=None):
         """
-        This method is called when the user presses
-        the ESC key. It calls a method to exit the
-        fullscreen mode.
+        This method is called when the user presses the ESC key. It
+        calls a method to exit the fullscreen mode.
 
         Parameters
         ----------
         event : event
-                Key pressed event
+                Key pressed event.
         """
         self.showMaximized()
         self.ui.actionFullscreen.setText("Fullscreen")
@@ -1133,9 +1122,9 @@ class ApplicationWindow(QtWidgets.QMainWindow):
 
     def updateTLEfromNet(self):
         """
-        Updates the TLE files from the celestrack web page. It also handles
-        the display of the current downloaded file and the progress bar of
-        the QDialog.
+        Updates the TLE files from the celestrack web page. It also
+        handles the display of the current downloaded file and the
+        progress bar of the QDialog.
         """
         self.tle_files = ["argos", "beidou", "cubesat", "dmc", "education",
                           "geodetic", "goes", "intelsat", "iridium",
@@ -1155,14 +1144,13 @@ class ApplicationWindow(QtWidgets.QMainWindow):
 
     def updateTLEfromFile(self):
         """
-        Creates a dialog for the user to add a txt file
-        with TLE data of his choice. All the names of
-        the new satellites are added into this program
-        and they can be added as any other satellite.
-        This data only remains while the program is not
-        closed.
+        Creates a dialog for the user to add a txt file with TLE data
+        of his choice. All the names of the new satellites are added
+        into this program and they can be added as any other satellite.
+        This data only remains while the program is not closed.
         """
-        file_name = QtWidgets.QFileDialog.getOpenFileName(self, "Open file", "",
+        dlog_name = "Open file"
+        file_name = QtWidgets.QFileDialog.getOpenFileName(self, dlog_name, "",
                                                           "Text files (*.txt)")
         self.usr_tle_file = file_name[0]
         self.usr_sats = []
@@ -1172,17 +1160,17 @@ class ApplicationWindow(QtWidgets.QMainWindow):
 
     def refreshBackgroundImg(self, img=None):
         """
-        Updates the background image. By default it uses
-        a picture of the Earth in day and night given the
-        position of the sun in the sky. It is only done
-        if the World Map tab is selected.
+        Updates the background image. By default it uses a picture of
+        the Earth in day and night given the position of the sun in the
+        sky. It is only done if the World Map tab is selected.
 
         Parameters
         ----------
-        img : String
-              Path to the background image
+        img : str
+              Path to the background image.
         """
-        if (self.ui.tabWidget.tabText(self.ui.tabWidget.currentIndex()) == "World Map"):
+        tab_index = self.ui.tabWidget.currentIndex()
+        if (self.ui.tabWidget.tabText(tab_index) == "World Map"):
             if (img is None):
                 self.map.set_data(self.world_map.fillDarkSideFromPicture(self.date))
             else:
@@ -1191,9 +1179,8 @@ class ApplicationWindow(QtWidgets.QMainWindow):
 
     def earth(self):
         """
-        Sets the world map of the Earth as a background
-        image, and sets the Earth parameters on all the
-        current satellites.
+        Sets the world map of the Earth as a background image, and sets
+        the Earth parameters on all the current satellites.
         """
         self.refreshBackgroundImg()
         for sat in self.Sats:
@@ -1201,9 +1188,8 @@ class ApplicationWindow(QtWidgets.QMainWindow):
 
     def mars(self):
         """
-        Sets the world map of Mars as a background
-        image, and sets the Mars parameters on all the
-        current satellites.
+        Sets the world map of Mars as a background image, and sets the
+        Mars parameters on all the current satellites.
         """
         self.refreshBackgroundImg("{}mars_nasa_day.png".format(self.img_path))
         for sat in self.Sats:
@@ -1212,8 +1198,8 @@ class ApplicationWindow(QtWidgets.QMainWindow):
 
     def about(self):
         """
-        Creates a dialog with information about this
-        program and its license.
+        Creates a dialog with information about this program and its
+        license.
         """
         Dialog = QtWidgets.QDialog()
         ui = Ui_About()
@@ -1227,8 +1213,7 @@ class ApplicationWindow(QtWidgets.QMainWindow):
 
     def setMenu(self):
         """
-        Connects the menu options with their respective
-        methods.
+        Connects the menu options with their respective methods.
         """
         self.ui.actionSave_picture.triggered.connect(self.savePicture)
         self.ui.actionSave_TLEs.triggered.connect(self.saveTLEs)
@@ -1245,8 +1230,8 @@ class ApplicationWindow(QtWidgets.QMainWindow):
 
     def run(self):
         """
-        Executes the core methods of this program every
-        certain amount of time.
+        Executes the core methods of this program every certain amount
+        of time.
         """
         self.time_timer = QtCore.QTimer()
         self.time_timer.timeout.connect(self.updateTime)

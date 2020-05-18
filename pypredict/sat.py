@@ -29,46 +29,34 @@ from sgp4.ext import rv2coe
 from sgp4.io import twoline2rv
 
 class Sat(Node):
-    __slots__ = ["cat", "incl", "RAAN0", "RAAN", "e", "w0", "w", "MA0", "MA", "n",
-                 "epoch_year", "epoch_day", "theta", "GST0", "a", "mu", "t0", "p", 
-                 "x", "y", "z", "Eq_r", "Po_r", "P_r", "Er_Pr2", "J2", "P_w", "r",
-                 "h", "v", "tray_lat", "tray_lng", "tlast", "B", "bstar", "v_atm",
-                 "v_peri", "v_iner", "r_iner", "Rot_Mat", "r_vect0", "sat",
-                 "mean_motion_derivative", "id_launch_year", "id_launch_number",
-                 "id_launch_piece",  "element_number", "satnumber", "tray_alt",
-                 "line1", "line2", "tlepath"]
-    def __init__(self, name="", lat=0, lng=0, alt=0, freq=437225000, tle=None, tlepath=None, cat=""):
+    __slots__ = ["cat", "incl", "RAAN0", "RAAN", "e", "w0", "w", "MA0", "MA",
+                 "n", "epoch_year", "epoch_day", "theta", "GST0", "a", "mu",
+                 "t0", "p",  "x", "y", "z", "Eq_r", "Po_r", "P_r", "Er_Pr2",
+                 "J2", "P_w", "r", "h", "v", "tray_lat", "tray_lng", "B",
+                 "bstar", "v_peri", "v_iner", "r_iner", "sat", "n_derivative",
+                 "id_launch_year", "id_launch_number", "id_launch_piece",
+                 "element_number", "satnumber", "tray_alt", "line1", "line2",
+                 "tlepath"]
+    def __init__(self, name="", tle=None, tlepath=None, cat=""):
         """
         Parameters
         ----------
         name    : str, optional
-                  The satellite's name (default is )
-        lat     : float, optional
-                  The satellite's, latitude (default is 0)
-        lng     : float, optional
-                  The satellite's longitude (default is 0)
-        alt     : float, optional
-                  The satellite's altitude in meters (default is 0)
-        freq    : int, optional
-                  The satellite's frequency in Hz (default is 437225000)
+                  The satellite's name (default is ).
         tle     : str, optional
-                  tle object
+                  tle object.
         tlepath : str, optional
-                  Path to the satellite's TLE (default is None)
-        cat     : str
-                  The satellite's category (default is )
+                  Path to the satellite's TLE (default is None).
+        cat     : str, optional
+                  The satellite's category (default is ).
         """
         deg2rad = pi/180
         self.name = name
-        self.lat = lat
-        self.lng = lng
-        self.alt = alt
-        self.freq = freq
         self.cat = cat
         self.tray_lat = []
         self.tray_lng = []
         self.tray_alt = []
-        dayinsec = 24*3600                                        # Day in seconds
+        dayinsec = 24*3600
         if (tle is None):
             if (tlepath is None):
                 self.tlepath = "data/cubesat.txt"
@@ -82,14 +70,14 @@ class Sat(Node):
         self.e = tle.excentricity
         self.w0 = tle.arg_perigee*deg2rad
         self.MA0 = tle.mean_anomaly*deg2rad
-        rpd2radps = (2*pi/dayinsec)                           # Revolutions per day to radians per second
-        self.n = tle.mean_motion*rpd2radps                    # Radians per second
+        rpd2radps = 2*pi/dayinsec                   # Revolutions per day to radians per second
+        self.n = tle.mean_motion*rpd2radps          # Radians per second
         self.epoch_year = tle.epoch_year
         self.epoch_day = tle.epoch_day
         self.bstar = tle.bstar
         self.B = 2*self.bstar/(2.461*10**(-5)*6378.135)
         self.sat = twoline2rv(tle.line1, tle.line2, wgs72)
-        self.mean_motion_derivative = tle.mean_motion_derivative
+        self.n_derivative = tle.mean_motion_derivative
         self.id_launch_year = tle.id_launch_year
         self.id_launch_number = tle.id_launch_number
         self.id_launch_piece = tle.id_launch_piece
@@ -106,18 +94,16 @@ class Sat(Node):
         Mt = 5.9722*10**24                             # Earth mass
         self.t0 = self.epoch_day - int(self.epoch_day)
         self.t0 = self.t0*dayinsec                     # Initial time in seconds
-        self.tlast = self.t0                           # Time since last update, since t0
         self.updateGST0()                              # Get Greenwich sideral time
         self.a = (G*Mt/self.n**2)**(1/3)               # Semi-major axis
-        self.v_atm = matrix([[0.0], [0.0], [0.0]])     # Velocity of the atmosphere
         self.v_peri = matrix([[0.0], [0.0]])           # Velocity in the perifocal frame
         self.v_iner = matrix([[0.0], [0.0], [0.0]])    # Velocity in the inertial frame
         self.r_iner = matrix([[0.0], [0.0], [0.0]])    # Position in the inertial frame
-        self.r_vect0 = array([[0], [0]])               # Position in the plane
-        self.Rot_Mat = matrix([[0.0, 0.0],             # Rotation matrix to move from
-                               [0.0, 0.0],             # the perifocal frame to the
-                               [0.0, 0.0]])            # inertial frame
         self.changePlanet()                            # Sets all the planet's parameters
+        self.updateOrbitalParameters()
+        self.getLat()
+        self.getLng()
+        self.getAlt()
 
     def __call__(self):
         return self
@@ -129,7 +115,7 @@ class Sat(Node):
         Parameters
         ----------
         mu : float
-             The new standard gravitational parameter
+             The new standard gravitational parameter.
         """
         self.mu = mu
 
@@ -140,8 +126,7 @@ class Sat(Node):
         Parameters
         ----------
         incl : float
-               The new satellite's orbit inclination in
-               radians
+               The new satellite's orbit inclination in radians.
         """
         self.incl = incl
 
@@ -152,8 +137,7 @@ class Sat(Node):
         Parameters
         ----------
         RAAN : float
-               The new Right Ascension of the Ascending Node
-               in radians
+               The new Right Ascension of the Ascending Node in radians.
         """
         self.RAAN = RAAN
 
@@ -164,8 +148,8 @@ class Sat(Node):
         Parameters:
         -----------
         RAAN0 : float
-                The initial Right Ascension of the Ascending
-                Node in radians
+                The initial Right Ascension of the Ascending Node in
+                radians.
         """
         self.RAAN0 = RAAN0
 
@@ -176,7 +160,7 @@ class Sat(Node):
         Parameters
         ----------
         w : float
-            The new orbit's argument of the perigee in radians
+            The new orbit's argument of the perigee in radians.
         """
         self.w = w
 
@@ -187,8 +171,7 @@ class Sat(Node):
         Parameters
         ----------
         w0 : float
-             The initial orbit's argument of the perigee in
-             radians
+             The initial orbit's argument of the perigee in radians.
         """
         self.w0 = w0
 
@@ -199,7 +182,7 @@ class Sat(Node):
         Parameters
         ----------
         e : float
-            The new orbit's eccentricity
+            The new orbit's eccentricity.
         """
         self.e = e
 
@@ -210,7 +193,7 @@ class Sat(Node):
         Parameters
         ----------
         MA : float
-             The new orbit's mean anomaly in radians
+             The new orbit's mean anomaly in radians.
         """
         self.MA = MA
 
@@ -221,8 +204,7 @@ class Sat(Node):
         Parameters
         ----------
         MA0 : float
-              The initial orbit's mean aomaly in
-              radians
+              The initial orbit's mean aomaly in radians.
         """
         self.MA0 = MA0
 
@@ -233,7 +215,7 @@ class Sat(Node):
         Parameters
         ----------
         n = float
-            The satellite's mean motion
+            The satellite's mean motion.
         """
         self.n = n
 
@@ -244,7 +226,7 @@ class Sat(Node):
         Parameters
         ----------
         theta : float
-                The new orbit's true anomaly in radians
+                The new orbit's true anomaly in radians.
         """
         self.theta = theta
 
@@ -255,7 +237,7 @@ class Sat(Node):
         Parameters
         ----------
         a = float
-            The new orbit's semi-major axis in meters
+            The new orbit's semi-major axis in meters.
         """
         self.a = a
 
@@ -266,7 +248,7 @@ class Sat(Node):
         Parameters
         ----------
         p : float
-            The new orbit's semilatus rectum in meters
+            The new orbit's semilatus rectum in meters.
         """
         self.p = p
 
@@ -277,7 +259,7 @@ class Sat(Node):
         Parameters
         ----------
         B : float
-            Ballistic coefficient
+            Ballistic coefficient.
         """
         self.B = B
 
@@ -288,8 +270,8 @@ class Sat(Node):
         Parameters
         ----------
         h : float
-            The new specific relative angular momentum in squared
-            meters per second
+            The new specific relative angular momentum in squared meters
+            per second.
         """
         self.h = h
 
@@ -299,8 +281,8 @@ class Sat(Node):
 
         Parameters
         ----------
-        name : string
-               The satellite's new name
+        name : str
+               The satellite's new name.
         """
         self.name = name
     
@@ -310,8 +292,8 @@ class Sat(Node):
 
         Parameters
         ----------
-        cat : string
-              The satellite's new category
+        cat : str
+              The satellite's new category.
         """
         self.cat = cat
 
@@ -348,7 +330,9 @@ class Sat(Node):
         return self.MA
 
     def getSpecAngMomentum(self):
-        """Returns the satellite's specific relative angular momentum."""
+        """
+        Returns the satellite's specific relative angular momentum.
+        """
         return self.h
 
     def getSpeed(self):
@@ -361,8 +345,8 @@ class Sat(Node):
 
     def getPerifocalVel(self):
         """
-        Returns the satellite's velocity with respect to the
-        perifocal frame.
+        Returns the satellite's velocity with respect to the perifocal
+        frame.
         """
         mu_div_h = self.mu/self.h
         self.v_peri[0,0] = -sin(self.theta)*mu_div_h
@@ -371,16 +355,21 @@ class Sat(Node):
 
     def getInertialVel(self):
         """
-        Calculates the velocity relative to its Perifocal Frame and 
-        transforms it to the inertial frame (Geocentric Equatorial Frame).
-        Returns the velocity with respect to the inertial frame.
+        Calculates the velocity relative to its Perifocal Frame and
+        transforms it to the inertial frame (Geocentric Equatorial
+        Frame).
+
+        Returns
+        -------
+        self.v_iner
+            The velocity with respect to the inertial frame.
         """
         return self.v_iner
 
     def getXYZ(self):
         """
-        Returns the position of the satellite with respect to
-        the inertial frame.
+        Returns the position of the satellite with respect to the
+        inertial frame.
         """
         return self.r_iner
 
@@ -400,6 +389,19 @@ class Sat(Node):
         lng = (RAAN_s - self.GST0 - self.P_w*tnow)  % twopi
         self.lng = ((lng > pi)*(lng - twopi) + (lng <= pi)*lng)*rad2deg
         return self.lng
+
+    def getAlt(self):
+        """
+        Calculates the satellite's altitude considering the planet's
+        radius at the current coordinates.
+
+        Returns
+        -------
+        float
+            Altitude in meters
+        """
+        self.alt = self.r - self.getPlanetRadius()
+        return self.alt
 
     def getDMY(self):
         """
@@ -473,11 +475,16 @@ class Sat(Node):
         Parameters
         ----------
         D : int
-            Days since the beginning of the month
+            Days since the beginning of the month.
         M : int
-            Current month
+            Current month.
         Y : int
-            Current year
+            Current year.
+
+        Returns
+        -------
+        GST0
+            The Greenwich Sidereal Time at t0.
         """
         JD = 367*Y - int(7/4*(Y + int((M + 9)/12))) + int(275*M/9) + D + 1721013.5 # Julian day
         T0 = (JD - 2451545)/36525
@@ -491,7 +498,7 @@ class Sat(Node):
         Parameters
         ----------
         date : datetime.utcnow()
-               Current date
+               Current date.
         """
         seconds = date.hour*3600 + date.minute*60 + date.second
         return seconds + date.microsecond*0.000001
@@ -503,7 +510,7 @@ class Sat(Node):
         Parameters
         ----------
         date : datetime
-               Date from the datetime library
+               Date from the datetime library.
         """
         days = date.day
         month = date.month
@@ -526,7 +533,7 @@ class Sat(Node):
         Parameters
         ----------
         M : float
-            The mean anomaly in radians
+            The mean anomaly in radians.
         """
         E0 = 0
         E = M
@@ -542,7 +549,7 @@ class Sat(Node):
         Parameters
         ----------
         E : float
-            The eccentric anomaly in radians
+            The eccentric anomaly in radians.
         """
         theta = 2*arctan(sqrt((1 + self.e)/(1 - self.e))*tan(E/2))
         return theta
@@ -554,77 +561,95 @@ class Sat(Node):
         """
         cos_lat = cos(self.lat)
         sin_lat = sin(self.lat)
-        radius = sqrt(((self.Eq_r**2*cos_lat)**2 + (self.Po_r**2*sin_lat)**2)/((self.Eq_r*cos_lat)**2 + (self.Po_r*sin_lat)**2))
+        aux = ((self.Eq_r**2*cos_lat)**2 + (self.Po_r**2*sin_lat)**2)
+        radius = sqrt(aux/((self.Eq_r*cos_lat)**2 + (self.Po_r*sin_lat)**2))
         return radius
 
     def getPeriod(self):
         """
-        Returns the period of the satellite's orbit.
+        Returns
+        -------
+        float
+            The period of the satellite's orbit.
         """
         return 2*pi/self.n
 
     def getCoverage(self):
         """
-        Returns the angle of the coverage considering the planet's
-        radius at the satellite's coordinates and the satellite's
-        altitude. To return the angle in degrees, it is multiplied
-        by 57.29577951308232 which is 180/pi.
+        Returns
+        -------
+        float
+            The angle of the coverage considering the planet's radius at
+            the satellite's coordinates and the satellite's altitude. To
+            return the angle in degrees, it is multiplied by
+            57.29577951308232 which is 180/pi.
+            self.r is the Planet's radius plus the satellite's altitude.
         """
         radius = self.getPlanetRadius()
-        ang = arccos(radius/(radius + self.alt))*57.29577951308232
+        ang = arccos(radius/self.r)*57.29577951308232
         return ang
 
     def getComCoverage(self, E_r, c=299792458):
         """
-        Returns the angle of the coverage of the comunication link
-        considering the transmit and receive power, the antenna
-        gain, the sensibility and the losses.
+        Calculates the angle of the coverage of the comunication link
+        considering the transmit and receive power, the antenna gain,
+        the sensibility and the losses.
 
         Parameters
         ----------
         E_r : float
-              The Earth radius in meters
+              The Earth radius in meters.
         c   : int
-              The speed of light in meters per second
+              The speed of light in meters per second.
+
+        Returns
+        -------
+        float
+            The angle of the coverage in degrees.
         """
         # FSPL = Ptx + Ant_tx + Ant_rx - Cable + Sens - margin
         #SUCHAI
+        alt = self.getAlt()
         FSPL = 30 + 2 + 18.9 - 1 + 117 - 12
         d = 10**(FSPL/20)*(c/self.freq)/(4*pi)
-        ang = arccos((E_r**2 + (E_r + self.alt)**2 - d**2)/(2*E_r*(E_r + self.alt)))*180/pi
+        ang = arccos((E_r**2 + (E_r + alt)**2 - d**2)/(2*E_r*(E_r + alt)))*180/pi
         return ang
 
     def getTnow(self, date=None):
         """
-        Returns the number of seconds since the last TLE data.
+        Calculates the number of seconds since the last TLE data.
 
         Parameters
         ----------
         date : datetime
-               The date used to calculate the number of
-               seconds
+               The date used to calculate the number of seconds.
+
+        Returns
+        -------
+        float
+            Number of seconds.
         """
         if (date is None):
-            date = datetime.utcnow()                  # Use current time in UTC.
-        dayinsec = 86400                              # Day in seconds
-        tnow = self.getCurrentTimeInSeconds(date)     # Current time in seconds
-        days = self.month2days(date)                  # Days in current time
-        daysdiff = days - int(self.epoch_day)         # Difference between TLE date and current date in days
-        return tnow + daysdiff*dayinsec               # Time in seconds from TLE to present time
+            date = datetime.utcnow()              # Use current time in UTC.
+        dayinsec = 86400                          # Day in seconds
+        tnow = self.getCurrentTimeInSeconds(date) # Current time in seconds
+        days = self.month2days(date)              # Days in current time
+        daysdiff = days - int(self.epoch_day)     # Difference between TLE date and current date
+        return tnow + daysdiff*dayinsec           # Time in seconds from TLE to present time
 
     def getTrayectory(self, T, dt, date=None):
         """
-        Calculates the future trayectory of the satellite
-        using the SGP4 library.
+        Calculates the future trayectory of the satellite using the
+        SGP4 library.
 
         Parameters
         ----------
         T    : int
-               Period of time in seconds to be calculated
+               Period of time in seconds to be calculated.
         dt   : int
-               Time step in seconds
+               Time step in seconds.
         date : datetime
-               Date from which the trayectory is calculated
+               Date from which the trayectory is calculated.
         """
         self.tray_lat[:] = []
         self.tray_lng[:] = []
@@ -633,12 +658,13 @@ class Sat(Node):
             date = datetime.utcnow()
         current_date = date
         for t in range(0, T, dt):
-            self.updateOrbitalParameters3(date)
+            self.updateOrbitalParameters(date)
             date += timedelta(seconds=dt)
             self.tray_lat.append(self.getLat())
             self.tray_lng.append(self.getLng(date=date))
+            self.getAlt()
             self.tray_alt.append(self.alt)
-        self.updateOrbitalParameters3(current_date)
+        self.updateOrbitalParameters(current_date)
         return self.tray_lat, self.tray_lng
 
     def changePlanet(self, M=5.9722*10**24, P_r=6371000, Eq_r=6378000, Po_r=6356000, J2=0.00108263, P_w=7.29211505*10**(-5)):
@@ -648,103 +674,37 @@ class Sat(Node):
         Parameters
         ----------
         M    : float
-               The planet's mass in kilograms
+               The planet's mass in kilograms.
         P_r  : int
-               The planet's mean radius in meters
+               The planet's mean radius in meters.
         Eq_r : int
-               The planet's equatorial radius in meters
+               The planet's equatorial radius in meters.
         Po_r : int
-               The planet's polar radius in meters
+               The planet's polar radius in meters.
         J2   : float
-               The planet's J2 harmonic
+               The planet's second degree harmonic model.
         P_w  : float
-               The planet's angular velocity in radians
-               per second
+               The planet's angular velocity in radians per second.
         """
-        G = 6.67408*10**(-11)                       # Gravitational constant
-        self.mu = G*M                               # Gravitational parameter
-        self.n = sqrt(self.mu/(self.a**3))          # Mean motion
+        G = 6.67408*10**(-11)              # Gravitational constant
+        self.mu = G*M                      # Gravitational parameter
+        self.n = sqrt(self.mu/(self.a**3)) # Mean motion
         self.p = self.a*(1 - self.e**2)
         self.h = sqrt(self.p*self.mu)
-        self.P_r = P_r                              # Planet radius
-        self.Eq_r = Eq_r                            # Equatorial radius
-        self.Po_r = Po_r                            # Polar radius
-        self.Er_Pr2 = (Eq_r/Po_r)**2                # (Equatorial radius/Polar radius)^2
-        self.J2 = J2                                # The planet's second degree harmonic model
-        self.P_w = P_w                              # The planet's angular velocity
-        if (self.tlast == self.t0):
-            self.updateOrbitalParameters(self.t0)
-        #self.updateOrbitalParameters3()
+        self.P_r = P_r
+        self.Eq_r = Eq_r
+        self.Po_r = Po_r
+        self.Er_Pr2 = (Eq_r/Po_r)**2
+        self.J2 = J2
+        self.P_w = P_w
 
-    def updateOrbitalParameters(self, tnow=None):
+    def updateOrbitalParameters(self, date=None):
         """
-        Calculates the orbital parameters just
-        considering the J2 harminic effect.
-
-        Parameters
-        ----------
-        tnow : int
-               Time since TLE in seconds
-        """
-        if (tnow is None):
-            tnow = self.getTnow()
-        rad2deg = 180/pi                                # Radian to degrees
-        twopi = 2*pi                                    # Two times pi
-        aux = self.n*(self.P_r**2/self.p**2)*self.J2    # Calculate only one time
-        cos_incl = cos(self.incl)
-        sin_incl = sin(self.incl)
-
-        self.RAAN = self.RAAN0 - 1.5*aux*cos_incl*(tnow - self.t0)
-        self.w = self.w0 + 0.75*aux*(5*cos_incl**2 - 1)*(tnow - self.t0)
-        self.MA = (self.MA0 + (self.n + 0.75*aux*(sqrt(1 - self.e**2))*(2 - 3*sin_incl**2))*(tnow - self.t0)) % twopi
-        E = self.M2E(self.MA)
-        self.theta = self.E2theta(E) % twopi
-        cos_RAAN = cos(self.RAAN)
-        sin_RAAN = sin(self.RAAN)
-        cos_w = cos(self.w)
-        sin_w = sin(self.w)
-        cos_theta = cos(self.theta)
-        sin_theta = sin(self.theta)
-
-        self.Rot_Mat[0,0] = cos_RAAN*cos_w - sin_RAAN*cos_incl*sin_w
-        self.Rot_Mat[0,1] = -sin_RAAN*cos_incl*cos_w - cos_RAAN*sin_w
-        self.Rot_Mat[1,0] = cos_RAAN*cos_incl*sin_w + sin_RAAN*cos_w
-        self.Rot_Mat[1,1] = cos_RAAN*cos_incl*cos_w - sin_RAAN*sin_w
-        self.Rot_Mat[2,0] = sin_incl*sin_w
-        self.Rot_Mat[2,1] = sin_incl*cos_w
-        r0 = self.p/(1 + self.e*cos_theta)
-        self.r_vect0[0,0] = r0*cos_theta
-        self.r_vect0[1,0] = r0*sin_theta
-        r_vectf = self.Rot_Mat*self.r_vect0
-        self.x = r_vectf.item(0)
-        self.y = r_vectf.item(1)
-        self.z = r_vectf.item(2)
-        self.r = sqrt(self.x**2 + self.y**2 + self.z**2)
-        #decl_s = arcsin(self.z/self.r)
-        self.lat = arcsin(self.z/self.r)*rad2deg
-        RAAN_s = arctan2(self.y, self.x)
-
-        #lat = arctan(self.Er_Pr2*tan(decl_s)) % pi
-        lng = (RAAN_s - self.GST0 - self.P_w*tnow)  % twopi
-
-        #self.lat = ((lat > pi/2)*(lat - pi) + (lat <= pi/2)*lat)*rad2deg
-        self.lng = ((lng > pi)*(lng - twopi) + (lng <= pi)*lng)*rad2deg
-        self.alt = self.r - self.getPlanetRadius()
-        self.v_peri[0,0] = -self.mu*sin_theta/self.h
-        self.v_peri[1,0] = self.mu*(self.e + cos_theta)/self.h
-        self.v_iner = self.Rot_Mat*self.v_peri
-        #self.vt = self.h/self.r
-        #self.vr = self.mu*self.e*sin(self.theta)/self.h
-        #self.v = sqrt(self.v_p**2 + self.v_q**2)
-
-    def updateOrbitalParameters3(self, date=None):
-        """
-        Updates all the orbital parameters with the
-        SGP4 propagation model.
+        Updates all the orbital parameters with the SGP4 propagation
+        model.
 
         date : datetime
-               The orbital elements are updated for
-               this date
+               The orbital elements are updated for this date.
         """
         if (date is None):
             date = datetime.utcnow()
@@ -755,14 +715,13 @@ class Sat(Node):
         minute = date.minute
         second = date.second + date.microsecond*0.000001
         pos, vel = self.sat.propagate(year, month, day,
-                hour, minute, second)
+                                      hour, minute, second)
         p, a, e, i, raan, w, theta, m, argl, tlon, lonp = rv2coe(pos, vel,
-                self.mu*0.000000001)
+                                                           self.mu*0.000000001)
         self.x = pos[0]*1000
         self.y = pos[1]*1000
         self.z = pos[2]*1000
         self.r = sqrt(self.x**2 + self.y**2 + self.z**2)
-        self.alt = self.r - self.getPlanetRadius()
         self.r_iner[0,0] = self.x
         self.r_iner[1,0] = self.y
         self.r_iner[2,0] = self.z
@@ -782,35 +741,36 @@ class Sat(Node):
 
     def updateGST0(self):
         """
-        Returns the Greenwich Sidereal Time of the
-        TLE data.
+        Returns the Greenwich Sidereal Time of the TLE data.
         """
         D, Month, Y = self.getDMY()
         self.GST0 = self.getGST(int(D), Month, Y)
 
     def updateEpoch(self, date=None):
         """
-        Updates the epoch day, year and the GST0
-        to now or to the received date.
+        Updates the epoch day, year and the GST0 to now or to the
+        received date.
 
         Parameters
         ----------
         date : datetime
-               Date received to update the epoch
+               Date received to update the epoch.
         """
         if (date is None):
-            date = datetime.utcnow()              # Use current time in UTC.
-        tnow = self.getCurrentTimeInSeconds(date) # Current time in seconds
-        days = self.month2days(date)              # Days in current time
+            date = datetime.utcnow()
+        tnow = self.getCurrentTimeInSeconds(date)
+        days = self.month2days(date)
         self.epoch_day = days + tnow/86400
         self.t0 = tnow
-        self.tlast = self.t0
         self.epoch_year = date.year - 2000
         self.updateGST0()
 
     def getTLE(self):
         """
-        Return the satellite's TLE as a string.
+        Returns
+        -------
+        str
+            The satellite's TLE as a string.
         """
         return "{}\n{}\n{}".format(self.name, self.line1, self.line2)
 
@@ -818,8 +778,8 @@ class Sat(Node):
         """
         Calculates the line's checksum.
 
-        line : string
-               String used to calculate its checksum
+        line : str
+               String used to calculate its checksum.
         """
         check = 0
         for char in line[:-1]:
@@ -836,13 +796,12 @@ class Sat(Node):
         Parameters
         ----------
         date : datetime
-               Date used to obtain the epoch of
-               the TLE.
+               Date used to obtain the epoch of the TLE.
         """
         rad2deg = 180/pi
         self.updateEpoch(date)
-        aux="{:+.9f}".format(self.mean_motion_derivative)
-        mean_motion_derivative = "{}{}".format(aux[0],aux[2:-1])
+        aux="{:+.9f}".format(self.n_derivative)
+        n_derivative = "{}{}".format(aux[0],aux[2:-1])
         #aux = "{:+.6f}".format(tle.bstar*10000)
         #BSTAR = "{}{}-4".format(aux[0],aux[3:-1])
         aux="{:+.6f}".format(self.B*2.461*10**(-5)*6378.135*0.5*100)
@@ -858,8 +817,7 @@ class Sat(Node):
                                 self.id_launch_piece,
                                 self.epoch_year,
                                 self.epoch_day,
-                                mean_motion_derivative,
-                                #tle.mean_motion_sec_derivative,
+                                n_derivative,
                                 "00000-0",
                                 BSTAR,
                                 "0",

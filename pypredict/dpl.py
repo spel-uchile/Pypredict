@@ -94,11 +94,41 @@ class Dpl(object):
         sat.setSpecAngMomentum(sqrt(sat.a*sat.mu*(1 - self.calc.e_scalar**2)))
         sat.updateEpoch(date=date)
 
-    def deploy(self, category, deployer, dplyr_mass, dplyd_mass, name, vel, date=None):
-        self.calcPosAndVel(deployer, vel)
-        deployer_name, line1, line2 = deployer.createTLE(date)
-        tle = tlefile.read(deployer_name, line1=line1, line2=line2)
-        newSat = Sat(name=name, tle=tle, cat=category)
+    def deploy(self, cat, dplyr, dplyr_mass, dplyd_mass, name, vel, date=None):
+        """
+        Simulates a deployment of a satellite from another. Calculates
+        the orbital parameters of the new satellite (the deployed
+        satellite) and updates the deployer satellite due to the
+        change in momentum considering the mass.
+
+        Parameters
+        ----------
+        cat        : str
+                     The new satellite's category.
+        dplyr      : pypredict.sat.Sat object
+                     The satellite that is deploying the new satellite.
+        dplyr_mass : float
+                     The mass of the deployer.
+        dplyd_mass : float
+                     The mass of the deployed satellite.
+        name       : str
+                     The name of the deployed satellite.
+        vel        : list
+                     A list with the 3 components of the velocity
+                     of deployment from the deployer's perspective.
+        date       : datetime.datetime object, optional
+                     Defaults to datetime.utcnow().
+
+        Returns
+        -------
+        newsat     : pypredict.sat.Sat object
+                     A satellite object with the properties of the
+                     deployed satellite.
+        """
+        self.calcPosAndVel(dplyr, vel)
+        dplyr_name, line1, line2 = dplyr.createTLE(date)
+        tle = tlefile.read(dplyr_name, line1=line1, line2=line2)
+        newSat = Sat(name=name, tle=tle, cat=cat)
         self.updateSat(newSat, date)
         B = (2*(0.034*0.084 + 0.034*0.028 + 0.084*0.028))/6/dplyd_mass
         newSat.setBallisticCoeff(B)
@@ -107,9 +137,9 @@ class Dpl(object):
         dplyr_vel = [-vel[0]*dplyd_mass/dplyr_mass,
                      -vel[1]*dplyd_mass/dplyr_mass,
                      -vel[2]*dplyd_mass/dplyr_mass]
-        self.calcPosAndVel(deployer, dplyr_vel)
-        self.updateSat(deployer, date)
+        self.calcPosAndVel(dplyr, dplyr_vel)
+        self.updateSat(dplyr, date)
         B = (0.1*0.1*2 + 4*0.3*0.1)/6/dplyr_mass
-        deployer.setBallisticCoeff(B)
-        deployer.createTLE(date)
+        dplyr.setBallisticCoeff(B)
+        dplyr.createTLE(date)
         return newSat
