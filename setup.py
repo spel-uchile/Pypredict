@@ -171,7 +171,6 @@ setup(
     # https://packaging.python.org/en/latest/requirements.html
     install_requires=['PyQt5>=5.14',
                       'numpy>=1.18.2',
-                      'pyorbital>=1.5',
                       'matplotlib>=3.2.1',
                       'cython>=0.28',
                       'geos>=0.2.2',

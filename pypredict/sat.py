@@ -22,7 +22,6 @@
 """
 from datetime import datetime, timedelta
 from numpy import abs, arccos, arcsin, arctan, arctan2, array, cos, matrix, pi, sin, sqrt, tan
-from pyorbital import tlefile
 from pypredict.node import Node
 from sgp4.earth_gravity import wgs72
 from sgp4.ext import rv2coe
@@ -33,58 +32,50 @@ class Sat(Node):
                  "n", "epoch_year", "epoch_day", "theta", "GST0", "a", "mu",
                  "t0", "p",  "x", "y", "z", "Eq_r", "Po_r", "P_r", "Er_Pr2",
                  "J2", "P_w", "r", "h", "v", "tray_lat", "tray_lng", "B",
-                 "bstar", "v_peri", "v_iner", "r_iner", "sat", "n_derivative",
-                 "id_launch_year", "id_launch_number", "id_launch_piece",
-                 "element_number", "satnumber", "tray_alt", "line1", "line2",
-                 "tlepath"]
-    def __init__(self, name="", tle=None, tlepath=None, cat=""):
+                 "bstar", "v_peri", "v_iner", "r_iner", "sat_model", "ndot",
+                 "id_launch_data", "element_number", "satnumber", "tray_alt",
+                 "line1", "line2", "tlepath"]
+    def __init__(self, name="", line1=None, line2=None, tlepath=None, cat=""):
         """
         Parameters
         ----------
         name    : str, optional
                   The satellite's name (default is ).
-        tle     : str, optional
-                  tle object.
+        line1   : str, optional
+                  First line of the two line elements.
+        line2   : str, optional
+                  Second line of the two line elements.
         tlepath : str, optional
                   Path to the satellite's TLE (default is None).
         cat     : str, optional
                   The satellite's category (default is ).
         """
-        deg2rad = pi/180
         self.name = name
         self.cat = cat
         self.tray_lat = []
         self.tray_lng = []
         self.tray_alt = []
-        dayinsec = 24*3600
-        if (tle is None):
-            if (tlepath is None):
-                self.tlepath = "data/cubesat.txt"
-                tle = tlefile.read("SUCHAI", self.tlepath)
-                print("No TLE found, used default parameters instead")
-            else:
-                tle = tlefile.read(self.name, tlepath)
-                self.tlepath = tlepath
-        self.incl = tle.inclination*deg2rad
-        self.RAAN0 = tle.right_ascension*deg2rad
-        self.e = tle.excentricity
-        self.w0 = tle.arg_perigee*deg2rad
-        self.MA0 = tle.mean_anomaly*deg2rad
-        rpd2radps = 2*pi/dayinsec                   # Revolutions per day to radians per second
-        self.n = tle.mean_motion*rpd2radps          # Radians per second
-        self.epoch_year = tle.epoch_year
-        self.epoch_day = tle.epoch_day
-        self.bstar = tle.bstar
+        if (tlepath is not None):
+            self.readTLE(tlepath)
+            self.tlepath = tlepath
+        else:
+            self.line1 = line1
+            self.line2 = line2
+        self.sat_model = twoline2rv(self.line1, self.line2, wgs72)
+        self.incl = self.sat_model.inclo
+        self.RAAN0 = self.sat_model.nodeo
+        self.e = self.sat_model.ecco
+        self.w0 = self.sat_model.argpo
+        self.MA0 = self.sat_model.mo
+        self.n = self.sat_model.no_kozai/60
+        self.epoch_year = self.sat_model.epochyr
+        self.epoch_day = self.sat_model.epochdays
+        self.bstar = self.sat_model.bstar
         self.B = 2*self.bstar/(2.461*10**(-5)*6378.135)
-        self.sat = twoline2rv(tle.line1, tle.line2, wgs72)
-        self.n_derivative = tle.mean_motion_derivative
-        self.id_launch_year = tle.id_launch_year
-        self.id_launch_number = tle.id_launch_number
-        self.id_launch_piece = tle.id_launch_piece
-        self.element_number = tle.element_number
-        self.satnumber = tle.satnumber
-        self.line1 = tle.line1
-        self.line2 = tle.line2
+        self.ndot = self.sat_model.ndot*1440**2/(2*pi)
+        self.id_launch_data = self.sat_model.intldesg
+        self.element_number = self.sat_model.elnum
+        self.satnumber = self.sat_model.satnum
         print(self.name + " TLE found!")
         self.RAAN = self.RAAN0
         self.w = self.w0
@@ -93,7 +84,7 @@ class Sat(Node):
         G = 6.67408*10**(-11)                          # Gravitational constant
         Mt = 5.9722*10**24                             # Earth mass
         self.t0 = self.epoch_day - int(self.epoch_day)
-        self.t0 = self.t0*dayinsec                     # Initial time in seconds
+        self.t0 = self.t0*24*3600                      # Initial time in seconds
         self.updateGST0()                              # Get Greenwich sideral time
         self.a = (G*Mt/self.n**2)**(1/3)               # Semi-major axis
         self.v_peri = matrix([[0.0], [0.0]])           # Velocity in the perifocal frame
@@ -107,6 +98,19 @@ class Sat(Node):
 
     def __call__(self):
         return self
+
+    def readTLE(self, file_name):
+        """
+        Search for the satellite name inside the file_name. If found,
+        sets the next two lines as the two line elements of this
+        satellite.
+        """
+        with open(file_name, 'r') as f:
+            for count, line in enumerate(f):
+                if (line.strip() == self.name):
+                    self.line1 = next(f).strip()
+                    self.line2 = next(f).strip()
+                    break
 
     def setMu(self, mu):
         """
@@ -408,7 +412,7 @@ class Sat(Node):
         Calculates the day, month and year from the TLE's epoch data and
         returns the result.
         """
-        year = int(self.epoch_year) + 2000
+        year = self.epoch_year
         ep_day = self.epoch_day
         if (year % 4 == 0):
             if (year % 100 == 0):
@@ -714,8 +718,8 @@ class Sat(Node):
         hour = date.hour
         minute = date.minute
         second = date.second + date.microsecond*0.000001
-        pos, vel = self.sat.propagate(year, month, day,
-                                      hour, minute, second)
+        pos, vel = self.sat_model.propagate(year, month, day,
+                                            hour, minute, second)
         p, a, e, i, raan, w, theta, m, argl, tlon, lonp = rv2coe(pos, vel,
                                                            self.mu*0.000000001)
         self.x = pos[0]*1000
@@ -762,7 +766,7 @@ class Sat(Node):
         days = self.month2days(date)
         self.epoch_day = days + tnow/86400
         self.t0 = tnow
-        self.epoch_year = date.year - 2000
+        self.epoch_year = date.year
         self.updateGST0()
 
     def getTLE(self):
@@ -800,42 +804,35 @@ class Sat(Node):
         """
         rad2deg = 180/pi
         self.updateEpoch(date)
-        aux="{:+.9f}".format(self.n_derivative)
-        n_derivative = "{}{}".format(aux[0],aux[2:-1])
-        #aux = "{:+.6f}".format(tle.bstar*10000)
+        aux="{:+.9f}".format(self.ndot)
+        ndot = "{}{}".format(aux[0],aux[2:-1])
+        #aux = "{:+.6f}".format(self.bstar*10000)
         #BSTAR = "{}{}-4".format(aux[0],aux[3:-1])
         aux="{:+.6f}".format(self.B*2.461*10**(-5)*6378.135*0.5*100)
         BSTAR = "{}{}-2".format(aux[0],aux[3:-1])
         aux="{:.8f}".format(self.e)
         e = "{}".format(aux[2:-1])
         tle_num = "{:4d}".format(self.element_number)
-        line1 = "{} {}{} {}{}{} {}{:012.8f} {} +{} {} {} {}{}".format("1",
-                                self.satnumber,
-                                "U",
-                                self.id_launch_year,
-                                self.id_launch_number,
-                                self.id_launch_piece,
-                                self.epoch_year,
-                                self.epoch_day,
-                                n_derivative,
-                                "00000-0",
-                                BSTAR,
-                                "0",
-                                tle_num,
-                                "7")
-        line2 = "{} {} {:8.4f} {:8.4f} {} {:8.4f} {:08.4f} {:02.8f}{}{}".format("2",
-                                                             self.satnumber,
+        epoch_year = self.epoch_year - 2000
+        line1 = "1 {}U {:9}{}{:012.8f} {} +{} {} 0 {}7".format(self.satnumber,
+                                                           self.id_launch_data,
+                                                           epoch_year,
+                                                           self.epoch_day,
+                                                           ndot,
+                                                           "00000-0",
+                                                           BSTAR,
+                                                           tle_num)
+        line2 = "2 {} {:8.4f} {:8.4f} {} {:8.4f} {:08.4f} {:02.8f}{}7".format(self.satnumber,
                                                              self.incl*rad2deg,
                                                              self.RAAN*rad2deg,
                                                              e,
                                                              self.w*rad2deg,
                                                              self.MA*rad2deg,
                                                              86400/self.getPeriod(),
-                                                             "    0",
-                                                             "7")
+                                                             "    0")
         checksum1 = self.checksum(line1)
         checksum2 = self.checksum(line2)
         line1 = "{}{}".format(line1[0:-1], checksum1)
         line2 = "{}{}".format(line2[0:-1], checksum2)
-        self.sat = twoline2rv(line1, line2, wgs72)
+        self.sat_model = twoline2rv(line1, line2, wgs72)
         return self.name, line1, line2

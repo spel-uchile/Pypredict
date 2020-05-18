@@ -21,7 +21,6 @@
     along with this program. If not, see <https://www.gnu.org/licenses/>.
 '''
 from pypredict.calcOrbitParam import Calc
-from pyorbital import tlefile
 from pypredict.sat import Sat
 from numpy import asscalar, cos, matrix, pi, sin, sqrt
 
@@ -127,8 +126,7 @@ class Dpl(object):
         """
         self.calcPosAndVel(dplyr, vel)
         dplyr_name, line1, line2 = dplyr.createTLE(date)
-        tle = tlefile.read(dplyr_name, line1=line1, line2=line2)
-        newSat = Sat(name=name, tle=tle, cat=cat)
+        newSat = Sat(name=name, line1=line1, line2=line2, cat=cat)
         self.updateSat(newSat, date)
         B = (2*(0.034*0.084 + 0.034*0.028 + 0.084*0.028))/6/dplyd_mass
         newSat.setBallisticCoeff(B)

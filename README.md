@@ -34,7 +34,6 @@ The following are the current dependencies:
 * [Pillow](https://github.com/python-pillow/Pillow) 7.1.1 or later.
 * [pykdtree](https://github.com/storpipfugl/pykdtree) 1.3.1 or later.
 * [pymongo](https://github.com/mongodb/mongo-python-driver) 3.10.1 or later.
-* [pyorbital](https://github.com/pytroll/pyorbital) 1.5 or later.
 * [PyQt5](https://pypi.org/project/PyQt5/) 5.14 or later.
 * [pyshp](https://github.com/GeospatialPython/pyshp) 1.1.4 or later.
 * [sgp4](https://github.com/brandon-rhodes/python-sgp4) 2.7 or later.
