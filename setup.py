@@ -178,7 +178,6 @@ setup(
                       'shapely>=1.5.6',
                       'pyshp>=1.1.4',
                       'Pillow>=7.1.1',
-                      'Fiona>=1.8.13.post1',
                       'pykdtree>=1.3.1',
                       'cartopy>=0.18',
                       'sgp4>=2.7',

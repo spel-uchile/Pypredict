@@ -28,7 +28,6 @@ The following are the current dependencies:
 
 * [cartopy](https://github.com/SciTools/cartopy) 0.18 or later.
 * [cython](https://github.com/cython/cython) 0.28 or later.
-* [Fiona](https://github.com/Toblerity/Fiona) 1.8.13.post1 or later.
 * [geos](https://github.com/grst/geos) 0.2.2 or later.
 * [matplotlib](https://github.com/matplotlib/matplotlib) 3.2.1 or later.
 * [numpy](https://github.com/numpy/numpy) 1.18.2 or later.
