@@ -12,11 +12,11 @@ The following are some of the key features of Pypredict:
 * Updates TLE data from [CelesTrak](https://www.celestrak.com/NORAD/elements/).
 * Displays the satellites in real time.
 * The user can open any TLE data from a txt file.
-* The TLE data of the displayed satellites can be saved into a new TLE file.
+* The TLE data of the displayed satellites can be saved into a new txt file.
 * The satellites' coverage can be added or removed.
 * It can show the South Atlantic Anomaly (SAA).
 * The time and date can be changed, speed up forward, backwards and paused.
-* Simulates deployments of one satellite from another and changes their TLEs according to their mass and the deployment speed velocity.
+* Simulates deployments of one satellite from another and changes their TLEs according to their mass, the deployment speed and direction.
 * Displays the names, categories, position and orbital parameters in a table.
 * [Day](https://visibleearth.nasa.gov/images/73751/july-blue-marble-next-generation-w-topography-and-bathymetry) and [night](https://visibleearth.nasa.gov/images/144898/earth-at-night-black-marble-2016-color-maps) background images from [NASA](https://www.nasa.gov/).
 
