@@ -522,12 +522,14 @@ class Sat(Node):
         days = days + (month > 1)*31 + (month > 2)*28 + (month > 3)*31 + (month > 4)*30
         days = days + (month > 5)*31 + (month > 6)*30 + (month > 7)*31 + (month > 8)*31
         days = days + (month > 9)*30 + (month > 10)*31 + (month > 11)*30
-        if (year % 4 == 0):
-            if (year % 100 == 0):
-                if (year % 400 == 0):
-                    days = days + (month > 2)
-            else:
-                days = days + (month > 2)
+        if (year % 4 != 0):
+            days = days
+        elif (year % 100 != 0):
+            days = days + (month > 2)
+        elif (year % 400 != 0):
+            days = days
+        else:
+            days = days + (month > 2)
         return days
 
     def M2E(self, M):
