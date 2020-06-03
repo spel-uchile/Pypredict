@@ -36,6 +36,7 @@ The following are the current dependencies:
 * [pymongo](https://github.com/mongodb/mongo-python-driver) 3.10.1 or later.
 * [PyQt5](https://pypi.org/project/PyQt5/) 5.14 or later.
 * [pyshp](https://github.com/GeospatialPython/pyshp) 1.1.4 or later.
+* [scipy](https://github.com/scipy/scipy) 1.4.1 or later.
 * [sgp4](https://github.com/brandon-rhodes/python-sgp4) 2.7 or later.
 * [shapely](https://github.com/simplegeo/shapely) 1.5.6 or later.
 

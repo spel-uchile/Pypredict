@@ -180,7 +180,8 @@ setup(
                       'pykdtree>=1.3.1',
                       'cartopy>=0.18',
                       'sgp4>=2.7',
-                      'pymongo>=3.10.1'],  # Optional
+                      'pymongo>=3.10.1',
+                      'scipy>=1.4.1'],  # Optional
 
     # List additional groups of dependencies here (e.g. development
     # dependencies). Users will be able to install these using the "extras"
