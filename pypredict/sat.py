@@ -76,7 +76,7 @@ class Sat(Node):
         self.id_launch_data = self.sat_model.intldesg
         self.element_number = self.sat_model.elnum
         self.satnumber = self.sat_model.satnum
-        print(self.name + " TLE found!")
+        #print(self.name + " TLE found!")
         self.RAAN = self.RAAN0
         self.w = self.w0
         self.MA = self.MA0
@@ -743,7 +743,7 @@ class Sat(Node):
         self.theta = theta
         self.MA = m
         self.n = sqrt(self.mu/(self.a**3))
-        self.h = sqrt(self.a*self.mu*(1 - self.e**2))
+        self.h = sqrt(abs(self.a*self.mu*(1 - self.e**2)))
 
     def updateGST0(self):
         """
@@ -816,7 +816,7 @@ class Sat(Node):
         e = "{}".format(aux[2:-1])
         tle_num = "{:4d}".format(self.element_number)
         epoch_year = self.epoch_year - 2000
-        line1 = "1 {}U {:9}{}{:012.8f} {} +{} {} 0 {}7".format(self.satnumber,
+        line1 = "1 {:05}U {:9}{}{:012.8f} {} +{} {} 0 {}7".format(self.satnumber,
                                                            self.id_launch_data,
                                                            epoch_year,
                                                            self.epoch_day,
@@ -824,7 +824,7 @@ class Sat(Node):
                                                            "00000-0",
                                                            BSTAR,
                                                            tle_num)
-        line2 = "2 {} {:8.4f} {:8.4f} {} {:8.4f} {:08.4f} {:02.8f}{}7".format(self.satnumber,
+        line2 = "2 {:05} {:8.4f} {:8.4f} {} {:8.4f} {:08.4f} {:11.8f}{}7".format(self.satnumber,
                                                              self.incl*rad2deg,
                                                              self.RAAN*rad2deg,
                                                              e,
