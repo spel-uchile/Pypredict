@@ -128,8 +128,8 @@ class Dpl(object):
         dplyr_name, line1, line2 = dplyr.createTLE(date)
         newSat = Sat(name=name, line1=line1, line2=line2, cat=cat)
         self.updateSat(newSat, date)
-        B = (2*(0.034*0.084 + 0.034*0.028 + 0.084*0.028))/6/dplyd_mass
-        newSat.setBallisticCoeff(B)
+        #B = (2*(0.034*0.084 + 0.034*0.028 + 0.084*0.028))/6/dplyd_mass
+        #newSat.setBallisticCoeff(B)
         newSat.createTLE(date)
         dplyr_mass = dplyr_mass - dplyd_mass
         dplyr_vel = [-vel[0]*dplyd_mass/dplyr_mass,
@@ -137,7 +137,7 @@ class Dpl(object):
                      -vel[2]*dplyd_mass/dplyr_mass]
         self.calcPosAndVel(dplyr, dplyr_vel)
         self.updateSat(dplyr, date)
-        B = (0.1*0.1*2 + 4*0.3*0.1)/6/dplyr_mass
-        dplyr.setBallisticCoeff(B)
+        #B = (0.1*0.1*2 + 4*0.3*0.1)/6/dplyr_mass
+        #dplyr.setBallisticCoeff(B)
         dplyr.createTLE(date)
         return newSat
