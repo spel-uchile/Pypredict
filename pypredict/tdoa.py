@@ -38,7 +38,7 @@ class TDOA(object):
     def __call__(self):
         return self
 
-    def calculateLocation(self, r0, r1, r2, r3, r4=None, std=0):
+    def calculateLocation(self, r0, r1, r2, r3, r4=None, clkstd=0, refstd=0):
         """
         Simulates the localization of a point at r0, given
         reference points at r1, r2, r3 and r4. This is
@@ -66,7 +66,7 @@ class TDOA(object):
             r2 = [r2[0,0], r2[1,0], r2[2,0]]
             r3 = [r3[0,0], r3[1,0], r3[2,0]]
             r4 = [r4[0,0], r4[1,0], r4[2,0]]
-            x, y, z = self.getLocation(r0, r1, r2, r3, r4, std)
+            x, y, z = self.getLocation(r0, r1, r2, r3, r4, clkstd, refstd)
         return matrix([[x[0,0]], [y[0,0]], [z[0,0]]])
 
     def getdt(self, r0, r1, r2, std=0):
@@ -141,12 +141,18 @@ class TDOA(object):
         d41 : float
               Difference in length between d4 and d1
         """
-        H = 0.5*matrix([[d21**2 - (C2 - C1)],
-                        [d31**2 - (C3 - C1)],
-                        [d41**2 - (C4 - C1)]])
+        #H = 0.5*matrix([[d21**2 - (C2 - C1)],
+        #                [d31**2 - (C3 - C1)],
+        #                [d41**2 - (C4 - C1)]])
+        #H = 0.5*matrix([[d21**2 + C1 - C2],
+        #                [d31**2 + C1 - C3],
+        #                [d41**2 + C1 - C4]])
+        H = 0.5*matrix([[d21**2 - C2 + C1],
+                        [d31**2 - C3 + C1],
+                        [d41**2 - C4 + C1]])
         return H
 
-    def getLocation(self, r0, r1, r2, r3, r4, std=0):
+    def getLocation(self, r0, r1, r2, r3, r4, clkstd, refstd):
         """
         Simulates the localization of a point at r0, given
         reference points at r1, r2, r3 and r4. This is
@@ -165,27 +171,31 @@ class TDOA(object):
         r4 : matrix
              Reference position vector 4
         """
-        x1 = r1[0]
-        y1 = r1[1]
-        z1 = r1[2]
-        x21 = r2[0] - x1
-        y21 = r2[1] - y1
-        z21 = r2[2] - z1
-        x31 = r3[0] - x1
-        y31 = r3[1] - y1
-        z31 = r3[2] - z1
-        x41 = r4[0] - x1
-        y41 = r4[1] - y1
-        z41 = r4[2] - z1
+        x1 = random.normal(r1[0], refstd)
+        y1 = random.normal(r1[1], refstd)
+        z1 = random.normal(r1[2], refstd)
+        x21 = random.normal(r2[0], refstd) - x1
+        y21 = random.normal(r2[1], refstd) - y1
+        z21 = random.normal(r2[2], refstd) - z1
+        x31 = random.normal(r3[0], refstd) - x1
+        y31 = random.normal(r3[1], refstd) - y1
+        z31 = random.normal(r3[2], refstd) - z1
+        x41 = random.normal(r4[0], refstd) - x1
+        y41 = random.normal(r4[1], refstd) - y1
+        z41 = random.normal(r4[2], refstd) - z1
         M = matrix([[x21, y21, z21],
                     [x31, y31, z31],
                     [x41, y41, z41]])
         #d21 = self.getDistance(r0, r2) - self.getDistance(r0, r1)
         #d31 = self.getDistance(r0, r3) - self.getDistance(r0, r1)
         #d41 = self.getDistance(r0, r4) - self.getDistance(r0, r1)
-        d21 = self.getdt(r0, r1, r2, std)*self.c
-        d31 = self.getdt(r0, r1, r3, std)*self.c
-        d41 = self.getdt(r0, r1, r4, std)*self.c
+        #d21 = self.getdt(r0, r1, r2, clkstd)*self.c
+        #d31 = self.getdt(r0, r1, r3, clkstd)*self.c
+        #d41 = self.getdt(r0, r1, r4, clkstd)*self.c
+        dist1 = random.normal(self.getDistance(r0, r1), clkstd*self.c)
+        d21 = random.normal(self.getDistance(r0, r2), clkstd*self.c) - dist1
+        d31 = random.normal(self.getDistance(r0, r3), clkstd*self.c) - dist1
+        d41 = random.normal(self.getDistance(r0, r4), clkstd*self.c) - dist1
         C1 = self.getC(r1)
         C2 = self.getC(r2)
         C3 = self.getC(r3)
@@ -203,7 +213,12 @@ class TDOA(object):
         c = c1**2 + c2**2 + c3**2
         if (b**2 - 4*a*c < 0):
             print("{}{}{}{}{}{}".format("b^2: ", b**2, "   4ac: ", 4*a*c, "   Diff: ", b**2 - 4*a*c))
-        d1 = (-b - sqrt(b**2 - 4*a*c))/(2*a)
+            print("a1 = {}\na2 = {}\na3 = {}\nD = {}\na = {}".format(a1, a2, a3, D, a))
+            print("c1 = {}\nc2 = {}\nc3 = {}\nb = {}\nc = {}".format(c1, c2, c3, b, c))
+            d1 = -b/(2*a)
+        else:
+            d1 = (-b - sqrt(b**2 - 4*a*c))/(2*a)
+        #print((a*d1**2 + c) + b*d1)
         if (d1 < 0):
             d1 = (-b + sqrt(b**2 - 4*a*c))/(2*a)
             if (d1 < 0):
