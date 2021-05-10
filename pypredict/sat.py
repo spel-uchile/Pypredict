@@ -23,7 +23,7 @@
 from datetime import datetime, timedelta
 from numpy import abs, arccos, arcsin, arctan, arctan2, array, cos, matrix, pi, sin, sqrt, tan
 from pypredict.node import Node
-from sgp4.earth_gravity import wgs72
+from sgp4.earth_gravity import wgs72, wgs84
 from sgp4.ext import rv2coe
 from sgp4.io import twoline2rv
 
@@ -34,7 +34,7 @@ class Sat(Node):
                  "J2", "P_w", "r", "h", "v", "tray_lat", "tray_lng", "B",
                  "bstar", "v_peri", "v_iner", "r_iner", "sat_model", "ndot",
                  "id_launch_data", "element_number", "satnumber", "tray_alt",
-                 "line1", "line2", "tlepath"]
+                 "line1", "line2", "tlepath", "revnum"]
     def __init__(self, name="", line1=None, line2=None, tlepath=None, cat=""):
         """
         Parameters
@@ -61,7 +61,7 @@ class Sat(Node):
         else:
             self.line1 = line1
             self.line2 = line2
-        self.sat_model = twoline2rv(self.line1, self.line2, wgs72)
+        self.sat_model = twoline2rv(self.line1, self.line2, wgs84)#wgs72)
         self.incl = self.sat_model.inclo
         self.RAAN0 = self.sat_model.nodeo
         self.e = self.sat_model.ecco
@@ -76,6 +76,7 @@ class Sat(Node):
         self.id_launch_data = self.sat_model.intldesg
         self.element_number = self.sat_model.elnum
         self.satnumber = self.sat_model.satnum
+        self.revnum = self.sat_model.revnum
         #print(self.name + " TLE found!")
         self.RAAN = self.RAAN0
         self.w = self.w0
@@ -771,6 +772,13 @@ class Sat(Node):
         self.epoch_year = date.year
         self.updateGST0()
 
+    def setTLE(self, line1, line2):
+        checksum1 = self.checksum(line1)
+        checksum2 = self.checksum(line2)
+        self.line1 = "{}{}".format(line1[0:-1], checksum1)
+        self.line2 = "{}{}".format(line2[0:-1], checksum2)
+        self.sat_model = twoline2rv(self.line1, self.line2, wgs84)#wgs72)
+
     def getTLE(self):
         """
         Returns
@@ -805,36 +813,33 @@ class Sat(Node):
                Date used to obtain the epoch of the TLE.
         """
         rad2deg = 180/pi
+        old_epoch_day = self.epoch_day
         self.updateEpoch(date)
-        aux="{:+.9f}".format(self.ndot)
+        new_epoch_day = self.epoch_day
+        revolutions = (new_epoch_day - old_epoch_day)*86400/self.getPeriod()
+        revolutions = int(revolutions) + int(self.revnum)
+        aux="{: .9f}".format(self.ndot)
         ndot = "{}{}".format(aux[0],aux[2:-1])
-        #aux = "{:+.6f}".format(self.bstar*10000)
-        #BSTAR = "{}{}-4".format(aux[0],aux[3:-1])
-        aux="{:+.6f}".format(self.B*2.461*10**(-5)*6378.135*0.5*100)
-        BSTAR = "{}{}-2".format(aux[0],aux[3:-1])
+        aux="{: e}".format(self.B*2.461*10**(-5)*6378.135*0.5)
+        BSTAR = "{}{}-{}".format(aux[0:2], aux[3:7], int(aux[-1])-1)
         aux="{:.8f}".format(self.e)
         e = "{}".format(aux[2:-1])
         tle_num = "{:4d}".format(self.element_number)
         epoch_year = self.epoch_year - 2000
-        line1 = "1 {:05}U {:9}{}{:012.8f} {} +{} {} 0 {}7".format(self.satnumber,
+        line1 = "1 {:05}U {:9}{}{:012.8f} {}  00000-0 {} 0 {}7".format(self.satnumber,
                                                            self.id_launch_data,
                                                            epoch_year,
                                                            self.epoch_day,
                                                            ndot,
-                                                           "00000-0",
                                                            BSTAR,
                                                            tle_num)
-        line2 = "2 {:05} {:8.4f} {:8.4f} {} {:8.4f} {:08.4f} {:11.8f}{}7".format(self.satnumber,
+        line2 = "2 {:05} {:8.4f} {:8.4f} {} {:8.4f} {:8.4f} {:11.8f}{:5d}7".format(self.satnumber,
                                                              self.incl*rad2deg,
                                                              self.RAAN*rad2deg,
                                                              e,
                                                              self.w*rad2deg,
                                                              self.MA*rad2deg,
                                                              86400/self.getPeriod(),
-                                                             "    0")
-        checksum1 = self.checksum(line1)
-        checksum2 = self.checksum(line2)
-        line1 = "{}{}".format(line1[0:-1], checksum1)
-        line2 = "{}{}".format(line2[0:-1], checksum2)
-        self.sat_model = twoline2rv(line1, line2, wgs72)
-        return self.name, line1, line2
+                                                             revolutions)
+        self.setTLE(line1, line2)
+        return self.name, self.line1, self.line2
