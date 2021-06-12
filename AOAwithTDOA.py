@@ -20,7 +20,7 @@
     You should have received a copy of the GNU General Public License
     along with this program. If not, see <https://www.gnu.org/licenses/>.
 """
-from numpy import arange, arctan2, arccos, array, cos, matrix, mean, pi, random, savetxt, sin, std, sqrt, zeros, transpose
+from numpy import arange, arctan2, arccos, array, cos, linalg, matrix, mean, pi, random, savetxt, sin, std, sqrt, zeros, transpose
 from pypredict.dpl import Dpl
 from pypredict.sat import Sat
 from pypredict.dpl import Dpl
@@ -178,8 +178,12 @@ class Locate(object):
             T2 = self.get_Tm(d2, phi2_hat)
             T = self.get_T(d1, d2, b1_hat, b2_hat, L1, L2, T1, T2)
             W = self.get_W(Q, T)
-            u_hat = (G_hat*W.I*G_hat.transpose()).I*G_hat*W.I*h_hat
-            initial_estimate = u_hat
+            if (linalg.det(W) == 0):
+                return initial_estimate
+            else:
+                W_inv = W.I
+                u_hat = (G_hat*W_inv*G_hat.transpose()).I*G_hat*W_inv*h_hat
+                initial_estimate = u_hat
         #MSE = ((T.I*G.transpose()).transpose()*Q.I*T.I*G.transpose()).I
         return u_hat#, MSE
 
@@ -245,8 +249,8 @@ class Locate(object):
         Adds noise to the ideal deployment velocity to simulate the error of the attitude
         determination and control system of the CubeSat that deploys the femto-satellite.
         """
-        yaw_noise = e[0]#e[0] + e[1]
-        pitch_noise = e[1]#e[2] + e[3]
+        yaw_noise = e[0]
+        pitch_noise = e[1]
         yaw = arctan2(v[1], v[0]) + yaw_noise
         pitch = arctan2(v[2], sqrt(v[0]**2 + v[1]**2)) + pitch_noise
         radius = sqrt(v[0]**2 + v[1]**2 + v[2]**2)
@@ -277,62 +281,6 @@ class Locate(object):
             bias[i] = self.Bias(u, estimations, L)
         return rmse, bias
 
-    def sim_deployment(self, L, v, date):
-        std_ADS = 20/3600 # STT of 20 arcseconds.
-        std_ACS = 1       # RW of 1°.
-        std_RD = 10.0
-        std_AOA = 1.0*pi/180.0
-        std_GNSS = 10.0
-        dpl = Dpl()
-        s1_mass = 3.2
-        u_mass = 0.08
-        minutes = [20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100]
-        rmse = zeros(len(minutes))
-        bias = zeros(len(minutes))
-        finer_minutes = arange(38, 199, dtype="float")*0.5 + 1.0
-        rcrb = zeros(len(finer_minutes))
-        dist_u_s1 = zeros(len(finer_minutes))
-        data_path = resource_filename("pypredict","data/")
-        sat_s2 = Sat(name="FLOCK 4P-1", tlepath="{}planet.txt".format(data_path), cat="Planet Labs")
-        dep_noise = self.get_deployment_noise(std_ADS, std_ACS, 10)
-        for i in range(10):
-            sat_s1 = Sat(name="FLOCK 4P-1", tlepath="{}planet.txt".format(data_path), cat="Planet Labs")
-            dep_date = date + timedelta(minutes=10*i)
-            sat_s1.updateOrbitalParameters(dep_date)
-            sat_s2.updateOrbitalParameters(dep_date)
-            vel = self.noisy_dep_velocity(v, dep_noise[:,i])
-            sat_u = dpl.deploy("Femto", sat_s1, s1_mass, u_mass, "FE1", vel, dep_date)
-            r, b = self.sat_simulation(sat_u, sat_s1, sat_s2, L, std_RD, std_AOA, std_GNSS, minutes, dep_date)
-            rmse += r
-            bias += b
-            r, d1, d2, al = self.simulation_RCRB(sat_u, sat_s1, sat_s2, finer_minutes, dep_date, std_RD, std_AOA)
-            rcrb += r
-            dist_u_s1 += d1
-        rmse = sqrt(rmse/10.0)
-        bias = sqrt(bias/10.0)
-        rcrb = sqrt(rcrb/10.0)
-        dist_u_s1 = dist_u_s1/10.0
-        fig, ax = subplots(1, 1)#, sharex=True, sharey=True)
-        ax.semilogy(finer_minutes, dist_u_s1, '-', linewidth=2.0, markersize=12,
-                         label="Distance u-s1", color="tab:purple")
-        ax.semilogy(minutes, rmse, 'o', linewidth=2.0, markersize=12, clip_on=False,
-                         fillstyle="none", label="RMSE")
-        ax.semilogy(finer_minutes, rcrb, '-', linewidth=2.0, markersize=12,
-                         label="Root CRB")
-        ax.semilogy(minutes, bias, '+', linewidth=2.0, markersize=12, clip_on=False,
-                         label="Bias")
-        ax.grid()
-        ax.legend(fontsize=14, loc="upper center", bbox_to_anchor=(0.65,1.0))
-        ax.set(xlabel="Time [min]", ylabel="RMSE and bias [m]",
-               title="Deployment at [{:0.1f}, {:0.1f}, {:0.1f}] m/s".format(v[0], v[1], v[2]))
-        ax.xaxis.label.set_size(16)
-        ax.yaxis.label.set_size(16)
-        ax.tick_params(which="both", direction="in", labelsize=14,
-                       bottom=True, top=True, left=True, right=True)
-        ax.set_xticks([20, 30, 40, 50, 60, 70, 80, 90, 100])
-        axis((20, 100, 4*10**0, 2*10**4))
-        tight_layout()
-
     def sim_deployment_in_1_geom(self, L, v, dep_date):
         """
         Noisy deployments from the same point in orbit.
@@ -345,7 +293,7 @@ class Locate(object):
         dpl = Dpl()
         s1_mass = 3.2
         u_mass = 0.08
-        L0 = 5000#50
+        L0 = 5000
         minutes = [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100]
         rmse = zeros(len(minutes))
         bias = zeros(len(minutes))
@@ -369,13 +317,6 @@ class Locate(object):
             sat_u.updateOrbitalParameters(studied_date)
             sat_s1.updateOrbitalParameters(studied_date)
             sat_s2.updateOrbitalParameters(studied_date + timedelta(seconds=4))
-            u = sat_u.getXYZ()
-            s1 = sat_s1.getXYZ()
-            s2 = sat_s2.getXYZ()
-            d1 = self.get_distance(u, s1)
-            d2 = self.get_distance(u, s2)
-            d3 = self.get_distance(s1, s2)
-            print("s1: {}, u-s1: {}, u-s2: {}, s1-s2: {}".format(s1, d1, d2, d3))
             r, b = self.sat_simulation(sat_u, sat_s1, sat_s2, L, std_RD, std_AOA, std_GNSS, minutes, studied_date)
             rmse += r
             bias += b
@@ -392,13 +333,8 @@ class Locate(object):
         bias = sqrt(bias/L0)
         rcrb = sqrt(rcrb/L0)
         dist_u_s1 = dist_u_s1/L0
-        dist_u_s2 = dist_u_s2/L0*0.001
+        dist_u_s2 = dist_u_s2/L0*0.001 # m to km
         alpha_mean = alpha_mean/L0
-        #savetxt('rmse_bias.csv', transpose([rmse, bias]),
-        #        delimiter=',', newline='\n', fmt='%.18e')
-        #savetxt('rcrb_dist.csv', transpose([rcrb, dist_u_s1]),
-        #        delimiter=',', newline='\n', fmt='%.18e')
-        fig, ax = subplots(1, 1)#, sharex=True, sharey=True)
         ax.set_xlim(0, 100)
         ax.set_ylim(4, 8000)
         ax2 = ax.twinx()
@@ -426,22 +362,17 @@ class Locate(object):
         ax.grid()
         ax.legend(lines, labels, fontsize=14, loc="upper center",
                   bbox_to_anchor=(0.48,1.0), ncol=2)
-        #ax.legend(lines, labels, fontsize=12, loc="upper left", ncol=3)
         ax.set(xlabel="Time [min]", ylabel="RMSE, bias and {} [m]\n{} [km]".format(r'$||\mathbf{u} - \mathbf{s_1}||$', r'$||\mathbf{u} - \mathbf{s_2}||$'),
                title="Deployment at [{:0.1f}, {:0.1f}, {:0.1f}] m/s".format(v[0], v[1], v[2]))
         ax2.set_ylabel("{} [deg]".format(r'$\alpha$'))
         ax.xaxis.label.set_size(16)
         ax.yaxis.label.set_size(16)
         ax2.yaxis.label.set_size(16)
-        #ax.tick_params(which="both", direction="in", labelsize=14,
-        #               bottom=True, top=True, left=True, right=True)
         ax.tick_params(which="both", direction="in", labelsize=14,
                        bottom=True, top=True, left=True, right=False)
         ax2.tick_params(which="both", direction="in", labelsize=14,
                         bottom=False, top=False, left=False, right=True)
-        #ax2.set_ylim(0, 180)
         ax.set_xticks([0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100])
-        #axis((0, 100, 7, 10**4))
         tight_layout()
 
     def simulation2(self, s1, s2, L, std_RD):
@@ -678,7 +609,7 @@ class Locate(object):
         """
         Varies the accuracy of the GNSS device used by the CubeSats.
         """
-        std_GNSS = array([10.0, 15.0, 20.0, 25.0, 30.0])
+        std_GNSS = array([10.0, 50.0, 100.0, 120.0])
         std_ADS = 36/3600 # STT with 36 arcseconds of accuracy.
         std_ACS = 0.06    # RWs of 0.06° of accuracy.
         rmse = zeros(len(std_GNSS))
@@ -687,7 +618,7 @@ class Locate(object):
         dpl = Dpl()
         s1_mass = 3.2
         u_mass = 0.08
-        L0 = 5000#50
+        L0 = 5000
         data_path = resource_filename("pypredict","data/")
         sat_s2 = Sat(name="FLOCK 4P-1", tlepath="{}planet.txt".format(data_path), cat="Planet Labs")
         dep_noise = self.get_deployment_noise(std_ADS, std_ACS, L0)
@@ -696,7 +627,7 @@ class Locate(object):
             sat_s1 = Sat(name="FLOCK 4P-1", tlepath="{}planet.txt".format(data_path), cat="Planet Labs")
             sat_s1.updateOrbitalParameters(dep_date)
             sat_s2.updateOrbitalParameters(dep_date)
-            vel = self.noisy_dep_velocity(v, dep_noise[:,i]) # STT of 36 arcseconds RW of 0.1°.
+            vel = self.noisy_dep_velocity(v, dep_noise[:,i]) # STT of 36 arcseconds RW of 0.06°.
             print(vel)
             sat_u = dpl.deploy("Femto", sat_s1, s1_mass, u_mass, "FE1", vel, dep_date)
             rm, b, rc = self.simulation_GNSS(sat_u, sat_s1, sat_s2, L, std_GNSS, studied_date)
@@ -721,7 +652,7 @@ class Locate(object):
         ax.yaxis.label.set_size(16)
         ax.tick_params(which="both", direction="in", labelsize=14,
                        bottom=True, top=True, left=True, right=True)
-        axis((10, 4*10**1, 10**1, 10**3))
+        axis((10, 2*10**1, 10**1, 120))
         tight_layout()
 
     def simulation_ADCS(self, L, v, std_ADS, std_ACS, dep_date):
@@ -745,6 +676,7 @@ class Locate(object):
         for i, std in enumerate(std_ADS):
             dep_noise = self.get_deployment_noise(std, std_ACS, L)
             for j in range(L):
+                print("std_ADS: {}, j: {}".format(std, j))
                 sat_s1 = Sat(name="FLOCK 4P-1", tlepath="{}planet.txt".format(data_path), cat="Planet Labs")
                 sat_s1.updateOrbitalParameters(dep_date)
                 vel = self.noisy_dep_velocity(v, dep_noise[:,j])
@@ -764,14 +696,20 @@ class Locate(object):
         Studies the effect of the error of the ADCS system in the femto-satellite's
         deployment.
         """
-        std_ADS = array([0.01, 0.03, 0.06, 0.10])#, 0.50, 1.00])#10**(arange(33)*0.0625 - 2.0)
-        std_ACS = [0.01, 0.03, 0.06]#, 0.30]#0.20, 0.30, 0.40]
+        std_ADS = array([0.01, 0.03, 0.06, 0.10])
+        std_ACS = [0.01, 0.03, 0.06]
         rcrb1 = self.simulation_ADCS(L, v, std_ADS, std_ACS[0], dep_date)
         rcrb1 = sqrt(rcrb1)
+        savetxt('adcs_rcrb1.csv', rcrb1,
+                delimiter=',', newline='\n', fmt='%.18e')
         rcrb2 = self.simulation_ADCS(L, v, std_ADS, std_ACS[1], dep_date)
         rcrb2 = sqrt(rcrb2)
+        savetxt('adcs_rcrb2.csv', rcrb2,
+                delimiter=',', newline='\n', fmt='%.18e')
         rcrb3 = self.simulation_ADCS(L, v, std_ADS, std_ACS[2], dep_date)
         rcrb3 = sqrt(rcrb3)
+        savetxt('adcs_rcrb3.csv', rcrb3,
+                delimiter=',', newline='\n', fmt='%.18e')
         #rcrb4 = self.simulation_ADCS(L, v, std_ADS, std_ACS[3], dep_date)
         #rcrb4 = sqrt(rcrb4)
         #rcrb5 = self.simulation_ADCS(L, v, std_ADS, std_ACS[4], dep_date)
@@ -795,8 +733,7 @@ class Locate(object):
         ax.yaxis.label.set_size(16)
         ax.tick_params(which="both", direction="in", labelsize=14,
                        bottom=True, top=True, left=True, right=True)
-        #axis((10**-2.0, 10**0, 10**1, 5*10**1))
-        axis((10**-2.0, 10**-1.0, 10**1, 10**2))
+        axis((10**-2.0, 10**-1.0, 10**1, 2*10**2))
         tight_layout()
 
     def plot_fig_RCRB(self, date0):
@@ -810,7 +747,6 @@ class Locate(object):
                       [ 0.0,  0.0,  1.0],
                       [ 0.0,  0.0, -1.0]]
         div = 32
-        #N = div*100 + 1
         N = div*200 + 1
         minutes = arange(N, dtype="float")/div
         len_minutes = len(minutes)
@@ -869,7 +805,6 @@ class Locate(object):
         ax.yaxis.label.set_size(16)
         ax.tick_params(which="both", direction="in", labelsize=14,
                        bottom=True, top=True, left=True, right=True)
-        #axis((0, 100, 4, 3*10**6))
         axis((0, 200, 4, 3*10**7))
         tight_layout()
         print("Best direction: {}".format(best_dir))
@@ -937,41 +872,39 @@ class Locate(object):
             all_rcrb = self.simulation_multiple_points(vel, date0, minutes)
         fig, ax = subplots(1, 1)
         ax.semilogy(minutes, all_rcrb[0][:len_minutes], '-', linewidth=1.8,
-                    markersize=12, label="Apogee")
-        ax.semilogy(minutes, all_rcrb[1][:len_minutes], '-', linewidth=1.8,
-                    markersize=12, label="Apogee + 10 min")
+                markersize=12, label="Apogee", color="tab:blue")
         ax.semilogy(minutes, all_rcrb[2][:len_minutes], '-', linewidth=1.8,
-                     markersize=12, label="Apogee + 20 min")
+                markersize=12, label="Apogee + 20 min", color="tab:green")
         ax.semilogy(minutes, all_rcrb[3][:len_minutes], '-', linewidth=1.8,
-                     markersize=12, label="Apogee + 30 min")
+                markersize=12, label="Apogee + 30 min", color="tab:red")
         ax.semilogy(minutes, all_rcrb[4][:len_minutes], '-', linewidth=1.8,
-                     markersize=12, label="Apogee + 40 min")
+                markersize=12, label="Apogee + 40 min", color="tab:purple")
         ax.semilogy(minutes, all_rcrb[5][:len_minutes], '-', linewidth=1.8,
-                     markersize=12, label="Apogee + 50 min")
+                markersize=12, label="Apogee + 50 min", color="tab:brown")
         ax.semilogy(minutes, all_rcrb[6][:len_minutes], '-', linewidth=1.8,
-                     markersize=12, label="Apogee + 60 min")
+                markersize=12, label="Apogee + 60 min", color="tab:pink")
         ax.semilogy(minutes, all_rcrb[7][:len_minutes], '-', linewidth=1.8,
-                     markersize=12, label="Apogee + 70 min")
+                markersize=12, label="Apogee + 70 min", color="tab:gray")
         ax.semilogy(minutes, all_rcrb[8][:len_minutes], '-', linewidth=1.8,
-                     markersize=12, label="Apogee + 80 min")
+                markersize=12, label="Apogee + 80 min", color="tab:olive")
         ax.semilogy(minutes, all_rcrb[9][:len_minutes], '-', linewidth=1.8,
-                     markersize=12, label="Apogee + 90 min")
+                markersize=12, label="Apogee + 90 min", color="tab:cyan")
+        ax.semilogy(minutes, all_rcrb[1][:len_minutes], '-', linewidth=1.8,
+                markersize=12, label="Apogee + 10 min", color="tab:orange")
         ax.grid()
-        #handles,labels = ax.get_legend_handles_labels()
-        #handles = [handles[4], handles[5], handles[8], handles[1], handles[6],
-        #           handles[7], handles[3], handles[9], handles[0], handles[2]]
-        #labels = [labels[4], labels[5], labels[8], labels[1], labels[6],
-        #          labels[7], labels[3], labels[9], labels[0], labels[2]]
-        #ax.legend(handles,labels, fontsize=13, loc="upper left", bbox_to_anchor=(0.015,1.0), ncol=2)
-        ax.legend(fontsize=13, loc="upper left", bbox_to_anchor=(0.015,1.0), ncol=2)
+        handles,labels = ax.get_legend_handles_labels()
+        handles = [handles[0], handles[9], handles[1], handles[2], handles[3],
+                   handles[4], handles[5], handles[6], handles[7], handles[8]]
+        labels = [labels[0], labels[9], labels[1], labels[2], labels[3],
+                  labels[4], labels[5], labels[6], labels[7], labels[8]]
+        ax.legend(handles,labels, fontsize=13, loc="upper left", ncol=2)
         ax.set(xlabel="Time [min]", ylabel="Root CRB [m]",
                title="Root CRB of the deployment in different points of the orbit")
         ax.xaxis.label.set_size(16)
         ax.yaxis.label.set_size(16)
         ax.tick_params(which="both", direction="in", labelsize=14,
                        bottom=True, top=True, left=True, right=True)
-        #axis((0, 100, 4.5, 4*10**3))
-        axis((0, 100, 5, 2*10**4))
+        axis((0, 100, 4, 3*10**5))
         tight_layout()
 
 
@@ -993,9 +926,9 @@ if __name__ == "__main__":
     v = [0, 1, 0]
     #v = [0, -1, 0]
     #v = [0, 0, 1]
-    #locate.plot_fig_RCRB(date0)
+    locate.plot_fig_RCRB(date0)
     #locate.plot_fig_point_in_orbit(v, date0)
-    locate.plot_fig_ADCS(100, v, date0 + timedelta(minutes=10))
+    #locate.plot_fig_ADCS(5000, v, date0 + timedelta(minutes=10))
     #locate.plot_fig_GNSS(L, v, date0 + timedelta(minutes=10))
     #locate.sim_deployment_in_1_geom(L, v, date0 + timedelta(minutes=10))
     finish = datetime.utcnow()
