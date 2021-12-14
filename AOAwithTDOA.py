@@ -23,7 +23,6 @@
 from numpy import arange, arctan2, arccos, array, cos, linalg, matrix, mean, pi, random, savetxt, sin, std, sqrt, zeros, transpose
 from pypredict.dpl import Dpl
 from pypredict.sat import Sat
-from pypredict.dpl import Dpl
 from matplotlib.pyplot import axis, plot, setp, show, subplots, subplots_adjust, tight_layout, xticks
 from datetime import datetime, timedelta
 from pkg_resources import resource_filename
@@ -36,10 +35,17 @@ class Locate(object):
         return self
 
     def get_distance(self, u, s):
+        """
+        Calculates the Euclidean distance between the vectors u and s.
+        """
         d = sqrt((u[0,0] - s[0,0])**2 + (u[1,0] - s[1,0])**2 + (u[2,0] - s[2,0])**2)
         return d
 
     def get_real_vector(self, u, s1, s2):
+        """
+        Returns the TDOA and the two angles of arrival without measurement noise, given the
+        position vectors u, s1 and s2.
+        """
         d1 = self.get_distance(u, s1)
         d2 = self.get_distance(u, s2)
         d21 = d2 - d1
@@ -50,6 +56,10 @@ class Locate(object):
         return d21, theta1, phi1, theta2, phi2
 
     def get_b(self, theta, phi):
+        """
+        Returns the unit vector of the location of the femto-satellite, at the angles theta
+        and phi with respect to a given CubeSat.
+        """
         return matrix([[cos(phi)*cos(theta)], [cos(phi)*sin(theta)], [sin(phi)]])
 
     def get_Gm(self, theta, phi):
@@ -94,6 +104,9 @@ class Locate(object):
         return T
 
     def get_Q(self, std_RD, std_AOA):
+        """
+        Generates the measurement noise covariance matrix.
+        """
         Q = matrix([[std_RD**2, 0, 0, 0, 0],
                     [0, std_AOA**2, 0, 0, 0],
                     [0, 0, std_AOA**2, 0, 0],
@@ -102,10 +115,16 @@ class Locate(object):
         return Q
 
     def get_W(self, Q, T):
+        """
+        Returns the covariance matrix.
+        """
         W = T*Q*T.transpose()
         return W
 
     def get_error_vector(self, std_RD, std_AOA, L):
+        """
+        Generates the measurement error for the TDOA and AOA.
+        """
         e = random.randn(5, L)
         e[0,:] = std_RD*(e[0,:] - mean(e[0,:]))
         e[1,:] = std_AOA*(e[1,:] - mean(e[1,:]))
@@ -115,6 +134,9 @@ class Locate(object):
         return e
 
     def get_MSE(self, u, s1, s2, k, Q):
+        """
+        Returns the mean-square error.
+        """
         b1 = self.get_b(k[1], k[2])
         b2 = self.get_b(k[3], k[4])
         G1 = self.get_Gm(k[1], k[2])
@@ -141,6 +163,9 @@ class Locate(object):
         return Dm
 
     def get_FIM(self, u, s1, s2, Q):
+        """
+        Return the Fisher information matrix.
+        """
         d1 = self.get_distance(u, s1)
         d2 = self.get_distance(u, s2)
         c = (u - s2)/d2 - (u - s1)/d1
@@ -188,12 +213,18 @@ class Locate(object):
         return u_hat#, MSE
 
     def RMSE(self, u, estimations, L):
+        """
+        Returns the root-mean-square error.
+        """
         aux = 0
         for est in estimations:
             aux += (est[0,0] - u[0,0])**2 + (est[1,0] - u[1,0])**2 + (est[2,0] - u[2,0])**2
         return aux/L
     
     def Bias(self, u, estimations, L):
+        """
+        Returns the estimation bias.
+        """
         acum_u_hat = matrix([[0.0], [0.0], [0.0]])
         for est in estimations:
             acum_u_hat += est
@@ -397,7 +428,7 @@ class Locate(object):
 
     def plot_fig2(self, L):
         """
-        Figure 2 of A simple and accurate TDOA- AOA localization method using two stations.
+        Figure 2 of A simple and accurate TDOA-AOA localization method using two stations.
         """
         rmse = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
         bias = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
@@ -463,7 +494,7 @@ class Locate(object):
 
     def plot_fig3(self, L):
         """
-        Figure 3 of A simple and accurate TDOA- AOA localization method using two stations.
+        Figure 3 of A simple and accurate TDOA-AOA localization method using two stations.
         """
         std_AOA_deg = [0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0, 2.25, 2.5]
         deg2rad = pi/180.0
@@ -530,7 +561,7 @@ class Locate(object):
 
     def plot_fig4(self, L):
         """
-        Figure 4 of A simple and accurate TDOA- AOA localization method using two stations.
+        Figure 4 of A simple and accurate TDOA-AOA localization method using two stations.
         """
         ratio = [2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0]
         rmse = zeros(len(ratio))
@@ -912,8 +943,10 @@ if __name__ == "__main__":
     start = datetime.utcnow()
     L = 5000
     locate = Locate()
-    #locate.plot_fig_sat_sim(L)
-    #print("Done first plot")
+    """
+    The following three figures are from the research paper called:
+    A Simple and Accurate TDOA-AOA Localization Method Using Two Stations.
+    """
     #locate.plot_fig2(L)
     #print("Done second plot")
     #locate.plot_fig3(L)
