@@ -1148,8 +1148,10 @@ class Locate(object):
         It deploys the femto-satellite at +x, -x, +y, -y, +z,
         and -z from the mother-CubeSat's LVLH frame. At each of
         these directions we simulate 10 deployments at 10 different
-        points of the orbit, and we average the results.
-        This is Figure 4 of the research paper called:
+        points of the orbit, and we average the results. We also
+        select the direction with the lower mean RCRB and we plot
+        all 10 curves generated for that direction.
+        This is Figure 4 and 5 of the research paper called:
         A femto-satellite localization method based on TDOA and AOA
         using two Cubesats.
 
@@ -1609,7 +1611,6 @@ if __name__ == "__main__":
     using two Cubesats.
     """
     locate.plot_fig_RCRB(date0)
-    #locate.plot_fig_point_in_orbit(v, date0)
     #locate.plot_fig_ADCS(5000, v, date0 + timedelta(minutes=10))
     #locate.plot_fig_GNSS(L, v, date0 + timedelta(minutes=10))
     #locate.sim_deployment_in_1_geom(L, v, date0 + timedelta(minutes=10))
