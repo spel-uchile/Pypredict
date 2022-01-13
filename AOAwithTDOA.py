@@ -1545,6 +1545,7 @@ class Locate(object):
         dist_u_s1 = dist_u_s1/L0
         dist_u_s2 = dist_u_s2/L0*0.001 # m to km
         alpha_mean = alpha_mean/L0
+        fig, ax = subplots(1, 1)
         ax.set_xlim(0, 100)
         ax.set_ylim(4, 8000)
         ax2 = ax.twinx()
