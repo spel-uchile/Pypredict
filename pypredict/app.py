@@ -712,7 +712,7 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         dlog_name = "Save TLE data into file"
         file_name = QtWidgets.QFileDialog.getSaveFileName(self, dlog_name, "",
                                                           "Text files (*.txt)")
-        if file_name[0] is '':
+        if file_name[0] == '':
             return
         with open(file_name[0], "w") as f:
             for Sat in self.Sats:

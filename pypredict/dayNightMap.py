@@ -142,10 +142,10 @@ class Map(object):
         self.lat = self.lat*lat2pix
         self.xy = list(zip(self.lng.astype(int),
                            self.lat.astype(int)))
-        if (max(self.lng) is not 2200):
+        if (max(self.lng) != 2200):
             self.xy[argmax(self.lng)] = ((2200,
                 self.lat[argmax(self.lng)]))
-        if (min(self.lng) is not 0):
+        if (min(self.lng) != 0):
             self.xy[argmin(self.lng)] = ((0,
                 self.lat[argmin(self.lng)]))
 
