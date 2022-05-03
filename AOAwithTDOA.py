@@ -1586,6 +1586,128 @@ class Locate(object):
         ax.set_xticks([0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100])
         tight_layout()
 
+    def generate_TLEs(self, v, dep_date):
+        std_ADS = 36/3600 # STT of 36 arcseconds.
+        std_ACS = 0.06    # RW of 0.06°.
+        dpl = Dpl()
+        s1_mass = 3.2
+        u_mass = 0.08
+        L0 = 5000
+        data_path = resource_filename("pypredict","data/")
+        dep_noise = self.get_deployment_noise(std_ADS, std_ACS, L0)
+        studied_date = dep_date + timedelta(days=3)
+        s1_TLEs = []
+        u_TLEs = []
+        for i in range(L0):
+            print("Deployment {}/{}".format(i+1, L0))
+            sat_s1 = Sat(name="FLOCK 4P-1", tlepath="{}planet.txt".format(data_path), cat="Planet Labs")
+            sat_s1.updateOrbitalParameters(dep_date)
+            vel = self.noisy_dep_velocity(v, dep_noise[:,i])
+            sat_u = dpl.deploy("Femto", sat_s1, s1_mass, u_mass, "FE1", vel, dep_date)
+            s1_TLEs.append(sat_s1.getTLE())
+            u_TLEs.append(sat_u.getTLE())
+        with open("s1_TLEs.txt", 'w') as data_file_s1:
+            for i in range(len(s1_TLEs)):
+                data_file_s1.write(s1_TLEs[i] + "\n")
+        with open("u_TLEs.txt", 'w') as data_file_u:
+            for i in range(len(u_TLEs)):
+                data_file_u.write(u_TLEs[i] + "\n")
+
+    def sim_from_generated_data(self, L, v, dep_date):
+        start = datetime.utcnow()
+        std_RD = 10.0
+        std_AOA = 1.0*pi/180.0
+        std_GNSS = 10.0
+        L0 = 5000
+        minutes = [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100]
+        rmse = zeros(len(minutes))
+        bias = zeros(len(minutes))
+        div = 32
+        finer_minutes = arange(0, div*100+1, dtype="float")/div
+        rcrb = zeros(len(finer_minutes))
+        dist_u_s1 = zeros(len(finer_minutes))
+        dist_u_s2 = zeros(len(finer_minutes))
+        alpha_max = zeros(len(finer_minutes))
+        alpha_mean = zeros(len(finer_minutes))
+        alpha_min = zeros(len(finer_minutes)) + 180
+        data_path = resource_filename("pypredict","data/")
+        sat_u = Sat(name="FLOCK 4P-1", tlepath="{}planet.txt".format(data_path), cat="Planet Labs")
+        sat_s1 = Sat(name="FLOCK 4P-1", tlepath="{}planet.txt".format(data_path), cat="Planet Labs")
+        sat_s2 = Sat(name="FLOCK 4P-1", tlepath="{}planet.txt".format(data_path), cat="Planet Labs")
+        studied_date = dep_date + timedelta(days=3)
+        with open("u_TLEs.txt", 'r') as u_TLEs:
+            sat_u_TLEs = u_TLEs.readlines()
+        with open("s1_TLEs.txt", 'r') as s1_TLEs:
+            sat_s1_TLEs = s1_TLEs.readlines()
+        for i in range(L0):
+            print("Deployment {}/{}".format(i+1, L0))
+            sat_u.setTLE(sat_u_TLEs[1 + i*3], sat_u_TLEs[2 + i*3])
+            sat_s1.setTLE(sat_s1_TLEs[1 + i*3], sat_s1_TLEs[2 + i*3])
+            sat_u.updateOrbitalParameters(studied_date)
+            sat_s1.updateOrbitalParameters(studied_date)
+            sat_s2.updateOrbitalParameters(studied_date + timedelta(seconds=4))
+            r, b = self.sat_simulation(sat_u, sat_s1, sat_s2, L, std_RD, std_AOA, std_GNSS, minutes, studied_date)
+            rmse += r
+            bias += b
+            r, d1, d2, al = self.simulation_RCRB(sat_u, sat_s1, sat_s2, finer_minutes, studied_date, std_RD, std_AOA)
+            rcrb += r
+            dist_u_s1 += d1
+            dist_u_s2 += d2
+            alpha_mean += al
+            if (max(al) > max(alpha_max)):
+                alpha_max = al
+            if (min(al) < min(alpha_min)):
+                alpha_min = al
+        rmse = sqrt(rmse/L0)
+        bias = sqrt(bias/L0)
+        rcrb = sqrt(rcrb/L0)
+        dist_u_s1 = dist_u_s1/L0
+        dist_u_s2 = dist_u_s2/L0*0.001 # m to km
+        alpha_mean = alpha_mean/L0
+        fig, ax = subplots(1, 1)
+        ax.set_xlim(0, 100)
+        ax.set_ylim(4, 8000)
+        ax2 = ax.twinx()
+        ax2.set_ylim(0, 180)
+        ax.set_zorder(10)
+        ax.patch.set_visible(False)
+        ln5 = ax2.plot(finer_minutes, alpha_max, '-', linewidth=2.0, markersize=12,
+                         label="{} (max)".format(r'$\alpha$'), color="k")
+        ln6 = ax2.plot(finer_minutes, alpha_mean, '-', linewidth=2.0, markersize=12,
+                label="{} (mean)".format(r'$\alpha$'), color="dimgrey")
+        ln7 = ax2.plot(finer_minutes, alpha_min, '-', linewidth=2.0, markersize=12,
+                         label="{} (min)".format(r'$\alpha$'), color="lightgrey")
+        ln1 = ax.semilogy(minutes, rmse, 'o', linewidth=2.0, markersize=12,# clip_on=False,
+                         fillstyle="none", label="RMSE")
+        ln2 = ax.semilogy(finer_minutes, rcrb, '-', linewidth=2.0, markersize=12,
+                         label="Root CRB", alpha=0.7)
+        ln3 = ax.semilogy(minutes, bias, '+', linewidth=2.0, markersize=12,# clip_on=False,
+                         label="Bias")
+        ln4 = ax.semilogy(finer_minutes, dist_u_s1, '-', linewidth=2.0, markersize=12,
+                         label=r'$||\mathbf{u} - \mathbf{s_1}||$', color="tab:purple", alpha=0.7)
+        ln8 = ax.semilogy(finer_minutes, dist_u_s2, '-', linewidth=2.0, markersize=12,
+                         label=r'$||\mathbf{u} - \mathbf{s_2}||$', color="tab:red")
+        lines = ln1 + ln2 + ln3 + ln4 + ln5 + ln6 + ln7 + ln8
+        labels = [l.get_label() for l in lines]
+        ax.grid()
+        ax.legend(lines, labels, fontsize=14, loc="upper center",
+                  bbox_to_anchor=(0.48,1.0), ncol=2)
+        ax.set(xlabel="Time [min]", ylabel="RMSE, bias and {} [m]\n{} [km]".format(r'$||\mathbf{u} - \mathbf{s_1}||$', r'$||\mathbf{u} - \mathbf{s_2}||$'),
+               title="Deployment at [{:0.1f}, {:0.1f}, {:0.1f}] m/s".format(v[0], v[1], v[2]))
+        ax2.set_ylabel("{} [deg]".format(r'$\alpha$'))
+        ax.xaxis.label.set_size(16)
+        ax.yaxis.label.set_size(16)
+        ax2.yaxis.label.set_size(16)
+        ax.tick_params(which="both", direction="in", labelsize=14,
+                       bottom=True, top=True, left=True, right=False)
+        ax2.tick_params(which="both", direction="in", labelsize=14,
+                        bottom=False, top=False, left=False, right=True)
+        ax.set_xticks([0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100])
+        tight_layout()
+        finish = datetime.utcnow()
+        print("Start: {}\nFinish: {}".format(start, finish))
+        show()
+
 if __name__ == "__main__":
     start = datetime.utcnow()
     L = 5000 # Number of ensemble runs.
