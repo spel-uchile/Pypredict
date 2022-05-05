@@ -130,6 +130,21 @@ The simulation is made using the following command:
 python3 AOAwithTDOA.py
 ```
 
+## Cite our research
+
+```
+@article{vidal2022femto,
+  title={A Femto-Satellite Localization Method Based on TDOA and AOA Using Two CubeSats},
+  author={Vidal-Valladares, Mat{\'\i}as G and D{\'\i}az, Marcos A},
+  journal={Remote Sensing},
+  volume={14},
+  number={5},
+  pages={1101},
+  year={2022},
+  publisher={MDPI}
+}
+```
+
 ## Contact
 
 * Name: Matías Vidal Valladares
