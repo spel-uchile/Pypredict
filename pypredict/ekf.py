@@ -4,7 +4,7 @@
     orbital parameters in real time. Simulates satellite localization
     and deployment.
     
-    Copyright (C) 2018-2020, Matías Vidal Valladares, matvidal.
+    Copyright (C) 2018-2022, Matías Vidal Valladares, matvidal.
     Authors: Matías Vidal Valladares <matias.vidal.v@gmail.com>
 
     This program is free software: you can redistribute it and/or modify
@@ -20,12 +20,12 @@
     You should have received a copy of the GNU General Public License
     along with this program. If not, see <https://www.gnu.org/licenses/>.
 """
-from numpy import matrix, sqrt, transpose
+from numpy import linalg, matrix, sqrt, transpose
 from numpy.linalg import inv
 
 class EKF(object):
     __slots__ = ["A", "H", "H_tr", "I", "K",
-                 "P_pred", "P_up", "Qv", "Qw",
+                 "P_pred", "P_up", "R", "Q",
                  "S", "x_pred", "x_up", "y"]
     def __init__(self):
         self.initMatrices()
@@ -36,7 +36,7 @@ class EKF(object):
     def __str__(self):
         return "EKF applied to estimate a satellite's position and velocity"
 
-    def newIteration(self, dt, n, x, z):
+    def newIteration(self, dt, n, rc, x, s1, s2, z):
         """
         Runs one iteration of the Kalman filter's algorithm.
 
@@ -44,51 +44,91 @@ class EKF(object):
         ----------
         dt : float
              Time step since the last iteration
-        n : float
-            Mean motion of the main satellite
-        x : matrix
-            State vector with the last estimated position and velocity
-        z : matrix
-            Measurement of the satellite's new position
+        n  : float
+             Mean motion of the main satellite
+        rc : float
+             Current orbit radius of the chief satellite
+        x  : matrix
+             State vector with the last estimated position and velocity
+        s1 : matrix
+             Position vector of the s1 satellite
+        s2 : matrix
+             Position vector of the s2 satellite
+        z  : matrix
+             Measurement of the satellite's new position
         """
-        self.initPropagationMatrix(dt, n)
-        self.Predict(x)
-        self.Update(z)
+        self.initPropagationMatrix()
+        self.Predict(dt, n, rc, x)
+        self.Update(s1, s2, z)
 
     def initMatrices(self):
         """Initialize all the matrices needed to run the kalman filter."""
         self.initCovarianceMatrix()
         self.initH()
         self.initIdentityMatrix()
-        self.initQv()
-        self.initQw()
+        self.initR()
+        self.initQ()
 
-    def initPropagationMatrix(self, n, dt):
+    def HCW(self, x, n, rc):
+        G = 6.67408*10**(-11)
+        M = 5.9722*10**24
+        mu = G*M
+        mu_div_norm_rd3 = mu/linalg.norm(matrix([[0], [0], [-rc]]) + x[0:3,0])**3
+        return matrix([[x[3,0]],
+                       [x[4,0]],
+                       [x[5,0]],
+                       [(n**2 - mu_div_norm_rd3)*x[0,0] - 2*n*x[5,0]],
+                       [-mu_div_norm_rd3*x[1,0]],
+                       [(n**2 - mu_div_norm_rd3)*(x[2,0] - rc) + 2*n*x[3,0]]])
+
+    def RK4(self, x, h, iterations, n, rc):
+        half_h = h*0.5
+        h_div_6 = h/6
+        t = 0
+        for k in range(iterations):
+            #k1 = HCW(t, x, n, rc)
+            #k2 = HCW(t + half_h, x + half_h*k1, n, rc)
+            #k3 = HCW(t + half_h, x + half_h*k2, n, rc)
+            #k4 = HCW(t + h, x + h*k3, n, rc)
+            k1 = HCW(x, n, rc)*t
+            k2 = HCW(x + half_h*k1, n, rc)*(t + half_h)
+            k3 = HCW(x + half_h*k2, n, rc)*(t + half_h)
+            k4 = HCW(x + h*k3, n, rc)*(t + h)
+            x = x + h_div_6*(k1 + 2*k2 + 2*k3 + k4)
+            t = t + h
+        return x
+
+    def initPropagationMatrix(self):
         """
         Initialize the propagation matrix A used to propagate the
         state vector.
-
-        Parameters
-        ----------
-        n : float
-            Mean motion of the main satellite
-        dt : float
-             Time step in seconds since the last iteration
         """
-        self.A = matrix([[1, 0, 0, dt, 0, n*dt**2],
-                         [0, 1-n**2*dt**2/2, 0, 0, dt, 0],
-                         [0, 0, 1 + 3*n**2*dt**2/2, -n*dt**2, 0, dt],
-                         [0, 0, 0, 1, 0, 2*n*dt],
-                         [0, -n**2*dt, 0, 0, 1, 0],
-                         [0, 0, 3*n**2*dt, -2*n*dt, 0, 1]])
+        self.A = matrix([[0, 0, 0, 1, 0, 0],
+                         [0, 0, 0, 0, 1, 0],
+                         [0, 0, 0, 0, 0, 1],
+                         [0, 0, 0, 0, 0, 0],
+                         [0, 0, 0, 0, 0, 0],
+                         [0, 0, 0, 0, 0, 0]])
 
-    def initH(self):
+    def initH(self, model=1):
         """
         Initialize the matrix that describes the observation model.
         """
-        self.H = matrix([[1, 0, 0, 0, 0, 0],
-                         [0, 1, 0, 0, 0, 0],
-                         [0, 0, 1, 0, 0, 0]])
+        #self.h = matrix([[linalg.norm(u - s2) - linalg.norm(u - s1)],
+        #                 [arctan2(u[1,0] - s1[1,0], u[0,0] - s1[0,0])],
+        #                 [arctan2(u[2,0] - s1[2,0], sqrt((u[0,0] - s1[0,0])**2 + (u[1,0] - s1[1,0])**2))],
+        #                 [arctan2(u[1,0] - s2[1,0], u[0,0] - s2[0,0])],
+        #                 [arctan2(u[2,0] - s2[2,0], sqrt((u[0,0] - s2[0,0])**2 + (u[1,0] - s2[1,0])**2))]])
+        if (model == 0):
+            self.H = matrix([[0, 0, 0, 0, 0, 0],
+                             [0, 0, 0, 0, 0, 0],
+                             [0, 0, 0, 0, 0, 0],
+                             [0, 0, 0, 0, 0, 0],
+                             [0, 0, 0, 0, 0, 0]])
+        else:
+            self.H = matrix([[1, 0, 0, 0, 0, 0],
+                             [0, 1, 0, 0, 0, 0],
+                             [0, 0, 1, 0, 0, 0]])
         self.H_tr = transpose(self.H)
 
     def initCovarianceMatrix(self):
@@ -109,45 +149,132 @@ class EKF(object):
                          [0, 0, 0, 0, 1, 0],
                          [0, 0, 0, 0, 0, 1]])
 
-    def initQv(self):
+    def initR(self):
         """Initialize the covariance matrix of the observation noise."""
-        self.Qv = matrix([[3.2**2, 0, 0],
-                          [0, 3.2**2, 0],
-                          [0, 0, 3.2**2]])
+        std_RD = 10.0
+        std_AOA = 1.0*pi/180.0
+        self.R = matrix([[std_RD**2, 0, 0, 0, 0],
+                         [0, std_AOA**2, 0, 0, 0],
+                         [0, 0, std_AOA**2, 0, 0],
+                         [0, 0, 0, std_AOA**2, 0],
+                         [0, 0, 0, 0, std_AOA**2]])
 
-    def initQw(self):
+    def initQ(self):
         """Initialize the covariance matrix of the process noise."""
-        self.Qw = matrix([[0**2, 0, 0, 0, 0, 0],
-                          [0, 0**2, 0, 0, 0, 0],
-                          [0, 0, 0**2, 0, 0, 0],
-                          [0, 0, 0, 2**2, 0, 0],
-                          [0, 0, 0, 0, 2**2, 0],
-                          [0, 0, 0, 0, 0, 5**2]])
+        self.Q = matrix([[0**2, 0, 0, 0, 0, 0],
+                         [0, 0**2, 0, 0, 0, 0],
+                         [0, 0, 0**2, 0, 0, 0],
+                         [0, 0, 0, 2**2, 0, 0],
+                         [0, 0, 0, 0, 2**2, 0],
+                         [0, 0, 0, 0, 0, 5**2]])
 
-    def Predict(self, x):
+    def updateH(self, x, s1, s2, model=1):
+        """
+        Updates the matrix that describes the observation model.
+
+        x  :    matrix
+                State vector
+        s1 :    matrix
+                Position vector of the s1 satellite
+        s2 :    matrix
+                Position vector of the s2 satellite
+        model : int
+                Selects the measurement model
+        """
+        if (model == 0):
+            norm_u_s1 = linalg.norm(x[:3,0] - s1)
+            norm_u_s2 = linalg.norm(x[:3,0] - s2)
+            self.H[0,0] = (x[0,0] - s2[0,0])/norm_u_s2 - (x[0,0] - s1[0,0])/norm_u_s1
+            self.H[0,1] = (x[1,0] - s2[1,0])/norm_u_s2 - (x[1,0] - s1[1,0])/norm_u_s1
+            self.H[0,2] = (x[2,0] - s2[2,0])/norm_u_s2 - (x[2,0] - s1[2,0])/norm_u_s1
+            self.H[1,0] = -(x[1,0] - s1[1,0])/((x[0,0] - s1_x[0,0])**2 + (x[1,0] - s1[1,0])**2)
+            self.H[1,1] = (x[0,0] - s1[0,0])/((x[0,0] - s1[0,0])**2 + (x[1,0] - s1[1,0])**2)
+            self.H[2,0] = -(x[0,0] - s1[0,0])*(x[2,0] - s1[2,0])/(sqrt((-s1[0,0] + x[0,0])**2 + (-s1[1,0] + x[1,0])**2)*norm_u_s1**2)
+            self.H[2,1] = -(x[1,0] - s1[1,0])*(x[2,0] - s1[2,0])/(sqrt((-s1[0,0] + x[0,0])**2 + (-s1[1,0] + x[1,0])**2)*norm_u_s1**2)
+            self.H[2,2] = sqrt((-s1[0,0] + x[0,0])**2 + (-s1[1,0] + x[1,0])**2)/norm_u_s1**2
+            self.H[3,0] = -(x[1,0] - s2[1,0])/((x[0,0] - s2[0,0])**2 + (x[1,0] - s2[1,0])**2)
+            self.H[3,1] = (x[0,0] - s2[0,0])/((x[0,0] - s2[0,0])**2 + (x[1,0] - s2[1,0])**2)       
+            self.H[4,0] = -(x[0,0] - s2[0,0])*(x[2,0] - s2[2,0])/(sqrt((-s2[0,0] + x[0,0])**2 + (-s2[1,0] + x[1,0])**2)*norm_u_s2**2)
+            self.H[4,1] = -(x[1,0] - s2[1,0])*(x[2,0] - s2[2,0])/(sqrt((-s2[0,0] + x[0,0])**2 + (-s2[1,0] + x[1,0])**2)*norm_u_s2**2)
+            self.H[4,2] = sqrt((x[0,0] - s2[0,0])**2 + (x[1,0] - s2[1,0])**2)/norm_u_s2**2
+        else:
+            self.H[0,0] = x[0,0]
+            self.H[1,1] = x[1,0]
+            self.H[2,2] = x[2,0]
+        self.H_tr = transpose(self.H)
+
+    def updatePropagationMatrix(self, n, rc, x):
+        """
+        Initialize the propagation matrix A used to propagate the
+        state vector.
+
+        Parameters
+        ----------
+        n  : float
+             Mean motion of the main satellite
+
+        rc : float
+             Distance between the chief satellite and the center of the Earth
+
+        x  : matrix
+             State vector
+        """
+        G = 6.67408*10**(-11)
+        M = 5.9722*10**24
+        mu = G*M
+        norm_rd = sqrt(x[0,0]**2 + x[1,0]**2 + (x[2,0] - rc)**2)
+        mu_div_norm_rd3 = mu/norm_rd**3
+        mu_div_norm_rd5 = mu/norm_rd**5
+        self.A[3,0] = 3*x[0,0]**2*mu_div_norm_rd5 - mu_div_norm_rd3 + n**2
+        self.A[3,1] = 3*x[0,0]*x[1,0]*mu_div_norm_rd5
+        self.A[3,2] = 3*x[0,0]*(x[2,0] - rc)*mu_div_norm_rd5
+        self.A[3,5] = -2*n
+        self.A[4,0] = 3*x[0,0]*mu_div_norm_rd5
+        self.A[4,1] = 3*x[1,0]*mu_div_norm_rd5
+        self.A[4,2] = 3*(x[2,0] - rc)*mu_div_norm_rd5
+        self.A[5,0] = 3*x[0,0]*(x[2,0] - rc)*mu_div_norm_rd5
+        self.A[5,1] = 3*x[1,0]*(x[2,0] - rc)*mu_div_norm_rd5
+        self.A[5,2] = 3*(x[2,0] - rc)**2*mu_div_norm_rd5 - mu_div_norm_rd3 + n**2
+        self.A[5,3] = 2*n
+
+    def Predict(self, dt, n, rc, x):
         """
         Predicts the state vector and the covariance matrix.
 
         Parameters
         ----------
-        x : matrix
-            The state vector, which contains the satellite's
-            position and velocity
+        dt : float
+             Time step since the last iteration
+        n  : float
+             Mean motion of the main satellite
+        rc : float
+             Current orbit radius of the chief satellite
+        x  : matrix
+             The state vector, which contains the satellite's
+             position and velocity
         """
-        self.x_pred = self.A*x
-        self.P_pred = self.A*self.P_up*transpose(self.A) + self.Qw
+        #self.x_pred = self.A*x
+        iterations = 100
+        h = dt/iterations
+        self.RK4(x, h, iterations, n, rc)
+        self.P_pred = self.A*self.P_up*transpose(self.A) + self.Q
 
-    def Update(self, z):
+    def Update(self, s1, s2, z):
         """
         The update function of the kalman filter. This function updates
         the state vector combining the model with the measurements.
 
         Parameters
         ----------
-        z : matrix
-            Measurement vector with the measured position of the satellite
+        s1 : matrix
+             Position vector of the s1 satellite
+        s2 : matrix
+             Position vector of the s2 satellite
+        z  : matrix
+             Measurement vector with the measured position of the satellite
         """
-        self.S = self.H*self.P_pred*self.H_tr + self.Qv
+        self.updateH(self.x_pred, s1, s2):
+        self.S = self.H*self.P_pred*self.H_tr + self.R
         self.K = self.P_pred*self.H_tr*inv(self.S)
         self.y = z - self.H*self.x_pred
         self.x_up = self.x_pred + self.K*self.y
