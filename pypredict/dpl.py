@@ -54,15 +54,19 @@ class Dpl(object):
 
     def perifocal2orbital(self, theta, v):
         phi = theta + pi/2
-        self.Q_po = matrix([[cos(phi), sin(phi), 0],
+        cos_phi = cos(phi)
+        sin_phi = sin(phi)
+        self.Q_po = matrix([[cos_phi, sin_phi, 0],
                             [0, 0, -1],
-                            [-sin(phi), cos(phi), 0]])
+                            [-sin_phi, cos_phi, 0]])
         return self.Q_po*v
 
     def orbital2perifocal(self, theta, v):
         phi = theta + pi/2
-        self.Q_op = matrix([[cos(phi), 0, -sin(phi)],
-                            [sin(phi), 0, cos(phi)],
+        cos_phi = cos(phi)
+        sin_phi = sin(phi)
+        self.Q_op = matrix([[cos_phi, 0, -sin_phi],
+                            [sin_phi, 0, cos_phi],
                             [0, -1, 0]])
         return self.Q_op*v
 
