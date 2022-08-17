@@ -615,7 +615,7 @@ class Loc(object):
         finish = datetime.utcnow()
         print("Start: {}\nFinish: {}\nDelta: {} minutes".format(start, finish, (finish-start).total_seconds()/60))
 
-    def plot_data(self, rcrb_file="worst_rcrb.csv", rmse_file="e_rcrb.csv"):
+    def plot_data(self, rcrb_file="worst_rcrb.csv", rmse_file="rmse.csv"):
         div = 32
         finer_minutes = arange(0, div*100+1, dtype="float")/div
         rcrb = zeros(len(finer_minutes))
