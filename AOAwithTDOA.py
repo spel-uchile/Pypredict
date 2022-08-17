@@ -45,6 +45,7 @@ from pypredict.sat import Sat
 from matplotlib.pyplot import axis, plot, setp, show, subplots, subplots_adjust, tight_layout, xticks
 from datetime import datetime, timedelta
 from pkg_resources import resource_filename
+import csv
 
 class Locate(object):
     def __init__(self):
@@ -136,7 +137,8 @@ class Locate(object):
                 Unit vector of the unknown source (femto-satellite)
                 position.
         """
-        return matrix([[cos(phi)*cos(theta)], [cos(phi)*sin(theta)], [sin(phi)]])
+        cos_phi = cos(phi)
+        return matrix([[cos_phi*cos(theta)], [cos_phi*sin(theta)], [sin(phi)]])
 
     def get_Gm(self, theta, phi):
         """
@@ -154,8 +156,11 @@ class Locate(object):
         Gm
                 Matrix used to calculate G.
         """
-        Gm = matrix([[sin(theta), sin(phi)*cos(theta)],
-                     [-cos(theta), sin(phi)*sin(theta)],
+        cos_theta = cos(theta)
+        sin_phi = sin(phi)
+        sin_theta = sin(theta)
+        Gm = matrix([[sin_theta, sin_phi*cos_theta],
+                     [-cos_theta, sin_phi*sin_theta],
                      [0, -cos(phi)]])
         return Gm
 
@@ -177,9 +182,10 @@ class Locate(object):
         G
              Matrix that depends on the angle measurements.
         """
-        G = matrix([[2*(b2 - b1)[0,0], G1[0,0], G1[0,1], G2[0,0], G2[0,1]],
-                    [2*(b2 - b1)[1,0], G1[1,0], G1[1,1], G2[1,0], G2[1,1]],
-                    [2*(b2 - b1)[2,0], G1[2,0], G1[2,1], G2[2,0], G2[2,1]]])
+        two_b2_minus_b1 = 2*(b2 - b1)
+        G = matrix([[two_b2_minus_b1[0,0], G1[0,0], G1[0,1], G2[0,0], G2[0,1]],
+                    [two_b2_minus_b1[1,0], G1[1,0], G1[1,1], G2[1,0], G2[1,1]],
+                    [two_b2_minus_b1[2,0], G1[2,0], G1[2,1], G2[2,0], G2[2,1]]])
         return G
 
     def get_h(self, d21, s1, s2, b1, b2, G1, G2):
@@ -226,9 +232,13 @@ class Locate(object):
         Lm
                 Matrix used to calculate the matrix T.
         """
-        Lm = matrix([[-cos(phi)*sin(theta), -sin(phi)*cos(theta)],
-                     [cos(phi)*cos(theta), -sin(phi)*sin(theta)],
-                     [0, cos(phi)]])
+        cos_phi = cos(phi)
+        cos_theta = cos(theta)
+        sin_phi = sin(phi)
+        sin_theta = sin(theta)
+        Lm = matrix([[-cos_phi*sin_theta, -sin_phi*cos_theta],
+                     [cos_phi*cos_theta, -sin_phi*sin_theta],
+                     [0, cos_phi]])
         return Lm
 
     def get_Tm(self, d, phi):
@@ -289,10 +299,10 @@ class Locate(object):
         r2b1TL2 = d2*b1.transpose()*L2
         b2_m_b1_t = ((b2 - b1).transpose()*b1)[0,0]
         T = matrix([[-b2_m_b1_t, r1b2TL1[0,0], r1b2TL1[0,1], -r2b1TL2[0,0], -r2b1TL2[0,1]],
-                    [0, T1[0,0], T1[0,1], 0, 0],
-                    [0, T1[1,0], T1[1,1], 0, 0],
-                    [0, 0, 0, T2[0,0], T2[0,1]],
-                    [0, 0, 0, T2[1,0], T2[1,1]]])
+                    [0.0, T1[0,0], T1[0,1], 0.0, 0.0],
+                    [0.0, T1[1,0], T1[1,1], 0.0, 0.0],
+                    [0.0, 0.0, 0.0, T2[0,0], T2[0,1]],
+                    [0.0, 0.0, 0.0, T2[1,0], T2[1,1]]])
         return T
 
     def get_Q(self, std_RD, std_AOA):
@@ -311,11 +321,11 @@ class Locate(object):
         Q
                   Measurement noise covariance matrix.
         """
-        Q = matrix([[std_RD**2, 0, 0, 0, 0],
-                    [0, std_AOA**2, 0, 0, 0],
-                    [0, 0, std_AOA**2, 0, 0],
-                    [0, 0, 0, std_AOA**2, 0],
-                    [0, 0, 0, 0, std_AOA**2]])
+        Q = matrix([[std_RD**2, 0.0, 0.0, 0.0, 0.0],
+                    [0.0, std_AOA**2, 0.0, 0.0, 0.0],
+                    [0.0, 0.0, std_AOA**2, 0.0, 0.0],
+                    [0.0, 0.0, 0.0, std_AOA**2, 0.0],
+                    [0.0, 0.0, 0.0, 0.0, std_AOA**2]])
         return Q
 
     def get_W(self, Q, T):
@@ -401,7 +411,9 @@ class Locate(object):
         T1 = self.get_Tm(d1, k[2])
         T2 = self.get_Tm(d2, k[4])
         T = self.get_T(d1, d2, b1, b2, L1, L2, T1, T2)
-        MSE = ((T.I*G.transpose()).transpose()*Q.I*T.I*G.transpose()).I
+        T_inv = T.I
+        G_transpose = G.transpose()
+        MSE = ((T_inv*G_transpose).transpose()*Q.I*T_inv*G_transpose).I
         return MSE
 
     def get_lm(self, u, sm):
@@ -409,8 +421,9 @@ class Locate(object):
         return lm
 
     def get_Dm(self, u, sm, lm, dm):
+        one_div_lm2 = 1/lm**2
         aux = (u[2,0] - sm[2,0])/(dm**2*lm)
-        Dm = matrix([[-(u[1,0] - sm[1,0])/lm**2, (u[0,0] -  sm[0,0])/lm**2, 0],
+        Dm = matrix([[-(u[1,0] - sm[1,0])*one_div_lm2, (u[0,0] -  sm[0,0])*one_div_lm2, 0],
                      [-(u[0,0] - sm[0,0])*aux, -(u[1,0] - sm[1,0])*aux, lm/dm**2]])
         return Dm
 
@@ -489,8 +502,9 @@ class Locate(object):
         G1_hat = self.get_Gm(theta1_hat, phi1_hat)
         G2_hat = self.get_Gm(theta2_hat, phi2_hat)
         G_hat  = self.get_G(b1_hat, b2_hat, G1_hat, G2_hat)
+        G_hat_transpose = G_hat.transpose()
         h_hat = self.get_h(d21_hat, s1, s2, b1_hat, b2_hat, G1_hat, G2_hat)
-        initial_estimate = (G_hat*G_hat.transpose()).I*G_hat*h_hat
+        initial_estimate = (G_hat*G_hat_transpose).I*G_hat*h_hat
         for i in range(2):
             d1 = self.get_distance(initial_estimate, s1)
             d2 = self.get_distance(initial_estimate, s2)
@@ -504,7 +518,7 @@ class Locate(object):
                 return initial_estimate
             else:
                 W_inv = W.I
-                u_hat = (G_hat*W_inv*G_hat.transpose()).I*G_hat*W_inv*h_hat
+                u_hat = (G_hat*W_inv*G_hat_transpose).I*G_hat*W_inv*h_hat
                 initial_estimate = u_hat
         return u_hat
 
@@ -555,8 +569,8 @@ class Locate(object):
         for est in estimations:
             acum_u_hat += est
         mean_u_hat = acum_u_hat/L
-        bias = self.get_distance(mean_u_hat, u)
-        return bias**2
+        bias = (mean_u_hat[0,0] - u[0,0])**2 + (mean_u_hat[1,0] - u[1,0])**2 + (mean_u_hat[2,0] - u[2,0])**2
+        return bias
 
     def get_GNSS_noise(self, std_GNSS, L):
         """
@@ -611,14 +625,12 @@ class Locate(object):
              Position vector 2 (CubeSat 2) with zero mean Gaussian
              noise due to the GNSS device accuracy.
         """
-        noisy_s1 = matrix([[0.0], [0.0], [0.0]])
-        noisy_s2 = matrix([[0.0], [0.0], [0.0]])
-        noisy_s1[0,0] = s1[0,0] + e[0]
-        noisy_s1[1,0] = s1[1,0] + e[1]
-        noisy_s1[2,0] = s1[2,0] + e[2]
-        noisy_s2[0,0] = s2[0,0] + e[3]
-        noisy_s2[1,0] = s2[1,0] + e[4]
-        noisy_s2[2,0] = s2[2,0] + e[5]
+        noisy_s1 = matrix([[s1[0,0] + e[0]],
+                           [s1[1,0] + e[1]],
+                           [s1[2,0] + e[2]]])
+        noisy_s2 = matrix([[s2[0,0] + e[3]],
+                           [s2[1,0] + e[4]],
+                           [s2[2,0] + e[5]]])
         return noisy_s1, noisy_s2
 
     def get_deployment_noise(self, std_ADS, std_ACS, N):
@@ -988,11 +1000,15 @@ class Locate(object):
         u_mass = 0.08
         L0 = 5000
         data_path = resource_filename("pypredict","data/")
+        sat_s1 = Sat(name="FLOCK 4P-1", tlepath="{}planet.txt".format(data_path), cat="Planet Labs")
         sat_s2 = Sat(name="FLOCK 4P-1", tlepath="{}planet.txt".format(data_path), cat="Planet Labs")
+        sat_s2.setTLE("1 44814U 19081L   20321.73053029  .00001305  00000-0  63025-4 0  9996",
+                      "2 44814  97.4788  21.6285 0013387  80.2501 280.0246 15.20374749 54001")
         dep_noise = self.get_deployment_noise(std_ADS, std_ACS, L0)
         studied_date = dep_date + timedelta(days=3)
         for i in range(L0):
-            sat_s1 = Sat(name="FLOCK 4P-1", tlepath="{}planet.txt".format(data_path), cat="Planet Labs")
+            sat_s1.setTLE("1 44814U 19081L   20321.73053029  .00001305  00000-0  63025-4 0  9996",
+                          "2 44814  97.4788  21.6285 0013387  80.2501 280.0246 15.20374749 54001")
             sat_s1.updateOrbitalParameters(dep_date)
             sat_s2.updateOrbitalParameters(dep_date)
             vel = self.noisy_dep_velocity(v, dep_noise[:,i]) # STT of 36 arcseconds RW of 0.06°.
@@ -1056,7 +1072,10 @@ class Locate(object):
         s1_mass = 3.2
         u_mass = 0.08
         data_path = resource_filename("pypredict","data/")
+        sat_s1 = Sat(name="FLOCK 4P-1", tlepath="{}planet.txt".format(data_path), cat="Planet Labs")
         sat_s2 = Sat(name="FLOCK 4P-1", tlepath="{}planet.txt".format(data_path), cat="Planet Labs")
+        sat_s2.setTLE("1 44814U 19081L   20321.73053029  .00001305  00000-0  63025-4 0  9996",
+                      "2 44814  97.4788  21.6285 0013387  80.2501 280.0246 15.20374749 54001")
         Q = self.get_Q(std_RD, std_AOA)
         date = dep_date + timedelta(days=3)#minutes=100)
         sat_s2.updateOrbitalParameters(date + timedelta(seconds=4))
@@ -1065,7 +1084,8 @@ class Locate(object):
             dep_noise = self.get_deployment_noise(std, std_ACS, L)
             for j in range(L):
                 print("std_ADS: {}, j: {}".format(std, j))
-                sat_s1 = Sat(name="FLOCK 4P-1", tlepath="{}planet.txt".format(data_path), cat="Planet Labs")
+                sat_s1.setTLE("1 44814U 19081L   20321.73053029  .00001305  00000-0  63025-4 0  9996",
+                              "2 44814  97.4788  21.6285 0013387  80.2501 280.0246 15.20374749 54001")
                 sat_s1.updateOrbitalParameters(dep_date)
                 vel = self.noisy_dep_velocity(v, dep_noise[:,j])
                 sat_u = dpl.deploy("Femto", sat_s1, s1_mass, u_mass, "FE1", vel, dep_date)
@@ -1182,11 +1202,15 @@ class Locate(object):
         s1_mass = 3.2
         u_mass = 0.08
         data_path = resource_filename("pypredict","data/")
+        sat_s1 = Sat(name="FLOCK 4P-1", tlepath="{}planet.txt".format(data_path), cat="Planet Labs")
         sat_s2 = Sat(name="FLOCK 4P-1", tlepath="{}planet.txt".format(data_path), cat="Planet Labs")
+        sat_s2.setTLE("1 44814U 19081L   20321.73053029  .00001305  00000-0  63025-4 0  9996",
+                      "2 44814  97.4788  21.6285 0013387  80.2501 280.0246 15.20374749 54001")
         for vel in velocities:
             temp_1_dir_rcrb = []
             for i in range(10):
-                sat_s1 = Sat(name="FLOCK 4P-1", tlepath="{}planet.txt".format(data_path), cat="Planet Labs")
+                sat_s1.setTLE("1 44814U 19081L   20321.73053029  .00001305  00000-0  63025-4 0  9996",
+                              "2 44814  97.4788  21.6285 0013387  80.2501 280.0246 15.20374749 54001")
                 dep_date = date0 + timedelta(minutes=10*i)
                 studied_date = dep_date + timedelta(days=3)
                 sat_s1.updateOrbitalParameters(dep_date)
@@ -1516,11 +1540,15 @@ class Locate(object):
         alpha_mean = zeros(len(finer_minutes))
         alpha_min = zeros(len(finer_minutes)) + 180
         data_path = resource_filename("pypredict","data/")
+        sat_s1 = Sat(name="FLOCK 4P-1", tlepath="{}planet.txt".format(data_path), cat="Planet Labs")
         sat_s2 = Sat(name="FLOCK 4P-1", tlepath="{}planet.txt".format(data_path), cat="Planet Labs")
+        sat_s2.setTLE("1 44814U 19081L   20321.73053029  .00001305  00000-0  63025-4 0  9996",
+                      "2 44814  97.4788  21.6285 0013387  80.2501 280.0246 15.20374749 54001")
         dep_noise = self.get_deployment_noise(std_ADS, std_ACS, L0)
         studied_date = dep_date + timedelta(days=3)
         for i in range(L0):
-            sat_s1 = Sat(name="FLOCK 4P-1", tlepath="{}planet.txt".format(data_path), cat="Planet Labs")
+            sat_s1.setTLE("1 44814U 19081L   20321.73053029  .00001305  00000-0  63025-4 0  9996",
+                          "2 44814  97.4788  21.6285 0013387  80.2501 280.0246 15.20374749 54001")
             sat_s1.updateOrbitalParameters(dep_date)
             vel = self.noisy_dep_velocity(v, dep_noise[:,i])
             sat_u = dpl.deploy("Femto", sat_s1, s1_mass, u_mass, "FE1", vel, dep_date)
@@ -1587,6 +1615,16 @@ class Locate(object):
         tight_layout()
 
     def generate_TLEs(self, v, dep_date):
+        """
+        Simulates 5,000 deployments and saves the TLE data sets in text files.
+
+        Parameters
+        ----------
+        v        : list
+                   Intended deployment velocity (without ADCS noise).
+        dep_date : datetime.datetime
+                   Date on which the deployment takes place.
+        """
         std_ADS = 36/3600 # STT of 36 arcseconds.
         std_ACS = 0.06    # RW of 0.06°.
         dpl = Dpl()
@@ -1594,13 +1632,15 @@ class Locate(object):
         u_mass = 0.08
         L0 = 5000
         data_path = resource_filename("pypredict","data/")
+        sat_s1 = Sat(name="FLOCK 4P-1", tlepath="{}planet.txt".format(data_path), cat="Planet Labs")
         dep_noise = self.get_deployment_noise(std_ADS, std_ACS, L0)
         studied_date = dep_date + timedelta(days=3)
         s1_TLEs = []
         u_TLEs = []
         for i in range(L0):
             print("Deployment {}/{}".format(i+1, L0))
-            sat_s1 = Sat(name="FLOCK 4P-1", tlepath="{}planet.txt".format(data_path), cat="Planet Labs")
+            sat_s1.setTLE("1 44814U 19081L   20321.73053029  .00001305  00000-0  63025-4 0  9996",
+                          "2 44814  97.4788  21.6285 0013387  80.2501 280.0246 15.20374749 54001")
             sat_s1.updateOrbitalParameters(dep_date)
             vel = self.noisy_dep_velocity(v, dep_noise[:,i])
             sat_u = dpl.deploy("Femto", sat_s1, s1_mass, u_mass, "FE1", vel, dep_date)
@@ -1614,6 +1654,20 @@ class Locate(object):
                 data_file_u.write(u_TLEs[i] + "\n")
 
     def sim_from_generated_data(self, L, v, dep_date):
+        """
+        Simulates the localization of a femto-satellite using the
+        TLE data sets that were already generated and saved in txt
+        files.
+
+        Parameters
+        ----------
+        L        : int
+                   Number of ensemble runs.
+        v        : list
+                   Intended deployment velocity (without ADCS noise).
+        dep_date : datetime.datetime
+                   Date on which the deployment takes place.
+        """
         start = datetime.utcnow()
         std_RD = 10.0
         std_AOA = 1.0*pi/180.0
@@ -1708,6 +1762,194 @@ class Locate(object):
         print("Start: {}\nFinish: {}".format(start, finish))
         show()
 
+    def rcrb_from_generated_data(self, dep_date):
+        """
+        Calculates and saves the average RCRB using TLE data sets
+        of the deployment of the femto-satellite.
+
+        Parameters
+        ----------
+        dep_date : datetime.datetime
+                   Date on which the deployment takes place.
+        """
+        start = datetime.utcnow()
+        std_RD = 10.0
+        std_AOA = 1.0*pi/180.0
+        L0 = 5000
+        div = 32
+        finer_minutes = arange(0, div*100+1, dtype="float")/div
+        rcrb = zeros(len(finer_minutes))
+        dist_u_s1 = zeros(len(finer_minutes))
+        dist_u_s2 = zeros(len(finer_minutes))
+        alpha_max = zeros(len(finer_minutes))
+        alpha_mean = zeros(len(finer_minutes))
+        alpha_min = zeros(len(finer_minutes)) + 180
+        data_path = resource_filename("pypredict","data/")
+        sat_u = Sat(name="FLOCK 4P-1", tlepath="{}planet.txt".format(data_path), cat="Planet Labs")
+        sat_s1 = Sat(name="FLOCK 4P-1", tlepath="{}planet.txt".format(data_path), cat="Planet Labs")
+        sat_s2 = Sat(name="FLOCK 4P-1", tlepath="{}planet.txt".format(data_path), cat="Planet Labs")
+        sat_s2.setTLE("1 44814U 19081L   20321.73053029  .00001305  00000-0  63025-4 0  9996",
+                      "2 44814  97.4788  21.6285 0013387  80.2501 280.0246 15.20374749 54001")
+        studied_date = dep_date + timedelta(days=3)
+        with open("u_TLEs.txt", 'r') as u_TLEs:
+            sat_u_TLEs = u_TLEs.readlines()
+        with open("s1_TLEs.txt", 'r') as s1_TLEs:
+            sat_s1_TLEs = s1_TLEs.readlines()
+        for i in range(L0):
+            print("Deployment {}/{}".format(i+1, L0))
+            sat_u.setTLE(sat_u_TLEs[1 + i*3], sat_u_TLEs[2 + i*3])
+            sat_s1.setTLE(sat_s1_TLEs[1 + i*3], sat_s1_TLEs[2 + i*3])
+            sat_u.updateOrbitalParameters(studied_date)
+            sat_s1.updateOrbitalParameters(studied_date)
+            sat_s2.updateOrbitalParameters(studied_date + timedelta(seconds=4))
+            r, d1, d2, al = self.simulation_RCRB(sat_u, sat_s1, sat_s2, finer_minutes, studied_date, std_RD, std_AOA)
+            rcrb += r
+            dist_u_s1 += d1
+            dist_u_s2 += d2
+            alpha_mean += al
+            if (max(al) > max(alpha_max)):
+                alpha_max = al
+            if (min(al) < min(alpha_min)):
+                alpha_min = al
+        rcrb = sqrt(rcrb/L0)
+        dist_u_s1 = dist_u_s1/L0
+        dist_u_s2 = dist_u_s2/L0*0.001 # m to km
+        alpha_mean = alpha_mean/L0
+        with open("rcrb.csv", 'w') as data_file_rcrb:
+            outRCRB = csv.writer(data_file_rcrb)
+            outRCRB.writerow(["RCRB", "Distance u-s1", "Distance u-s2", "Alpha min", "Alpha mean", "Alpha max"])
+            for i in range(len(rcrb)):
+                outRCRB.writerow([rcrb[i], dist_u_s1[i], dist_u_s2[i],
+                         alpha_min[i], alpha_mean[i], alpha_max[i]])
+        finish = datetime.utcnow()
+        print("Start: {}\nFinish: {}\nDelta: {}".format(start, finish, finish-start))
+
+    def save_rcrb(self, dep_date, L0=[582, 2989, 963, 3714, 425], filename="five_worst_rcrb.csv"):
+        """
+        Calculates the average of the list of deployment scenarios
+        and saves it in a csv file.
+
+        Parameters
+        ----------
+        dep_date : datetime.datetime
+                   Date on which the deployment takes place.
+        L0       : list
+                   Index of the deployment scenarios to be studied.
+        filename : str
+                   The name of the csv file to save the results.
+        """
+        start = datetime.utcnow()
+        std_RD = 10.0
+        std_AOA = 1.0*pi/180.0
+        div = 32
+        finer_minutes = arange(0, div*100+1, dtype="float")/div
+        rcrb = zeros(len(finer_minutes))
+        dist_u_s1 = zeros(len(finer_minutes))
+        dist_u_s2 = zeros(len(finer_minutes))
+        alpha_max = zeros(len(finer_minutes))
+        alpha_mean = zeros(len(finer_minutes))
+        alpha_min = zeros(len(finer_minutes)) + 180
+        data_path = resource_filename("pypredict","data/")
+        sat_u = Sat(name="FLOCK 4P-1", tlepath="{}planet.txt".format(data_path), cat="Planet Labs")
+        sat_s1 = Sat(name="FLOCK 4P-1", tlepath="{}planet.txt".format(data_path), cat="Planet Labs")
+        sat_s2 = Sat(name="FLOCK 4P-1", tlepath="{}planet.txt".format(data_path), cat="Planet Labs")
+        sat_s2.setTLE("1 44814U 19081L   20321.73053029  .00001305  00000-0  63025-4 0  9996",
+                      "2 44814  97.4788  21.6285 0013387  80.2501 280.0246 15.20374749 54001")
+        studied_date = dep_date + timedelta(days=3)
+        with open("u_TLEs.txt", 'r') as u_TLEs:
+            sat_u_TLEs = u_TLEs.readlines()
+        with open("s1_TLEs.txt", 'r') as s1_TLEs:
+            sat_s1_TLEs = s1_TLEs.readlines()
+        for l0 in L0:
+            print("Deployment {}".format(l0))
+            sat_u.setTLE(sat_u_TLEs[1 + l0*3], sat_u_TLEs[2 + l0*3])
+            sat_s1.setTLE(sat_s1_TLEs[1 + l0*3], sat_s1_TLEs[2 + l0*3])
+            sat_u.updateOrbitalParameters(studied_date)
+            sat_s1.updateOrbitalParameters(studied_date)
+            sat_s2.updateOrbitalParameters(studied_date + timedelta(seconds=4))
+            r, d1, d2, al = self.simulation_RCRB(sat_u, sat_s1, sat_s2, finer_minutes, studied_date, std_RD, std_AOA)
+            rcrb += r
+            dist_u_s1 += d1
+            dist_u_s2 += d2
+            alpha_mean += al
+            if (max(al) > max(alpha_max)):
+                alpha_max = al
+            if (min(al) < min(alpha_min)):
+                alpha_min = al
+        rcrb = sqrt(rcrb/len(L0))
+        dist_u_s1 = dist_u_s1/len(L0)
+        dist_u_s2 = dist_u_s2/len(L0)*0.001 # m to km
+        alpha_mean = alpha_mean/len(L0)
+        with open(filename, 'w') as data_file_rcrb:
+            outRCRB = csv.writer(data_file_rcrb)
+            outRCRB.writerow(["RCRB", "Distance u-s1", "Distance u-s2", "Alpha min", "Alpha mean", "Alpha max"])
+            for i in range(len(rcrb)):
+                outRCRB.writerow([rcrb[i], dist_u_s1[i], dist_u_s2[i],
+                         alpha_min[i], alpha_mean[i], alpha_max[i]])
+        finish = datetime.utcnow()
+        print("Start: {}\nFinish: {}\nDelta: {} minutes".format(start, finish, (finish-start).total_seconds()/60))
+
+    def plot_from_generated_data(self, filename="rcrb.csv"):
+        """
+        Plots the data inside the indicated csv file.
+        """
+        start = datetime.utcnow()
+        div = 32
+        finer_minutes = arange(0, div*100+1, dtype="float")/div
+        rcrb = zeros(len(finer_minutes))
+        dist_u_s1 = zeros(len(finer_minutes))
+        dist_u_s2 = zeros(len(finer_minutes))
+        alpha_max = zeros(len(finer_minutes))
+        alpha_mean = zeros(len(finer_minutes))
+        alpha_min = zeros(len(finer_minutes))
+        with open(filename, newline='') as f:
+            reader = csv.reader(f, delimiter=",")
+            next(reader)
+            data = array(list(reader))#[:,0]
+        for i in range(len(data)):
+            rcrb[i] = float(data[i,0])
+            dist_u_s1[i] = float(data[i,1])
+            dist_u_s2[i] = float(data[i,2])
+            alpha_min[i] = float(data[i,3])
+            alpha_mean[i] = float(data[i,4])
+            alpha_max[i] = float(data[i,5])
+        v = [0, 1, 0]
+        fig, ax = subplots(1, 1)
+        ax.set_xlim(0, 100)
+        ax.set_ylim(4, 100000)
+        ax2 = ax.twinx()
+        ax2.set_ylim(0, 180)
+        ax.set_zorder(10)
+        ax.patch.set_visible(False)
+        ln5 = ax2.plot(finer_minutes, alpha_max, '-', linewidth=2.0, markersize=12,
+                       label="{} (max)".format(r'$\alpha$'), color="k")
+        ln6 = ax2.plot(finer_minutes, alpha_mean, '-', linewidth=2.0, markersize=12,
+                       label="{} (mean)".format(r'$\alpha$'), color="dimgrey")
+        ln7 = ax2.plot(finer_minutes, alpha_min, '-', linewidth=2.0, markersize=12,
+                       label="{} (min)".format(r'$\alpha$'), color="lightgrey")
+        ln2 = ax.semilogy(finer_minutes, rcrb, '-', linewidth=2.0, markersize=12,
+                          label="Root CRB", color="tab:orange", alpha=0.7)
+        ln4 = ax.semilogy(finer_minutes, dist_u_s1, '-', linewidth=2.0, markersize=12,
+                          label=r'$||\mathbf{u} - \mathbf{s_1}||$', color="tab:purple", alpha=0.7)
+        ln8 = ax.semilogy(finer_minutes, dist_u_s2, '-', linewidth=2.0, markersize=12,
+                          label=r'$||\mathbf{u} - \mathbf{s_2}||$', color="tab:red")
+        ax.grid()
+        ax.set(xlabel="Time [min]", ylabel="RMSE, bias and {} [m]\n{} [km]".format(r'$||\mathbf{u} - \mathbf{s_1}||$', r'$||\mathbf{u} - \mathbf{s_2}||$'),
+                       title="Deployment at [{:0.1f}, {:0.1f}, {:0.1f}] m/s".format(v[0], v[1], v[2]))
+        ax2.set_ylabel("{} [deg]".format(r'$\alpha$'))
+        ax.xaxis.label.set_size(16)
+        ax.yaxis.label.set_size(16)
+        ax2.yaxis.label.set_size(16)
+        ax.tick_params(which="both", direction="in", labelsize=14,
+                       bottom=True, top=True, left=True, right=False)
+        ax2.tick_params(which="both", direction="in", labelsize=14,
+                        bottom=False, top=False, left=False, right=True)
+        ax.set_xticks([0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100])
+        tight_layout()
+        finish = datetime.utcnow()
+        print("Start: {}\nFinish: {}".format(start, finish))
+        show()
+
 if __name__ == "__main__":
     start = datetime.utcnow()
     L = 5000 # Number of ensemble runs.
@@ -1724,19 +1966,17 @@ if __name__ == "__main__":
     #print("Done fourth plot")
 
     date0 = datetime(2020, 11, 17, 00, 13, 33, 0) # True anomaly = 0
-    #v = [1, 0, 0]
     v = [0, 1, 0]
-    #v = [0, -1, 0]
-    #v = [0, 0, 1]
     """
     The following five figures are from the research paper called:
     A femto-satellite localization method based on TDOA and AOA
     using two Cubesats.
     """
-    locate.plot_fig_RCRB(date0)
+    #locate.plot_fig_RCRB(date0)
     #locate.plot_fig_ADCS(5000, v, date0 + timedelta(minutes=10))
     #locate.plot_fig_GNSS(L, v, date0 + timedelta(minutes=10))
     #locate.sim_deployment_in_1_geom(L, v, date0 + timedelta(minutes=10))
+    #locate.sim_from_generated_data(L, v, date0 + timedelta(minutes=10))
     finish = datetime.utcnow()
     print("Start: {}".format(start))
     print("Finish: {}".format(finish))
