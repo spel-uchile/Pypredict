@@ -486,7 +486,7 @@ class Loc(object):
         finish = datetime.utcnow()
         print("Start: {}\nFinish: {}\nDelta: {} minutes".format(start, finish, (finish-start).total_seconds()/60))
 
-    def test_case3(self, L0=[3, 15, 76, 309, 425], L=5000, output="rmse.csv"):
+    def test_case3(self, L0=[582, 2989, 963, 3714, 425], L=5000, output="rmse.csv"):
         std_RD = 10.0
         std_AOA = 1.0*pi/180.0
         std_GNSS = 10.0
@@ -506,7 +506,6 @@ class Loc(object):
         date0 = datetime(2020, 11, 17, 00, 13, 33, 0)
         dep_date = date0 + timedelta(minutes=10)
         initial_date = dep_date + timedelta(days=3)
-        #L0 = [3, 15, 76, 309, 425]     # Worst cases
         ekf = EKF()
         meas_dt = 2.0#0.2
         model_dt = 0.01
