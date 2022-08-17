@@ -20,7 +20,7 @@
     You should have received a copy of the GNU General Public License
     along with this program. If not, see <https://www.gnu.org/licenses/>.
 """
-from numpy import linalg, matrix, sqrt, transpose
+from numpy import linalg, matrix, pi, sqrt, transpose
 from numpy.linalg import inv
 
 class EKF(object):
@@ -57,7 +57,6 @@ class EKF(object):
         z  : matrix
              Measurement of the satellite's new position
         """
-        self.initPropagationMatrix()
         self.Predict(dt, n, rc, x)
         self.Update(s1, s2, z)
 
@@ -68,18 +67,27 @@ class EKF(object):
         self.initIdentityMatrix()
         self.initR()
         self.initQ()
+        self.initPropagationMatrix()
 
     def HCW(self, x, n, rc):
-        G = 6.67408*10**(-11)
-        M = 5.9722*10**24
-        mu = G*M
+        #G = 6.67408*10**(-11)
+        #M = 5.9722*10**24
+        mu = 398589405759999.94 #G*M
         mu_div_norm_rd3 = mu/linalg.norm(matrix([[0], [0], [-rc]]) + x[0:3,0])**3
+        n2_minus_mu_div_norm_rd3 = n**2 - mu_div_norm_rd3
+        two_n = 2*n
+        #return matrix([[x[3,0]],
+        #               [x[4,0]],
+        #               [x[5,0]],
+        #               [n2_minus_mu_div_norm_rd3*x[0,0] - two_n*x[5,0]],
+        #               [-mu_div_norm_rd3*x[1,0]],
+        #               [n2_minus_mu_div_norm_rd3*(x[2,0] - rc) + two_n*x[3,0]]])
         return matrix([[x[3,0]],
                        [x[4,0]],
                        [x[5,0]],
-                       [(n**2 - mu_div_norm_rd3)*x[0,0] - 2*n*x[5,0]],
+                       [n2_minus_mu_div_norm_rd3*x[0,0] + two_n*x[5,0]],
                        [-mu_div_norm_rd3*x[1,0]],
-                       [(n**2 - mu_div_norm_rd3)*(x[2,0] - rc) + 2*n*x[3,0]]])
+                       [n2_minus_mu_div_norm_rd3*(x[2,0] - rc) - two_n*x[3,0]]])
 
     def RK4(self, x, h, iterations, n, rc):
         half_h = h*0.5
@@ -90,12 +98,14 @@ class EKF(object):
             #k2 = HCW(t + half_h, x + half_h*k1, n, rc)
             #k3 = HCW(t + half_h, x + half_h*k2, n, rc)
             #k4 = HCW(t + h, x + h*k3, n, rc)
-            k1 = HCW(x, n, rc)*t
-            k2 = HCW(x + half_h*k1, n, rc)*(t + half_h)
-            k3 = HCW(x + half_h*k2, n, rc)*(t + half_h)
-            k4 = HCW(x + h*k3, n, rc)*(t + h)
+            t_plus_half_h = t + half_h
+            t_plus_h = t + h
+            k1 = self.HCW(x, n, rc)*t
+            k2 = self.HCW(x + half_h*k1, n, rc)*t_plus_half_h
+            k3 = self.HCW(x + half_h*k2, n, rc)*t_plus_half_h
+            k4 = self.HCW(x + h*k3, n, rc)*t_plus_h
             x = x + h_div_6*(k1 + 2*k2 + 2*k3 + k4)
-            t = t + h
+            t = t_plus_h
         return x
 
     def initPropagationMatrix(self):
@@ -103,12 +113,12 @@ class EKF(object):
         Initialize the propagation matrix A used to propagate the
         state vector.
         """
-        self.A = matrix([[0, 0, 0, 1, 0, 0],
-                         [0, 0, 0, 0, 1, 0],
-                         [0, 0, 0, 0, 0, 1],
-                         [0, 0, 0, 0, 0, 0],
-                         [0, 0, 0, 0, 0, 0],
-                         [0, 0, 0, 0, 0, 0]])
+        self.A = matrix([[0.0, 0.0, 0.0, 1.0, 0.0, 0.0],
+                         [0.0, 0.0, 0.0, 0.0, 1.0, 0.0],
+                         [0.0, 0.0, 0.0, 0.0, 0.0, 1.0],
+                         [0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+                         [0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+                         [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]])
 
     def initH(self, model=1):
         """
@@ -120,53 +130,59 @@ class EKF(object):
         #                 [arctan2(u[1,0] - s2[1,0], u[0,0] - s2[0,0])],
         #                 [arctan2(u[2,0] - s2[2,0], sqrt((u[0,0] - s2[0,0])**2 + (u[1,0] - s2[1,0])**2))]])
         if (model == 0):
-            self.H = matrix([[0, 0, 0, 0, 0, 0],
-                             [0, 0, 0, 0, 0, 0],
-                             [0, 0, 0, 0, 0, 0],
-                             [0, 0, 0, 0, 0, 0],
-                             [0, 0, 0, 0, 0, 0]])
+            self.H = matrix([[0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+                             [0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+                             [0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+                             [0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+                             [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]])
         else:
-            self.H = matrix([[1, 0, 0, 0, 0, 0],
-                             [0, 1, 0, 0, 0, 0],
-                             [0, 0, 1, 0, 0, 0]])
+            self.H = matrix([[1.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+                             [0.0, 1.0, 0.0, 0.0, 0.0, 0.0],
+                             [0.0, 0.0, 1.0, 0.0, 0.0, 0.0]])
         self.H_tr = transpose(self.H)
 
     def initCovarianceMatrix(self):
         """Initialize the kalman filter's covariance matrix."""
-        self.P_up = matrix([[200**2, 0, 0, 0, 0, 0],
-                            [0, 200**2, 0, 0, 0, 0],
-                            [0, 0, 200**2, 0, 0, 0],
-                            [0, 0, 0, 200**2, 0, 0],
-                            [0, 0, 0, 0, 200**2, 0],
-                            [0, 0, 0, 0, 0, 200**2]])
+        self.P_up = matrix([[200.0**2, 0.0, 0.0, 0.0, 0.0, 0.0],
+                            [0.0, 200.0**2, 0.0, 0.0, 0.0, 0.0],
+                            [0.0, 0.0, 200.0**2, 0.0, 0.0, 0.0],
+                            [0.0, 0.0, 0.0, 200.0**2, 0.0, 0.0],
+                            [0.0, 0.0, 0.0, 0.0, 200.0**2, 0.0],
+                            [0.0, 0.0, 0.0, 0.0, 0.0, 200.0**2]])
 
     def initIdentityMatrix(self):
         """Initialize the 6x6 identity matrix."""
-        self.I = matrix([[1, 0, 0, 0, 0, 0],
-                         [0, 1, 0, 0, 0, 0],
-                         [0, 0, 1, 0, 0, 0],
-                         [0, 0, 0, 1, 0, 0],
-                         [0, 0, 0, 0, 1, 0],
-                         [0, 0, 0, 0, 0, 1]])
+        self.I = matrix([[1.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+                         [0.0, 1.0, 0.0, 0.0, 0.0, 0.0],
+                         [0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
+                         [0.0, 0.0, 0.0, 1.0, 0.0, 0.0],
+                         [0.0, 0.0, 0.0, 0.0, 1.0, 0.0],
+                         [0.0, 0.0, 0.0, 0.0, 0.0, 1.0]])
 
-    def initR(self):
+    def initR(self, model=1):
         """Initialize the covariance matrix of the observation noise."""
-        std_RD = 10.0
-        std_AOA = 1.0*pi/180.0
-        self.R = matrix([[std_RD**2, 0, 0, 0, 0],
-                         [0, std_AOA**2, 0, 0, 0],
-                         [0, 0, std_AOA**2, 0, 0],
-                         [0, 0, 0, std_AOA**2, 0],
-                         [0, 0, 0, 0, std_AOA**2]])
+        if (model == 0):
+            std_RD = 10.0
+            std_AOA = 1.0*pi/180.0
+            self.R = matrix([[std_RD**2, 0.0, 0.0, 0.0, 0.0],
+                             [0.0, std_AOA**2, 0.0, 0.0, 0.0],
+                             [0.0, 0.0, std_AOA**2, 0.0, 0.0],
+                             [0.0, 0.0, 0.0, std_AOA**2, 0.0],
+                             [0.0, 0.0, 0.0, 0.0, std_AOA**2]])
+        else:
+            std_pos = 2#30/sqrt(3)
+            self.R = matrix([[std_pos**2, 0.0, 0.0],
+                             [0.0, std_pos**2, 0.0],
+                             [0.0, 0.0, std_pos**2]])
 
     def initQ(self):
         """Initialize the covariance matrix of the process noise."""
-        self.Q = matrix([[0**2, 0, 0, 0, 0, 0],
-                         [0, 0**2, 0, 0, 0, 0],
-                         [0, 0, 0**2, 0, 0, 0],
-                         [0, 0, 0, 2**2, 0, 0],
-                         [0, 0, 0, 0, 2**2, 0],
-                         [0, 0, 0, 0, 0, 5**2]])
+        self.Q = matrix([[5.0**2, 0.0, 0.0, 0.0, 0.0, 0.0],
+                         [0.0, 5.0**2, 0.0, 0.0, 0.0, 0.0],
+                         [0.0, 0.0, 5.0**2, 0.0, 0.0, 0.0],
+                         [0.0, 0.0, 0.0, 2.0**2, 0.0, 0.0],
+                         [0.0, 0.0, 0.0, 0.0, 2.0**2, 0.0],
+                         [0.0, 0.0, 0.0, 0.0, 0.0, 2.0**2]])
 
     def updateH(self, x, s1, s2, model=1):
         """
@@ -222,19 +238,21 @@ class EKF(object):
         G = 6.67408*10**(-11)
         M = 5.9722*10**24
         mu = G*M
-        norm_rd = sqrt(x[0,0]**2 + x[1,0]**2 + (x[2,0] - rc)**2)
+        z_minus_rc = x[2,0] - rc
+        norm_rd = sqrt(x[0,0]**2 + x[1,0]**2 + z_minus_rc**2)
         mu_div_norm_rd3 = mu/norm_rd**3
         mu_div_norm_rd5 = mu/norm_rd**5
+        xy = x[0,0]*x[1,0]
         self.A[3,0] = 3*x[0,0]**2*mu_div_norm_rd5 - mu_div_norm_rd3 + n**2
-        self.A[3,1] = 3*x[0,0]*x[1,0]*mu_div_norm_rd5
-        self.A[3,2] = 3*x[0,0]*(x[2,0] - rc)*mu_div_norm_rd5
-        self.A[3,5] = -2*n
-        self.A[4,0] = 3*x[0,0]*mu_div_norm_rd5
-        self.A[4,1] = 3*x[1,0]*mu_div_norm_rd5
-        self.A[4,2] = 3*(x[2,0] - rc)*mu_div_norm_rd5
-        self.A[5,0] = 3*x[0,0]*(x[2,0] - rc)*mu_div_norm_rd5
-        self.A[5,1] = 3*x[1,0]*(x[2,0] - rc)*mu_div_norm_rd5
-        self.A[5,2] = 3*(x[2,0] - rc)**2*mu_div_norm_rd5 - mu_div_norm_rd3 + n**2
+        self.A[3,1] = 3*xy*mu_div_norm_rd5
+        self.A[3,2] = 3*x[0,0]*z_minus_rc*mu_div_norm_rd5
+        self.A[3,5] = 2*n
+        self.A[4,0] = 3*xy*mu_div_norm_rd5
+        self.A[4,1] = 3*x[1,0]*mu_div_norm_rd5 - mu_div_norm_rd3
+        self.A[4,2] = 3*z_minus_rc*mu_div_norm_rd5
+        self.A[5,0] = 3*x[0,0]*z_minus_rc*mu_div_norm_rd5
+        self.A[5,1] = 3*x[1,0]*z_minus_rc*mu_div_norm_rd5
+        self.A[5,2] = 3*z_minus_rc**2*mu_div_norm_rd5 - mu_div_norm_rd3 + n**2
         self.A[5,3] = 2*n
 
     def Predict(self, dt, n, rc, x):
@@ -254,9 +272,9 @@ class EKF(object):
              position and velocity
         """
         #self.x_pred = self.A*x
-        iterations = 100
+        iterations = 1#2#100
         h = dt/iterations
-        self.RK4(x, h, iterations, n, rc)
+        self.x_pred = self.RK4(x, h, iterations, n, rc)
         self.P_pred = self.A*self.P_up*transpose(self.A) + self.Q
 
     def Update(self, s1, s2, z):
@@ -273,12 +291,14 @@ class EKF(object):
         z  : matrix
              Measurement vector with the measured position of the satellite
         """
-        self.updateH(self.x_pred, s1, s2):
+        self.updateH(self.x_pred, s1, s2)
+        #print("H: {}\nP_pred: {}\nH_tr: {}\nR: {}".format(self.H, self.P_pred, self.H_tr, self.R))
         self.S = self.H*self.P_pred*self.H_tr + self.R
         self.K = self.P_pred*self.H_tr*inv(self.S)
         self.y = z - self.H*self.x_pred
         self.x_up = self.x_pred + self.K*self.y
         self.P_up = (self.I - self.K*self.H)*self.P_pred
+        #print("x_up: {}".format(self.x_up))
 
     def getPosition(self):
         """
