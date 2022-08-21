@@ -615,29 +615,141 @@ class Loc(object):
         finish = datetime.utcnow()
         print("Start: {}\nFinish: {}\nDelta: {} minutes".format(start, finish, (finish-start).total_seconds()/60))
 
-    def plot_data(self, rcrb_file="worst_rcrb.csv", rmse_file="rmse.csv"):
+    def test_without_model(self, L0=[2824], L=5000, output="best_rmse.csv"):
+        std_RD = 10.0
+        std_AOA = 1.0*pi/180.0
+        std_GNSS = 10.0
+        Q = self.loc.get_Q(std_RD, std_AOA)
+        data_path = resource_filename("pypredict","data/")
+        sat_u = Sat(name="FLOCK 4P-1", tlepath="{}planet.txt".format(data_path), cat="Planet Labs")
+        sat_s1 = Sat(name="FLOCK 4P-1", tlepath="{}planet.txt".format(data_path), cat="Planet Labs")
+        sat_s2 = Sat(name="FLOCK 4P-1", tlepath="{}planet.txt".format(data_path), cat="Planet Labs")
+        sat_s2.setTLE("1 44814U 19081L   20321.73053029  .00001305  00000-0  63025-4 0  9996",
+                      "2 44814  97.4788  21.6285 0013387  80.2501 280.0246 15.20374749 54001")
+        with open("u_TLEs.txt", 'r') as u_TLEs:
+            sat_u_TLEs = u_TLEs.readlines()
+
+        with open("s1_TLEs.txt", 'r') as s1_TLEs:
+            sat_s1_TLEs = s1_TLEs.readlines()
+
+        date0 = datetime(2020, 11, 17, 00, 13, 33, 0)
+        dep_date = date0 + timedelta(minutes=10)
+        initial_date = dep_date + timedelta(days=3)
+        ekf = EKF()
+        meas_dt = 2.0#0.2
+        x = zeros([6,1])
+        iterations = 1
+        start = datetime.utcnow()
+        minutes = zeros(42)
+        for i in range(21):
+            minutes[2*i] = i*5.0 - meas_dt/60
+            minutes[2*i + 1] = i*5.0
+        len_minutes = len(minutes)
+        e_rcrb = zeros(len_minutes)
+        bias = zeros(len_minutes)
+        acum_est = zeros([len_minutes, 3, 1])
+        real_u = zeros([len_minutes, 3, 1])
+        real_s1 = zeros([len_minutes, 3, 1])
+        real_s2 = zeros([len_minutes, 3, 1])
+        rmse = zeros(len_minutes)
+        for l0 in L0:
+            print("Despliegue: {}".format(l0))
+            sat_u.setTLE(sat_u_TLEs[1 + l0*3], sat_u_TLEs[2 + l0*3])
+            sat_s1.setTLE(sat_s1_TLEs[1 + l0*3], sat_s1_TLEs[2 + l0*3])
+            acum_est = acum_est*0
+            for l in range(L):
+                studied_date = initial_date
+                studied_date -= timedelta(seconds=2*meas_dt)
+                d = 0
+                e, GNSS_noise = self.generate_noise(std_RD, std_AOA, std_GNSS, len_minutes)
+                for t in range(21):
+                    studied_date += timedelta(seconds=meas_dt)
+                    if (l==0):
+                        sat_u.updateOrbitalParameters(studied_date)
+                        sat_s1.updateOrbitalParameters(studied_date)
+                        sat_s2.updateOrbitalParameters(studied_date + timedelta(seconds=4))
+                        real_u[2*t] = sat_u.getXYZ().copy()
+                        real_s1[2*t] = sat_s1.getXYZ().copy()
+                        real_s2[2*t] = sat_s2.getXYZ().copy()
+                    noisy_s1, noisy_s2 = self.loc.add_GNSS_error(real_s1[2*t], real_s2[2*t], GNSS_noise[:,d])
+                    k_w_GNSS_error = self.loc.get_real_vector(real_u[2*t], noisy_s1, noisy_s2)
+                    u_hat1 = self.loc.estimate(noisy_s1, noisy_s2, k_w_GNSS_error, e[:,d], Q)
+                    acum_est[2*t] += u_hat1
+                    MSE = self.loc.get_MSE(u_hat1, noisy_s1, noisy_s2, k_w_GNSS_error, Q)
+                    e_rcrb[2*t] += MSE[0,0] + MSE[1,1] + MSE[2,2]
+                    rmse[2*t] += (u_hat1[0,0] - real_u[2*t,0,0])**2 + (u_hat1[1,0] - real_u[2*t,1,0])**2 + (u_hat1[2,0] - real_u[2*t,2,0])**2
+                    d += 1
+                    studied_date += timedelta(seconds=meas_dt)
+                    sat_s1.updateOrbitalParameters(studied_date)
+                    if (l==0):
+                        sat_u.updateOrbitalParameters(studied_date)
+                        sat_s2.updateOrbitalParameters(studied_date + timedelta(seconds=4))
+                        real_u[2*t+1] = sat_u.getXYZ().copy()
+                        real_s1[2*t+1] = sat_s1.getXYZ().copy()
+                        real_s2[2*t+1] = sat_s2.getXYZ().copy()
+                    noisy_s1, noisy_s2 = self.loc.add_GNSS_error(real_s1[2*t+1], real_s2[2*t+1], GNSS_noise[:,d])
+                    k_w_GNSS_error = self.loc.get_real_vector(real_u[2*t+1], noisy_s1, noisy_s2)
+                    u_hat2 = self.loc.estimate(noisy_s1, noisy_s2, k_w_GNSS_error, e[:,d], Q)
+                    acum_est[2*t+1] += u_hat2
+                    MSE = self.loc.get_MSE(u_hat2, noisy_s1, noisy_s2, k_w_GNSS_error, Q)
+                    e_rcrb[2*t+1] += MSE[0,0] + MSE[1,1] + MSE[2,2]
+                    rmse[2*t+1] += (u_hat2[0,0] - real_u[2*t+1,0,0])**2 + (u_hat2[1,0] - real_u[2*t+1,1,0])**2 + (u_hat2[2,0] - real_u[2*t+1,2,0])**2
+                    d += 1
+                    studied_date += timedelta(seconds=300-2*meas_dt)
+            acum_est = acum_est/L
+            for j, u in enumerate(real_u):
+                bias[j] += (acum_est[j,0,0] - u[0,0])**2 + (acum_est[j,1,0] - u[1,0])**2 + (acum_est[j,2,0] - u[2,0])**2
+
+        print("Time3: {}".format((studied_date - initial_date).total_seconds()))
+
+        e_rcrb = sqrt(e_rcrb/len(L0)/L)
+        rmse = sqrt(rmse/len(L0)/L)
+        bias = sqrt(bias/len(L0))
+        with open(output, 'w') as data_file_rcrb:
+            outRCRB = csv.writer(data_file_rcrb)
+            outRCRB.writerow(["RMSE", "e RCRB", "Bias"])
+            for i in range(len(e_rcrb)):
+                outRCRB.writerow([rmse[i], e_rcrb[i], bias[i]])
+            for i in range(len(e_rcrb), len(rmse)):
+                outRCRB.writerow([rmse[i]])
+        finish = datetime.utcnow()
+        print("Start: {}\nFinish: {}\nDelta: {} minutes".format(start, finish, (finish-start).total_seconds()/60))
+
+    def plot_data(self, rcrb_file="worst_rcrb.csv", rmse_file="rmse.csv", model=1):
         div = 32
         finer_minutes = arange(0, div*100+1, dtype="float")/div
-        rcrb = zeros(len(finer_minutes))
-        dist_u_s1 = zeros(len(finer_minutes))
-        dist_u_s2 = zeros(len(finer_minutes))
-        alpha_max = zeros(len(finer_minutes))
-        alpha_mean = zeros(len(finer_minutes))
-        alpha_min = zeros(len(finer_minutes))
+        len_finer_minutes = len(finer_minutes)
+        rcrb = zeros(len_finer_minutes)
+        dist_u_s1 = zeros(len_finer_minutes)
+        dist_u_s2 = zeros(len_finer_minutes)
+        alpha_max = zeros(len_finer_minutes)
+        alpha_mean = zeros(len_finer_minutes)
+        alpha_min = zeros(len_finer_minutes)
         meas_dt = 2.0#0.13#0.2
         model_dt = 0.01
         model_rmse = zeros(2*int(300/model_dt) - 2)
-        minutes = zeros(26)#42)
-        for i in range(13):#21):
-            minutes[2*i] = (i*300.0 - meas_dt + 600.0)/60.0
-            minutes[2*i + 1] = (i*300.0 + 600.0)/60.0
-        e_rcrb = zeros(len(minutes))
-        bias = zeros(len(minutes))
-        rmse = zeros(len(minutes))
+        if (model):
+            minutes = zeros(26)
+            for i in range(13):
+                minutes[2*i] = (i*300.0 - meas_dt + 600.0)/60.0
+                minutes[2*i + 1] = (i*300.0 + 600.0)/60.0
+            ind0 = 320
+            indf = 2241
+        else:
+            minutes = zeros(42)
+            for i in range(21):
+                minutes[2*i] = i*5.0 - meas_dt/60
+                minutes[2*i + 1] = i*5.0
+            ind0 = 0
+            indf = len_finer_minutes
+        len_minutes = len(minutes)
+        e_rcrb = zeros(len_minutes)
+        bias = zeros(len_minutes)
+        rmse = zeros(len_minutes)
         with open(rcrb_file, newline='') as f:
             reader = csv.reader(f, delimiter=",")
             next(reader)
-            data = array(list(reader))
+            data = array(list(reader), dtype=object)
         for i in range(len(data)):
             rcrb[i] = float(data[i,0])
             dist_u_s1[i] = float(data[i,1])
@@ -648,13 +760,19 @@ class Loc(object):
         with open(rmse_file, newline='') as f:
             reader = csv.reader(f, delimiter=",")
             next(reader)
-            data = array(list(reader))
-        for i in range(len(model_rmse)):
-            model_rmse[i] = float(data[i][0])
-        for i in range(len(e_rcrb)):
-            e_rcrb[i] = float(data[i][1])
-            bias[i] = float(data[i][2])
-            rmse[i] = float(data[i][3])
+            data = array(list(reader), dtype=object)
+        if (model):
+            for i in range(len(model_rmse)):
+                model_rmse[i] = float(data[i][0])
+            for i in range(len(e_rcrb)):
+                e_rcrb[i] = float(data[i][1])
+                bias[i] = float(data[i][2])
+                rmse[i] = float(data[i][3])
+        else:
+            for i in range(len(e_rcrb)):
+                rmse[i] = float(data[i][0])
+                e_rcrb[i] = float(data[i][1])
+                bias[i] = float(data[i][2])
         rmse_time = []
         time = 2100
         for j in range(2*int(300/model_dt) - 2):
@@ -662,21 +780,25 @@ class Loc(object):
             rmse_time.append(time/60)
 
         fig, ax = subplots(1, 1)
-        ax.set_xlim(10, 70)
-        ax.set_ylim(10, 1000000)
+        if (model):
+            ax.set_xlim(10, 70)
+            ax.set_ylim(10, 1000000)
+        else:
+            ax.set_xlim(0,100)
+            ax.set_ylim(1, 10000)
         ax2 = ax.twinx()
         ax2.set_ylim(0, 180)
         ax.set_zorder(10)
         ax.patch.set_visible(False)
-        ax2.plot(finer_minutes[320:2241], alpha_max[320:2241], '-', linewidth=2.0, markersize=12,
+        ax2.plot(finer_minutes[ind0:indf], alpha_max[ind0:indf], '-', linewidth=2.0, markersize=12,
                  label="{} (max)".format(r'$\alpha$'), color="k")
-        ax2.plot(finer_minutes[320:2241], alpha_mean[320:2241], '-', linewidth=2.0, markersize=12,
+        ax2.plot(finer_minutes[ind0:indf], alpha_mean[ind0:indf], '-', linewidth=2.0, markersize=12,
                  label="{} (mean)".format(r'$\alpha$'), color="dimgrey")
-        ax2.plot(finer_minutes[320:2241], alpha_min[320:2241], '-', linewidth=2.0, markersize=12,
+        ax2.plot(finer_minutes[ind0:indf], alpha_min[ind0:indf], '-', linewidth=2.0, markersize=12,
                  label="{} (min)".format(r'$\alpha$'), color="lightgrey")
-        ax.semilogy(finer_minutes[320:2241], rcrb[320:2241], '-', linewidth=2.0, markersize=12,
+        ax.semilogy(finer_minutes[ind0:indf], rcrb[ind0:indf], '-', linewidth=2.0, markersize=12,
                     label="Root CRB", color="tab:orange", alpha=0.7)
-        ax.semilogy(finer_minutes[320:2241], dist_u_s1[320:2241], '-', linewidth=2.0, markersize=12,
+        ax.semilogy(finer_minutes[ind0:indf], dist_u_s1[ind0:indf], '-', linewidth=2.0, markersize=12,
                     label=r'$||\mathbf{u} - \mathbf{s_1}||$', color="tab:purple", alpha=0.7)
         #ax.semilogy(finer_minutes, dist_u_s2, '-', linewidth=2.0, markersize=12,
         #            label=r'$||\mathbf{u} - \mathbf{s_2}||$', color="tab:red")
@@ -684,8 +806,9 @@ class Loc(object):
                     label="Root CRB", color="tab:red", alpha=0.7)
         ax.semilogy(minutes, rmse, 'o', linewidth=2.0, markersize=12, fillstyle="none",
                     label="Measurement RMSE", color="tab:blue", alpha=0.7)
-        ax.semilogy(rmse_time, model_rmse, '-', linewidth=2.0, markersize=12,
-                    label="Model RMSE", color="tab:blue", alpha=0.7)
+        if (model):
+            ax.semilogy(rmse_time, model_rmse, '-', linewidth=2.0, markersize=12,
+                        label="Model RMSE", color="tab:blue", alpha=0.7)
         ax.semilogy(minutes, bias, '+', linewidth=2.0, markersize=12,# clip_on=False,
                     label="Bias", color="tab:green")
         ax.grid()
@@ -699,7 +822,10 @@ class Loc(object):
                        bottom=True, top=True, left=True, right=False)
         ax2.tick_params(which="both", direction="in", labelsize=14,
                         bottom=False, top=False, left=False, right=True)
-        ax.set_xticks([10, 20, 30, 40, 50, 60, 70])
+        if (model):
+            ax.set_xticks([10, 20, 30, 40, 50, 60, 70])
+        else:
+            ax.set_xticks([0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100])
         tight_layout()
         show()
 
