@@ -535,7 +535,7 @@ class ApplicationWindow(QtWidgets.QMainWindow):
                 self.date = datetime.utcnow() + timedelta(minutes=self.dmin)
             else:
                 self.date = date
-            seconds = self.date.second + self.date.microsecond*0.000001
+            seconds = self.date.second# + self.date.microsecond*0.000001
             qdt = QtCore.QDateTime(self.date.year, self.date.month,
                                    self.date.day,  self.date.hour,
                                    self.date.minute, seconds)
