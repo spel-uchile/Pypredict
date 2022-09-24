@@ -790,12 +790,12 @@ class Loc(object):
         ax2.set_ylim(0, 180)
         ax.set_zorder(10)
         ax.patch.set_visible(False)
-        ax2.plot(finer_minutes[ind0:indf], alpha_max[ind0:indf], '-', linewidth=2.0, markersize=12,
-                 label="{} (max)".format(r'$\alpha$'), color="k")
+        #ax2.plot(finer_minutes[ind0:indf], alpha_max[ind0:indf], '-', linewidth=2.0, markersize=12,
+        #         label="{} (max)".format(r'$\alpha$'), color="k")
         ax2.plot(finer_minutes[ind0:indf], alpha_mean[ind0:indf], '-', linewidth=2.0, markersize=12,
                  label="{} (mean)".format(r'$\alpha$'), color="dimgrey")
-        ax2.plot(finer_minutes[ind0:indf], alpha_min[ind0:indf], '-', linewidth=2.0, markersize=12,
-                 label="{} (min)".format(r'$\alpha$'), color="lightgrey")
+        #ax2.plot(finer_minutes[ind0:indf], alpha_min[ind0:indf], '-', linewidth=2.0, markersize=12,
+        #         label="{} (min)".format(r'$\alpha$'), color="lightgrey")
         ax.semilogy(finer_minutes[ind0:indf], rcrb[ind0:indf], '-', linewidth=2.0, markersize=12,
                     label="Root CRB", color="tab:orange", alpha=0.7)
         ax.semilogy(finer_minutes[ind0:indf], dist_u_s1[ind0:indf], '-', linewidth=2.0, markersize=12,
