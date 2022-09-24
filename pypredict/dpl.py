@@ -22,7 +22,7 @@
 """
 from pypredict.calcOrbitParam import Calc
 from pypredict.sat import Sat
-from numpy import arange, array, asscalar, concatenate, cos, flip, matrix, pi, sin, sqrt
+from numpy import arange, array, concatenate, cos, flip, matrix, pi, sin, sqrt
 from sgp4.earth_gravity import wgs72, wgs84
 from sgp4.io import twoline2rv
 
