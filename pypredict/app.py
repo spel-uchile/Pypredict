@@ -54,13 +54,13 @@ class ApplicationWindow(QtWidgets.QMainWindow):
                  "goes", "intelsat", "iridium", "iridium_next",
                  "military", "molniya", "noaa", "oneweb", "planet",
                  "radar", "resource", "sarsat", "spire", "tdrss",
-                 "tle_new", "weather", "x_comm", "tle_files", "map",
-                 "dpl_img", "tdoa_img", "world_map", "dpl", "dmin",
-                 "canvas", "saa", "date", "db", "en_db", "time_timer",
-                 "sats_timer", "canvas_timer", "bg_timer", "Dialog",
-                 "table_timer", "sats_lngs", "sats_lats", "usr_sats",
-                 "usr_tle_file", "toolbar", "img_path", "tle_path",
-                 "forward", "backward", "pause"]
+                 "tle_new", "weather", "x_comm", "active", "tle_files",
+                 "map", "dpl_img", "tdoa_img", "world_map", "dpl",
+                 "dmin", "canvas", "saa", "date", "db", "en_db",
+                 "time_timer", "sats_timer", "canvas_timer",
+                 "bg_timer", "Dialog", "table_timer", "sats_lngs",
+                 "sats_lats", "usr_sats", "usr_tle_file", "toolbar",
+                 "img_path", "tle_path", "forward", "backward", "pause"]
 
     def __init__(self, Sats):
         self.Sats = Sats
@@ -140,7 +140,7 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         lat_min = lat_min2*scale + lat
         lat_max = lat_max2*scale + lat
         if (lng_min < -180 and lng_max > 180 or lat_min < -90 and lat_max > 90):
-            self.ax.set_extent([-180, 180, -90, 90], crs=PlateCarree())
+            self.ax.set_extent([-180, 180, -90, 90])
         else:
             if (lng_min < -180):
                 lng_max += -(180 + lng_min)
@@ -154,8 +154,7 @@ class ApplicationWindow(QtWidgets.QMainWindow):
             elif (lat_max > 90):
                 lat_min += -(lat_max - 90)
                 lat_max = 90
-            self.ax.set_extent([lng_min, lng_max, lat_min, lat_max],
-                        crs=PlateCarree())
+            self.ax.set_extent([lng_min, lng_max, lat_min, lat_max])
 
     def fillSAA(self):
         """
@@ -178,10 +177,8 @@ class ApplicationWindow(QtWidgets.QMainWindow):
                                     frameon=False)
         img_extent = (-180, 180, -90, 90)
         self.map = self.ax.imshow(self.world_map.fillDarkSideFromPicture(self.date),
-                                  origin='upper', extent=img_extent,
-                                  transform=PlateCarree())
+                                  origin='upper', extent=img_extent)
         self.gridAndFormat("gray", 0.5, "white", 9)
-        self.ax.outline_patch.set_visible(False)
         self.ax.spines['left'].set_visible(True)
         self.ax.spines['bottom'].set_visible(True)
         self.ax.spines['right'].set_visible(True)
@@ -204,70 +201,54 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         tsize  : int
                  Size of the text labels.
         """
-        self.ax.plot([-150, -150], [-90, 90], color=gcolor, alpha=galpha,
-                     linewidth=1, linestyle='-', transform=PlateCarree())
-        self.ax.plot([-120, -120], [-90, 90], color=gcolor, alpha=galpha,
-                     linewidth=1, linestyle='-', transform=PlateCarree())
-        self.ax.plot([-90, -90], [-90, 90], color=gcolor, alpha=galpha,
-                     linewidth=1, linestyle='-', transform=PlateCarree())
-        self.ax.plot([-60, -60], [-90, 90], color=gcolor, alpha=galpha,
-                     linewidth=1, linestyle='-', transform=PlateCarree())
-        self.ax.plot([-30, -30], [-90, 90], color=gcolor, alpha=galpha,
-                     linewidth=1, linestyle='-', transform=PlateCarree())
-        self.ax.plot([0, 0], [-90, 90], color=gcolor, alpha=galpha,
-                     linewidth=1, linestyle='-', transform=PlateCarree())
-        self.ax.plot([30, 30], [-90, 90], color=gcolor, alpha=galpha,
-                     linewidth=1, linestyle='-', transform=PlateCarree())
-        self.ax.plot([60, 60], [-90, 90], color=gcolor, alpha=galpha,
-                     linewidth=1, linestyle='-', transform=PlateCarree())
-        self.ax.plot([90, 90], [-90, 90], color=gcolor, alpha=galpha,
-                     linewidth=1, linestyle='-', transform=PlateCarree())
-        self.ax.plot([120, 120], [-90, 90], color=gcolor, alpha=galpha,
-                     linewidth=1, linestyle='-', transform=PlateCarree())
-        self.ax.plot([150, 150], [-90, 90], color=gcolor, alpha=galpha,
-                     linewidth=1, linestyle='-', transform=PlateCarree())
-        self.ax.plot([-180, 180], [60, 60], color=gcolor, alpha=galpha,
-                     linewidth=1, linestyle='-', transform=PlateCarree())
-        self.ax.plot([-180, 180], [30, 30], color=gcolor, alpha=galpha,
-                     linewidth=1, linestyle='-', transform=PlateCarree())
-        self.ax.plot([-180, 180], [0, 0], color=gcolor, alpha=galpha,
-                     linewidth=1, linestyle='-', transform=PlateCarree())
-        self.ax.plot([-180, 180], [-30, -30], color=gcolor, alpha=galpha,
-                     linewidth=1, linestyle='-', transform=PlateCarree())
-        self.ax.plot([-180, 180], [-60, -60], color=gcolor, alpha=galpha,
-                     linewidth=1, linestyle='-', transform=PlateCarree())
-        self.ax.text(-150, 88, "150°W", color=tcolor, size=tsize,
-                     transform=PlateCarree(), ha="center")
-        self.ax.text(-120, 88, "120°W", color=tcolor, size=tsize,
-                     transform=PlateCarree(), ha="center")
-        self.ax.text(-90, 88, "90°W", color=tcolor, size=tsize,
-                     transform=PlateCarree(), ha="center")
-        self.ax.text(-60, 88, "60°W", color=tcolor, size=tsize,
-                     transform=PlateCarree(), ha="center")
-        self.ax.text(-30, 88, "30°W", color=tcolor, size=tsize,
-                     transform=PlateCarree(), ha="center")
-        self.ax.text(0, 88, "0°", color=tcolor, size=tsize,
-                     transform=PlateCarree(), ha="center")
-        self.ax.text(30, 88, "30°E", color=tcolor, size=tsize,
-                     transform=PlateCarree(), ha="center")
-        self.ax.text(60, 88, "60°E", color=tcolor, size=tsize,
-                     transform=PlateCarree(), ha="center")
-        self.ax.text(90, 88, "90°E", color=tcolor, size=tsize,
-                     transform=PlateCarree(), ha="center")
-        self.ax.text(120, 88, "120°E", color=tcolor, size=tsize,
-                     transform=PlateCarree(), ha="center")
-        self.ax.text(150, 88, "150°E", color=tcolor, size=tsize,
-                     transform=PlateCarree(), ha="center")
-        self.ax.text(-179.5, 60, "60°N", color=tcolor, size=tsize,
-                     transform=PlateCarree(), va="center")
-        self.ax.text(-179.5, 30, "30°N", color=tcolor, size=tsize,
-                     transform=PlateCarree(), va="center")
-        self.ax.text(-178, 0, "0°", color=tcolor, size=tsize,
-                     transform=PlateCarree(), va="center")
-        self.ax.text(-179.5, -30, "30°S", color=tcolor, size=tsize,
-                     transform=PlateCarree(), va="center")
-        self.ax.text(-179.5, -60, "60°S", color=tcolor, size=tsize,
-                     transform=PlateCarree(), va="center")
+        self.ax.plot([-150, -150], [-90, 90], color=gcolor,
+                     alpha=galpha, linewidth=1, linestyle='-')
+        self.ax.plot([-120, -120], [-90, 90], color=gcolor,
+                     alpha=galpha, linewidth=1, linestyle='-')
+        self.ax.plot([-90, -90], [-90, 90], color=gcolor,
+                     alpha=galpha, linewidth=1, linestyle='-')
+        self.ax.plot([-60, -60], [-90, 90], color=gcolor,
+                     alpha=galpha, linewidth=1, linestyle='-')
+        self.ax.plot([-30, -30], [-90, 90], color=gcolor,
+                     alpha=galpha, linewidth=1, linestyle='-')
+        self.ax.plot([0, 0], [-90, 90], color=gcolor,
+                     alpha=galpha, linewidth=1, linestyle='-')
+        self.ax.plot([30, 30], [-90, 90], color=gcolor,
+                     alpha=galpha, linewidth=1, linestyle='-')
+        self.ax.plot([60, 60], [-90, 90], color=gcolor,
+                     alpha=galpha, linewidth=1, linestyle='-')
+        self.ax.plot([90, 90], [-90, 90], color=gcolor,
+                     alpha=galpha, linewidth=1, linestyle='-')
+        self.ax.plot([120, 120], [-90, 90], color=gcolor,
+                     alpha=galpha, linewidth=1, linestyle='-')
+        self.ax.plot([150, 150], [-90, 90], color=gcolor,
+                     alpha=galpha, linewidth=1, linestyle='-')
+        self.ax.plot([-180, 180], [60, 60], color=gcolor,
+                     alpha=galpha, linewidth=1, linestyle='-')
+        self.ax.plot([-180, 180], [30, 30], color=gcolor,
+                     alpha=galpha, linewidth=1, linestyle='-')
+        self.ax.plot([-180, 180], [0, 0], color=gcolor,
+                     alpha=galpha, linewidth=1, linestyle='-')
+        self.ax.plot([-180, 180], [-30, -30], color=gcolor,
+                     alpha=galpha, linewidth=1, linestyle='-')
+        self.ax.plot([-180, 180], [-60, -60], color=gcolor,
+                     alpha=galpha, linewidth=1, linestyle='-')
+        self.ax.text(-150, 86.5, "150°W", color=tcolor, size=tsize, ha="center")
+        self.ax.text(-120, 86.5, "120°W", color=tcolor, size=tsize, ha="center")
+        self.ax.text(-90, 86.5, "90°W", color=tcolor, size=tsize, ha="center")
+        self.ax.text(-60, 86.5, "60°W", color=tcolor, size=tsize, ha="center")
+        self.ax.text(-30, 86.5, "30°W", color=tcolor, size=tsize, ha="center")
+        self.ax.text(0, 86.5, "0°", color=tcolor, size=tsize, ha="center")
+        self.ax.text(30, 86.5, "30°E", color=tcolor, size=tsize, ha="center")
+        self.ax.text(60, 86.5, "60°E", color=tcolor, size=tsize, ha="center")
+        self.ax.text(90, 86.5, "90°E", color=tcolor, size=tsize, ha="center")
+        self.ax.text(120, 86.5, "120°E", color=tcolor, size=tsize, ha="center")
+        self.ax.text(150, 86.5, "150°E", color=tcolor, size=tsize, ha="center")
+        self.ax.text(-179.5, 60, "60°N", color=tcolor, size=tsize, va="center")
+        self.ax.text(-179.5, 30, "30°N", color=tcolor, size=tsize, va="center")
+        self.ax.text(-178, 0, "0°", color=tcolor, size=tsize, va="center")
+        self.ax.text(-179.5, -30, "30°S", color=tcolor, size=tsize, va="center")
+        self.ax.text(-179.5, -60, "60°S", color=tcolor, size=tsize, va="center")
 
     def data_gen(self):
         """
@@ -306,8 +287,7 @@ class ApplicationWindow(QtWidgets.QMainWindow):
                                                          alpha=self.cov_alpha)))
             self.sat_txt.append(self.ax.text(Sat.getLng(date=self.date),
                                              Sat.getLat(), Sat.name, c="yellow",
-                                             size=7, transform=Geodetic(),
-                                             ha="center", va="center"))
+                                             size=7, ha="center", va="center"))
             self.sats_lngs.append(Sat.getLng(date=self.date))
             self.sats_lats.append(Sat.getLat())
 
@@ -325,7 +305,7 @@ class ApplicationWindow(QtWidgets.QMainWindow):
                 lng = self.sats_lngs[i] - 6*(self.sats_lngs[i] > 173)
                 lng += 6*(self.sats_lngs[i] < -173)
                 self.sats_lats[i] = Sat.getLat()
-                lat = self.sats_lats[i] - 2.5 + 5*(self.sats_lats[i] < -85)
+                lat = self.sats_lats[i] - 3.5 + 6*(self.sats_lats[i] < -85)
                 self.sat_txt[i].set_position((lng, lat))
                 if (self.cov_alpha > 0):
                     coverage = Sat.getCoverage()*0.017453292519943295 # to rads
@@ -441,7 +421,7 @@ class ApplicationWindow(QtWidgets.QMainWindow):
                                                      transform=Geodetic(),
                                                      alpha=self.cov_alpha)))
         self.sat_txt.append(self.ax.text([], [], "", color='yellow', size=7,
-                            transform=Geodetic(), ha="center", va="center"))
+                            ha="center", va="center"))
         self.Sats.append(newSat)
         self.sortSats()
         self.sats_lngs.append(0.0)
@@ -832,6 +812,7 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         TLE folder. Creates lists for the satellites of every file and
         also a list of the satellites of all the files.
         """
+        self.active = []
         self.argos = []
         self.beidou = []
         self.cubesat = []
@@ -858,6 +839,7 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         self.weather = []
         self.x_comm = []
         self.tle_path = resource_filename("pypredict","data/")
+        self.readSatsFromFile("{}active.txt".format(self.tle_path), self.active)
         self.readSatsFromFile("{}argos.txt".format(self.tle_path), self.argos)
         self.readSatsFromFile("{}beidou.txt".format(self.tle_path), self.beidou)
         self.readSatsFromFile("{}cubesat.txt".format(self.tle_path), self.cubesat)
@@ -883,13 +865,14 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         self.readSatsFromFile("{}visual.txt".format(self.tle_path), self.visual)
         self.readSatsFromFile("{}weather.txt".format(self.tle_path), self.weather)
         self.readSatsFromFile("{}x-comm.txt".format(self.tle_path), self.x_comm)
-        self.avail_sats = self.argos + self.beidou + self.cubesat + self.dmc
-        self.avail_sats += self.education + self.geodetic + self.goes
+        self.avail_sats = self.active + self.argos + self.beidou + self.cubesat
+        self.avail_sats += self.dmc + self.education + self.geodetic + self.goes
         self.avail_sats += self.intelsat + self.iridium + self.iridium_next
         self.avail_sats += self.military + self.molniya + self.noaa
         self.avail_sats += self.oneweb + self.planet + self.radar + self.resource
         self.avail_sats += self.sarsat + self.spire + self.starlink + self.tdrss
         self.avail_sats += self.tle_new + self.visual + self.weather + self.x_comm
+        self.avail_sats = [*set(self.avail_sats)]
         self.avail_sats.sort()
 
     def showAvailSats(self):
@@ -935,7 +918,7 @@ class ApplicationWindow(QtWidgets.QMainWindow):
                                                      transform=Geodetic(),
                                                      alpha=self.cov_alpha)))
         self.sat_txt.append(self.ax.text([], [], "", color='yellow', size=7,
-                            transform=Geodetic(), ha="center", va="center"))
+                            ha="center", va="center"))
         if (add_sat in self.argos):
             self.createSatFromFile(add_sat, "{}argos.txt".format(self.tle_path),
                                    "Argos Data Collection System")
@@ -1011,6 +994,9 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         elif (add_sat in self.x_comm):
             self.createSatFromFile(add_sat, "{}x-comm.txt".format(self.tle_path),
                                    "Experimental")
+        elif (add_sat in self.active):
+            self.createSatFromFile(add_sat, "{}active.txt".format(self.tle_path),
+                                   "Active Satellites")
         else:
             self.createSatFromFile(add_sat, self.usr_tle_file, "Added by user")
         self.sortSats()
@@ -1126,12 +1112,12 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         handles the display of the current downloaded file and the
         progress bar of the QDialog.
         """
-        self.tle_files = ["argos", "beidou", "cubesat", "dmc", "education",
-                          "geodetic", "goes", "intelsat", "iridium",
-                          "iridium-NEXT", "military", "molniya", "noaa",
-                          "oneweb", "planet", "radar", "resource", "sarsat",
-                          "spire", "starlink", "tdrss", "tle-new", "visual",
-                          "weather", "x-comm"]
+        self.tle_files = ["active", "argos", "beidou", "cubesat", "dmc",
+                          "education", "geodetic", "goes", "intelsat",
+                          "iridium", "iridium-NEXT", "military",
+                          "molniya", "noaa", "oneweb", "planet", "radar",
+                          "resource", "sarsat", "spire", "starlink",
+                          "tdrss", "tle-new", "visual", "weather", "x-comm"]
         for i, file_name in enumerate(self.tle_files):
             link = "https://celestrak.com/NORAD/elements/{}.txt".format(file_name)
             self.popup.plainTextEdit.insertPlainText("Downloading: {}".format(link))
