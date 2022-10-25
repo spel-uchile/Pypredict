@@ -4,7 +4,7 @@
     orbital parameters in real time. Simulates satellite localization
     and deployment.
     
-    Copyright (C) 2018-2020, Matías Vidal Valladares, matvidal.
+    Copyright (C) 2018-2022, Matías Vidal Valladares, matvidal.
     Authors: Matías Vidal Valladares <matias.vidal.v@gmail.com>
 
     This program is free software: you can redistribute it and/or modify
