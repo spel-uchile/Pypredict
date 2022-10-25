@@ -5,7 +5,7 @@
     orbital parameters in real time. Simulates satellite localization
     and deployment.
     
-    Copyright (C) 2018-2020, Matías Vidal Valladares, matvidal.
+    Copyright (C) 2018-2022, Matías Vidal Valladares, matvidal.
     Authors: Matías Vidal Valladares <matias.vidal.v@gmail.com>
 
     This program is free software: you can redistribute it and/or modify
@@ -30,11 +30,11 @@ import sys
 data_path = resource_filename("pypredict","data/")
 
 SUCHAI = Sat(name="SUCHAI", tlepath="{}cubesat.txt".format(data_path), cat="CubeSat")
-HODOYOSHI3 = Sat(name="HODOYOSHI-3", tlepath="{}resource.txt".format(data_path), cat="Earth Resources")
-HODOYOSHI4 = Sat(name="HODOYOSHI-4", tlepath="{}resource.txt".format(data_path), cat="Earth Resources")
-CUBESATXI_IV = Sat(name="CUBESAT XI-IV (CO-57)", tlepath="{}cubesat.txt".format(data_path), cat="CubeSat")
+SUCHAI2 = Sat(name="SUCHAI-2", tlepath="{}active.txt".format(data_path), cat="CubeSat")
+SUCHAI3 = Sat(name="SUCHAI-3", tlepath="{}active.txt".format(data_path), cat="CubeSat")
+PLANTSAT = Sat(name="PLANTSAT", tlepath="{}active.txt".format(data_path), cat="CubeSat")
 ISS = Sat(name="ISS (ZARYA)", tlepath="{}tdrss.txt".format(data_path), cat="Tracking and Data Relay")
-Sats = [CUBESATXI_IV, HODOYOSHI3, HODOYOSHI4, ISS, SUCHAI]
+Sats = [SUCHAI, SUCHAI2, SUCHAI3, PLANTSAT, ISS]
 
 def main(args=None):
     if args is None:
