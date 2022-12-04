@@ -91,10 +91,63 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         self.setTableConnections()
         self.showMaximized()
         self.fig.canvas.mpl_connect('scroll_event',self.zoom)
+        self.appTheme()
         self.run()
 
     def __call__(self):
         return self
+
+    def appTheme(self):
+        QtWidgets.QApplication.setStyle("Fusion")
+        #
+        # # Now use a palette to switch to dark colors:
+        dark_palette = QtGui.QPalette()
+        dark_palette.setColor(QtGui.QPalette.Window, QtGui.QColor(53, 53, 53))
+        dark_palette.setColor(QtGui.QPalette.WindowText, QtCore.Qt.white)
+        dark_palette.setColor(QtGui.QPalette.Base, QtGui.QColor(35, 35, 35))
+        dark_palette.setColor(QtGui.QPalette.AlternateBase, QtGui.QColor(53, 53, 53))
+        dark_palette.setColor(QtGui.QPalette.ToolTipBase, QtGui.QColor(25, 25, 25))
+        dark_palette.setColor(QtGui.QPalette.ToolTipText, QtCore.Qt.white)
+        dark_palette.setColor(QtGui.QPalette.Text, QtCore.Qt.white)
+        dark_palette.setColor(QtGui.QPalette.Button, QtGui.QColor(53, 53, 53))
+        dark_palette.setColor(QtGui.QPalette.ButtonText, QtCore.Qt.white)
+        dark_palette.setColor(QtGui.QPalette.BrightText, QtCore.Qt.red)
+        dark_palette.setColor(QtGui.QPalette.Link, QtGui.QColor(42, 130, 218))
+        dark_palette.setColor(QtGui.QPalette.Highlight, QtGui.QColor(42, 130, 218))
+        dark_palette.setColor(QtGui.QPalette.HighlightedText, QtGui.QColor(35, 35, 35))
+        dark_palette.setColor(QtGui.QPalette.Active, QtGui.QPalette.Button, QtGui.QColor(53, 53, 53))
+        dark_palette.setColor(QtGui.QPalette.Disabled, QtGui.QPalette.ButtonText, QtCore.Qt.darkGray)
+        dark_palette.setColor(QtGui.QPalette.Disabled, QtGui.QPalette.WindowText, QtCore.Qt.darkGray)
+        dark_palette.setColor(QtGui.QPalette.Disabled, QtGui.QPalette.Text, QtCore.Qt.darkGray)
+        dark_palette.setColor(QtGui.QPalette.Disabled, QtGui.QPalette.Light, QtGui.QColor(53, 53, 53))
+        self.ui.download_button.setStyleSheet("QToolButton {background-color: #353535; color: white; border:none;}"
+                                              "QToolButton:hover {background-color: #454545; color: white; border: none;}"
+                                              "QToolButton:hover {background-color: #555555; color: white; border: none;}")
+        self.ui.cov_button.setStyleSheet("QToolButton {background-color: #353535; color: white; border:none;}"
+                                         "QToolButton:hover {background-color: #454545; color: white; border: none;}"
+                                         "QToolButton:hover {background-color: #555555; color: white; border: none;}")
+        self.ui.sat_button.setStyleSheet("QToolButton {background-color: #353535; color: white; border:none;}"
+                                         "QToolButton:hover {background-color: #454545; color: white; border: none;}"
+                                         "QToolButton:hover {background-color: #555555; color: white; border: none;}")
+        self.ui.dpl_button.setStyleSheet("QToolButton {background-color: #353535; color: white; border:none;}"
+                                         "QToolButton:hover {background-color: #454545; color: white; border: none;}"
+                                         "QToolButton:hover {background-color: #555555; color: white; border: none;}")
+        self.ui.loc_button.setStyleSheet("QToolButton {background-color: #353535; color: white; border:none;}"
+                                         "QToolButton:hover {background-color: #454545; color: white; border: none;}"
+                                         "QToolButton:hover {background-color: #555555; color: white; border: none;}")
+        self.ui.play.setStyleSheet("QToolButton {background-color: #353535; color: white; border:none;}"
+                                   "QToolButton:hover {background-color: #454545; color: white; border: none;}"
+                                   "QToolButton:hover {background-color: #555555; color: white; border: none;}")
+        self.ui.forward.setStyleSheet("QToolButton {background-color: #353535; color: white; border:none;}"
+                                      "QToolButton:hover {background-color: #454545; color: white; border: none;}"
+                                      "QToolButton:hover {background-color: #555555; color: white; border: none;}")
+        self.ui.backward.setStyleSheet("QToolButton {background-color: #353535; color: white; border:none;}"
+                                       "QToolButton:hover {background-color: #454545; color: white; border: none;}"
+                                       "QToolButton:hover {background-color: #555555; color: white; border: none;}")
+        self.ui.stop.setStyleSheet("QToolButton {background-color: #353535; color: white; border:none;}"
+                                   "QToolButton:hover {background-color: #454545; color: white; border: none;}"
+                                   "QToolButton:hover {background-color: #555555; color: white; border: none;}")
+        QtWidgets.QApplication.setPalette(dark_palette)
 
     def keyPressEvent(self, e):
         """
@@ -172,7 +225,7 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         world map day and night is plotted according to the program's
         date.
         """
-        self.fig = figure(figsize=(16, 8))
+        self.fig = figure(figsize=(16, 8), facecolor="#404040")
         self.ax = self.fig.add_axes([0, 0, 1, 1], projection=PlateCarree(),
                                     frameon=False)
         img_extent = (-180, 180, -90, 90)
