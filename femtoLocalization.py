@@ -981,7 +981,7 @@ class Loc(object):
             u_hat[s+int(t0)+1,:] = new_u_hat
         return meas_and_model_error
 
-    def plot_model(self, filename="model.csv"):
+    def plot_model(self, filename="model4.csv"):
         time = arange(0, 6000)#*2
         dist_u_s1 = zeros(len(time))
         dist_u_s2 = zeros(len(time))
