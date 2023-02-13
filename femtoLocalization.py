@@ -27,7 +27,7 @@ from pypredict.ekf import EKF
 from pypredict.sat import Sat
 from pypredict.localizationSystem import Loc
 from numpy import arange, arctan2, arccos, array, cos, linalg, matrix, mean, pi, random, savetxt, sin, std, sqrt, zeros, transpose
-from matplotlib.pyplot import axis, plot, setp, show, subplots, subplots_adjust, tight_layout, xticks
+from matplotlib.pyplot import axis, figure, plot, savefig, setp, show, subplots, subplots_adjust, tight_layout, xticks
 from datetime import datetime, timedelta
 from pkg_resources import resource_filename
 import csv
@@ -45,6 +45,7 @@ class Loc(object):
         self.Q_po = matrix([[0.0, 0.0,  0.0],
                             [0.0, 0.0, -1.0],
                             [0.0, 0.0,  0.0]])
+        self.dpl = Dpl()
         #self.test_case()
 
     def __call__(self):
@@ -148,7 +149,8 @@ class Loc(object):
         r: matrix
            Position vector in the orbital frame.
         """
-        r_in = transpose(self.Q_ip)*transpose(self.Q_po)*(r + self.translation)
+        #r_in = transpose(self.Q_ip)*transpose(self.Q_po)*(r + self.translation)
+        r_in = (self.Q_po*self.Q_ip).T*(r + self.translation)
         return r_in
 
     def generate_noise(self, std_RD, std_AOA, std_GNSS, L):
@@ -184,7 +186,8 @@ class Loc(object):
         Returns the estimated velocity vector in the inertial frame.
         """
         v_orb = self.ekf.getVelocity() + self.mainSat_v
-        v_in = transpose(self.Q_ip)*transpose(self.Q_po)*v_orb
+        #v_in = transpose(self.Q_ip)*transpose(self.Q_po)*v_orb
+        v_in = (self.Q_po*self.Q_ip).T*v_orb
         return v_in
 
     def test_case(self):
@@ -797,13 +800,13 @@ class Loc(object):
         #ax2.plot(finer_minutes[ind0:indf], alpha_min[ind0:indf], '-', linewidth=2.0, markersize=12,
         #         label="{} (min)".format(r'$\alpha$'), color="lightgrey")
         ax.semilogy(finer_minutes[ind0:indf], rcrb[ind0:indf], '-', linewidth=2.0, markersize=12,
-                    label="Root CRB", color="tab:orange", alpha=0.7)
+                    label="Root CRB", color="tab:orange")#, alpha=0.7)
         ax.semilogy(finer_minutes[ind0:indf], dist_u_s1[ind0:indf], '-', linewidth=2.0, markersize=12,
                     label=r'$||\mathbf{u} - \mathbf{s_1}||$', color="tab:purple", alpha=0.7)
         #ax.semilogy(finer_minutes, dist_u_s2, '-', linewidth=2.0, markersize=12,
         #            label=r'$||\mathbf{u} - \mathbf{s_2}||$', color="tab:red")
-        ax.semilogy(minutes, e_rcrb, '-', linewidth=2.0, markersize=12,
-                    label="Root CRB", color="tab:red", alpha=0.7)
+        #ax.semilogy(minutes, e_rcrb, '-', linewidth=2.0, markersize=12,
+        #            label="Root CRB", color="tab:red", alpha=0.7)
         ax.semilogy(minutes, rmse, 'o', linewidth=2.0, markersize=12, fillstyle="none",
                     label="Measurement RMSE", color="tab:blue", alpha=0.7)
         if (model):
@@ -826,6 +829,345 @@ class Loc(object):
             ax.set_xticks([10, 20, 30, 40, 50, 60, 70])
         else:
             ax.set_xticks([0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100])
+        tight_layout()
+        show()
+
+    def plot_estimated_distance(self, l0=425, L=1, output="model.csv"):
+        start = datetime.utcnow()
+        std_RD = 10.0
+        std_AOA = 1.0*pi/180.0
+        std_GNSS = 10.0
+        Q = self.loc.get_Q(std_RD, std_AOA)
+        data_path = resource_filename("pypredict","data/")
+        sat_u = Sat(name="FLOCK 4P-1", tlepath="{}planet.txt".format(data_path), cat="Planet Labs")
+        sat_s1 = Sat(name="FLOCK 4P-1", tlepath="{}planet.txt".format(data_path), cat="Planet Labs")
+        sat_s2 = Sat(name="FLOCK 4P-1", tlepath="{}planet.txt".format(data_path), cat="Planet Labs")
+        sat_s2.setTLE("1 44814U 19081L   20321.73053029  .00001305  00000-0  63025-4 0  9996",
+                      "2 44814  97.4788  21.6285 0013387  80.2501 280.0246 15.20374749 54001")
+        with open("u_TLEs.txt", 'r') as u_TLEs:
+            sat_u_TLEs = u_TLEs.readlines()
+
+        with open("s1_TLEs.txt", 'r') as s1_TLEs:
+            sat_s1_TLEs = s1_TLEs.readlines()
+
+        date0 = datetime(2020, 11, 17, 00, 13, 33, 0)
+        dep_date = date0 + timedelta(minutes=10)
+        initial_date = dep_date + timedelta(days=3)
+        time = arange(0, 6000)#*2
+        dist_u_s1 = zeros(len(time))
+        dist_u_s2 = zeros(len(time))
+        est_dist_u_s1 = zeros(len(time))
+        #est_dist_u_s2 = zeros(len(time))
+        dist_diff_between_meas = zeros(len(time)-1)
+        mean_est_dist_u_s1 = zeros(len(time))
+        #mean_est_dist_u_s2 = zeros(len(time))
+        meas_error = zeros(len(time))
+        mean_meas_error = zeros(len(time))
+        mean_meas_and_model_error = zeros(len(time))
+        u_hat = zeros([len(time), 3, 1])
+        all_u_hat = zeros([len(time), 3, 1])
+        all_u = zeros([len(time), 3, 1])
+        all_s1 = zeros([len(time), 3, 1])
+        all_s2 = zeros([len(time), 3, 1])
+        sat_u.setTLE(sat_u_TLEs[1 + l0*3], sat_u_TLEs[2 + l0*3])
+        sat_s1.setTLE(sat_s1_TLEs[1 + l0*3], sat_s1_TLEs[2 + l0*3])
+        for i in range(len(time)):
+            studied_date = initial_date + timedelta(seconds=float(time[i]))
+            sat_u.updateOrbitalParameters(studied_date)
+            sat_s1.updateOrbitalParameters(studied_date)
+            sat_s2.updateOrbitalParameters(studied_date + timedelta(seconds=4))
+            all_u[i,:] = sat_u.getXYZ().copy()
+            all_s1[i,:] = sat_s1.getXYZ().copy()
+            all_s2[i,:] = sat_s2.getXYZ().copy()
+            dist_u_s1[i] = linalg.norm(all_u[i,:] - all_s1[i,:])#*0.001
+            dist_u_s2[i] = linalg.norm(all_u[i,:] - all_s2[i,:])#*0.001
+        for l in range(L):
+            current_time = datetime.utcnow()
+            print("\nSimulation {}/{}, Elapsed time: {:.2f} minutes".format(l+1, L,
+                                      (current_time - start).total_seconds()/60))
+            e, GNSS_noise = self.generate_noise(std_RD, std_AOA, std_GNSS, len(time))
+            peak1 = 0
+            peak2 = 0
+            peak3 = 0
+            for i in range(len(time)):
+                noisy_s1, noisy_s2 = self.loc.add_GNSS_error(all_s1[i,:], all_s2[i,:], GNSS_noise[:,i])
+                k_w_GNSS_error = self.loc.get_real_vector(all_u[i,:], noisy_s1, noisy_s2)
+                u_hat[i,:] = self.loc.estimate(noisy_s1, noisy_s2, k_w_GNSS_error, e[:,i], Q)
+                est_dist_u_s1[i] = linalg.norm(u_hat[i] - noisy_s1)
+                #est_dist_u_s2[i] = linalg.norm(u_hat[i] - noisy_s2)
+                meas_error[i] = linalg.norm(u_hat[i,:] - all_u[i,:])
+            dist_diff_between_meas = abs(est_dist_u_s1[1:] - est_dist_u_s1[:-1])
+            peak1 = dist_diff_between_meas.argmax()
+            if (dist_diff_between_meas[:peak1-840].size > 0):
+                peak2 = dist_diff_between_meas[:peak1-840].argmax()
+            if (dist_diff_between_meas[peak1+600:].size > 0):
+                peak3 = dist_diff_between_meas[peak1+600:].argmax() + peak1 + 600
+            if (dist_diff_between_meas[peak3] > dist_diff_between_meas[peak2]):
+                peak2 = peak3
+            if (peak2 < peak1):
+                aux = peak1
+                peak1 = peak2
+                peak2 = aux
+            print("Peak 1: {:.4f}, Peak 2 : {:.4f}, Peak3: {:.4f}".format(peak1/60, peak2/60, peak3/60))
+            print("Peak 1: {:.2f}, Peak 2 : {:.2f}, Peak3: {:.2f}".format(dist_diff_between_meas[peak1], dist_diff_between_meas[peak2], dist_diff_between_meas[peak3]))
+            #print(meas_error.argmax()/60)
+            mean_est_dist_u_s1 += est_dist_u_s1
+            #mean_est_dist_u_s2 += est_dist_u_s2
+            mean_meas_error += meas_error
+            meas_and_model_error = self.model_sim(sat_u, sat_s1, sat_s2, u_hat, peak1-420, peak1+300, initial_date, GNSS_noise, e, meas_error)
+            meas_and_model_error = self.model_sim(sat_u, sat_s1, sat_s2, u_hat, peak2-420, peak2+300, initial_date, GNSS_noise, e, meas_and_model_error)
+            mean_meas_and_model_error += meas_and_model_error
+            all_u_hat += u_hat
+        mean_est_dist_u_s1[:] = mean_est_dist_u_s1/L
+        #mean_est_dist_u_s2[:] = mean_est_dist_u_s2/L
+        mean_meas_error[:] = mean_meas_error/L
+        mean_meas_and_model_error[:] = mean_meas_and_model_error/L
+        all_u_hat[:] = all_u_hat/L
+        with open(output, 'w') as data_file:
+            outRCRB = csv.writer(data_file)
+            outRCRB.writerow(["Time", "Mean measurement error", "Mean measurement and model error", "Mean estimated distance u-s1", "Distance u-s1", "All u_x", "All u_y", "All u_z", "All u_hat_x", "All u_hat_y", "All u_hat_z"])
+            for i in range(len(time)):
+                outRCRB.writerow([time[i], mean_meas_error[i], mean_meas_and_model_error[i],
+                                  mean_est_dist_u_s1[i], dist_u_s1[i],
+                                  all_u[i,0,0], all_u[i,1,0], all_u[i,2,0],
+                                  all_u_hat[i,0,0], all_u_hat[i,1,0], all_u_hat[i,2,0]])
+        end = datetime.utcnow()
+        print("Duration: {}".format(end-start))
+        self.plot_model(output)
+
+    def model_sim(self, sat_u, sat_s1, sat_s2, u_hat, peak_t0, peak_tf, initial_date, GNSS_noise, e, meas_error):
+        std_RD = 10.0
+        std_AOA = 1.0*pi/180.0
+        std_GNSS = 10.0
+        t0 = float(peak_t0)
+        studied_date = initial_date + timedelta(seconds=t0)
+        sat_s1.updateOrbitalParameters(studied_date)
+        sat_s2.updateOrbitalParameters(studied_date + timedelta(seconds=4))
+        s1 = sat_s1.getXYZ().copy()
+        s2 = sat_s2.getXYZ().copy()
+        noisy_s1, noisy_s2 = self.loc.add_GNSS_error(s1, s2, GNSS_noise[:,int(t0)])
+        u_vel = (u_hat[peak_t0,:] - u_hat[peak_t0-1,:])/1
+        model_dt = 0.01
+        seconds = int(peak_tf - t0)
+        N = int(seconds/model_dt)
+        x = zeros([6,1])
+        iterations = 1
+        h = model_dt/iterations
+        self.initTransformationData(sat_s1.incl, sat_s1.RAAN, sat_s1.theta, sat_s1.w, noisy_s1)
+        self.mainSat_v = self.Q_poQ_ip*sat_s1.getInertialVel().copy()
+        lvlh_u = self.transformPosition(u_hat[peak_t0,:])
+        lvlh_v = self.transformVelocity(u_vel)
+        x[0:3] = lvlh_u.copy()
+        x[3:6] = lvlh_v.copy()
+        sat_s1_n = sat_s1.n
+        rc = sat_s1.a*sqrt(1 - sat_s1.e**2)
+        meas_and_model_error = meas_error.copy()
+        studied_date = initial_date + timedelta(seconds=t0)
+        one_div_model_dt = int(1/model_dt)
+        for s in range(seconds):
+            e, GNSS_noise = self.generate_noise(std_RD, std_AOA, std_GNSS, one_div_model_dt)
+            for i in range(one_div_model_dt):#N):
+                studied_date += timedelta(seconds=model_dt)
+                sat_u.updateOrbitalParameters(studied_date)
+                sat_s1.updateOrbitalParameters(studied_date)
+                u = sat_u.getXYZ().copy()
+                s1 = sat_s1.getXYZ().copy()
+                noisy_s1, noisy_s2 = self.loc.add_GNSS_error(s1, s2, GNSS_noise[:,i])
+                self.initTransformationData(sat_s1.incl, sat_s1.RAAN, sat_s1.theta, sat_s1.w, noisy_s1)
+                model_pos = self.ekf.RK4(x, h, iterations, sat_s1_n, rc)
+                x = model_pos.copy()
+            new_u_hat = self.orbital2inertial(x[:3])
+            meas_and_model_error[s+int(t0)+1] = linalg.norm(new_u_hat - u)
+            u_hat[s+int(t0)+1,:] = new_u_hat
+        return meas_and_model_error
+
+    def plot_model(self, filename="model.csv"):
+        time = arange(0, 6000)#*2
+        dist_u_s1 = zeros(len(time))
+        dist_u_s2 = zeros(len(time))
+        est_dist_u_s1 = zeros(len(time))
+        #est_dist_u_s2 = zeros(len(time))
+        dist_diff_between_meas = zeros(len(time)-1)
+        mean_est_dist_u_s1 = zeros(len(time))
+        #mean_est_dist_u_s2 = zeros(len(time))
+        meas_error = zeros(len(time))
+        mean_meas_error = zeros(len(time))
+        mean_meas_and_model_error = zeros(len(time))
+        all_u_hat = zeros([len(time), 3, 1])
+        all_u = zeros([len(time), 3, 1])
+        all_s1 = zeros([len(time), 3, 1])
+        all_s2 = zeros([len(time), 3, 1])
+        with open(filename, newline='') as f:
+            reader = csv.reader(f, delimiter=",")
+            next(reader)
+            data = array(list(reader), dtype=object)
+        for i in range(len(data)):
+            time[i] = float(data[i,0])
+            mean_meas_error[i] = float(data[i,1])
+            mean_meas_and_model_error[i] = float(data[i,2])
+            mean_est_dist_u_s1[i] = float(data[i,3])
+            dist_u_s1[i] = float(data[i,4])
+            all_u[i,0,0] = float(data[i,5])
+            all_u[i,1,0] = float(data[i,6])
+            all_u[i,2,0] = float(data[i,7])
+            all_u_hat[i,0,0] = float(data[i,8])
+            all_u_hat[i,1,0] = float(data[i,9])
+            all_u_hat[i,2,0] = float(data[i,10])
+        time = time/60
+        fig, ax = subplots(1, 1)
+        ax.semilogy(time, mean_meas_error, '-', linewidth=2.0,
+                    markersize=12, label="Measurement error")
+        ax.semilogy(time, mean_meas_and_model_error, '-', linewidth=2.0,
+                    markersize=12, label="Measurement + Model error")
+        ax.set(xlabel="Time [min]",
+               ylabel="Error {} [m]".format(r'$||\mathbf{u} - \mathbf{\hat{u}}||$'))
+        ax.grid()
+        ax.xaxis.label.set_size(16)
+        ax.yaxis.label.set_size(16)
+        #ax.legend(fontsize=14)
+        ax.set_ylim(10, 10**10)
+        ax.tick_params(which="both", direction="in", labelsize=14,
+                       bottom=True, top=True, left=True, right=False)
+        tight_layout()
+        savefig("vidal12", transparent=True, bbox_inches="tight", dpi=200, pad_inches=0.01)
+        fig2, ax2 = subplots(1, 1)
+        ax2.semilogy(time, mean_est_dist_u_s1, '-', linewidth=2.0,
+                     markersize=12, label="Estimated distance u-s1")
+        ax2.semilogy(time, dist_u_s1, '-', linewidth=2.0,
+                     markersize=12, label="Real distance u-s1")
+        ax2.set(xlabel="Time [min]",
+                ylabel="Distance {} [m]".format(r'$||\mathbf{u} - \mathbf{s_1}||$'))
+        ax2.grid()
+        ax2.xaxis.label.set_size(16)
+        ax2.yaxis.label.set_size(16)
+        #ax2.legend(fontsize=14)
+        ax2.tick_params(which="both", direction="in", labelsize=14,
+                        bottom=True, top=True, left=True, right=False)
+        tight_layout()
+        savefig("vidal10_2", transparent=True, bbox_inches="tight", dpi=200, pad_inches=0.01)
+        ax3 = figure().add_subplot(projection='3d')
+        ax3.plot(all_u[:,0,0], all_u[:,1,0], all_u[:,2,0], '-', linewidth=2.0,
+                 markersize=12, label="Real orbit")
+        ax3.plot(all_u_hat[:,0,0], all_u_hat[:,1,0], all_u_hat[:,2,0], '-', linewidth=2.0,
+                 markersize=12, label="Estimated orbit")
+        ax3.grid()
+        ax3.xaxis.label.set_size(16)
+        ax3.yaxis.label.set_size(16)
+        #ax3.legend(fontsize=14)
+        ax3.tick_params(which="both", direction="in", labelsize=14,
+                        bottom=True, top=True, left=True, right=False)
+        tight_layout()
+        savefig("vidal13", transparent=True, bbox_inches="tight", dpi=200, pad_inches=0.18)
+        fig4, ax4 = subplots(1, 1)
+        ax4.semilogy(time[1:], abs(abs(mean_est_dist_u_s1[:-1]) - abs(mean_est_dist_u_s1[1:])), '-',
+                     linewidth=2.0, markersize=12, label="Distance difference between measurements")
+        ax4.set(xlabel="Time [min]",
+                ylabel="Distance difference [m]")
+        ax4.grid()
+        ax4.xaxis.label.set_size(16)
+        ax4.yaxis.label.set_size(16)
+        #ax4.legend(fontsize=14)
+        ax4.tick_params(which="both", direction="in", labelsize=14,
+                        bottom=True, top=True, left=True, right=False)
+        tight_layout()
+        savefig("vidal11", transparent=True, bbox_inches="tight", dpi=200, pad_inches=0.01)
+        show()
+
+    def plot_orbit(self, l0):
+        std_RD = 10.0
+        std_AOA = 1.0*pi/180.0
+        std_GNSS = 10.0
+        Q = self.loc.get_Q(std_RD, std_AOA)
+        data_path = resource_filename("pypredict","data/")
+        sat_u = Sat(name="FLOCK 4P-1", tlepath="{}planet.txt".format(data_path), cat="Planet Labs")
+        sat_s1 = Sat(name="FLOCK 4P-1", tlepath="{}planet.txt".format(data_path), cat="Planet Labs")
+        sat_s2 = Sat(name="FLOCK 4P-1", tlepath="{}planet.txt".format(data_path), cat="Planet Labs")
+        sat_s2.setTLE("1 44814U 19081L   20321.73053029  .00001305  00000-0  63025-4 0  9996",
+                      "2 44814  97.4788  21.6285 0013387  80.2501 280.0246 15.20374749 54001")
+        with open("u_TLEs.txt", 'r') as u_TLEs:
+            sat_u_TLEs = u_TLEs.readlines()
+
+        with open("s1_TLEs.txt", 'r') as s1_TLEs:
+            sat_s1_TLEs = s1_TLEs.readlines()
+
+        date0 = datetime(2020, 11, 17, 00, 13, 33, 0)
+        dep_date = date0 + timedelta(minutes=10)
+        initial_date = dep_date + timedelta(days=3)
+        time = arange(0, 1800)
+        real_u = zeros([len(time), 3])
+        est_u = zeros([len(time), 3])
+        sat_u.setTLE(sat_u_TLEs[1 + l0*3], sat_u_TLEs[2 + l0*3])
+        sat_s1.setTLE(sat_s1_TLEs[1 + l0*3], sat_s1_TLEs[2 + l0*3])
+        e, GNSS_noise = self.generate_noise(std_RD, std_AOA, std_GNSS, len(time))
+        for i in range(len(time)):
+            studied_date = initial_date + timedelta(seconds=float(time[i]))
+            sat_u.updateOrbitalParameters(studied_date)
+            sat_s1.updateOrbitalParameters(studied_date)
+            sat_s2.updateOrbitalParameters(studied_date + timedelta(seconds=4))
+            u = sat_u.getXYZ().copy()
+            real_u[i,:] = u.T
+            s1 = sat_s1.getXYZ().copy()
+            s2 = sat_s2.getXYZ().copy()
+            noisy_s1, noisy_s2 = self.loc.add_GNSS_error(s1, s2, GNSS_noise[:,i])
+            k_w_GNSS_error = self.loc.get_real_vector(u, noisy_s1, noisy_s2)
+            u_hat = self.loc.estimate(noisy_s1, noisy_s2, k_w_GNSS_error, e[:,i], Q)
+            est_u[i,:] = u_hat.T
+        ax = figure().add_subplot(projection='3d')
+        ax.plot(est_u[:,0], est_u[:,1], est_u[:,2], '-', linewidth=2.0, markersize=12,
+                 label="Estimated orbit")
+        #ax.plot(real_u[:,0], real_u[:,1], real_u[:,2], '-', linewidth=2.0, markersize=12,
+        #        label="Real orbit")
+        ax.xaxis.label.set_size(16)
+        ax.yaxis.label.set_size(16)
+        ax.legend(fontsize=14)
+        tight_layout()
+        show()
+
+
+    def plot_distance_over_time(self, L0=[582, 2989, 963, 3714, 425]):
+        data_path = resource_filename("pypredict","data/")
+        sat_u = Sat(name="FLOCK 4P-1", tlepath="{}planet.txt".format(data_path), cat="Planet Labs")
+        sat_s1 = Sat(name="FLOCK 4P-1", tlepath="{}planet.txt".format(data_path), cat="Planet Labs")
+        sat_s2 = Sat(name="FLOCK 4P-1", tlepath="{}planet.txt".format(data_path), cat="Planet Labs")
+        sat_s2.setTLE("1 44814U 19081L   20321.73053029  .00001305  00000-0  63025-4 0  9996",
+                      "2 44814  97.4788  21.6285 0013387  80.2501 280.0246 15.20374749 54001")
+        with open("u_TLEs.txt", 'r') as u_TLEs:
+            sat_u_TLEs = u_TLEs.readlines()
+
+        with open("s1_TLEs.txt", 'r') as s1_TLEs:
+            sat_s1_TLEs = s1_TLEs.readlines()
+
+        date0 = datetime(2020, 11, 17, 00, 13, 33, 0)
+        dep_date = date0 + timedelta(minutes=10)
+        initial_date = dep_date + timedelta(days=3)
+        time = arange(0, 18000)
+        altitude = zeros(len(time))
+        dist_u_s1 = zeros(len(time))
+        dist_u_s2 = zeros(len(time))
+        for l0 in L0:
+            sat_u.setTLE(sat_u_TLEs[1 + l0*3], sat_u_TLEs[2 + l0*3])
+            sat_s1.setTLE(sat_s1_TLEs[1 + l0*3], sat_s1_TLEs[2 + l0*3])
+            for i in range(len(time)):
+                studied_date = initial_date + timedelta(days=float(time[i]))
+                sat_u.updateOrbitalParameters(studied_date)
+                sat_s1.updateOrbitalParameters(studied_date)
+                sat_s2.updateOrbitalParameters(studied_date + timedelta(seconds=4))
+                u = sat_u.getXYZ().copy()
+                s1 = sat_s1.getXYZ().copy()
+                s2 = sat_s2.getXYZ().copy()
+                dist_u_s1[i] += linalg.norm(u - s1)*0.001
+                dist_u_s2[i] += linalg.norm(u - s2)*0.001
+                altitude[i] += sat_u.getAlt()*0.001
+
+        dist_u_s1 = dist_u_s1/len(L0)
+        dist_u_s2 = dist_u_s2/len(L0)
+        altitude = altitude/len(L0)
+        fig, ax = subplots(1, 1)
+        ax.plot(time, altitude)
+        ax.plot(time, dist_u_s1)
+        ax.plot(time, dist_u_s2)
+        ax.xaxis.label.set_size(16)
+        ax.yaxis.label.set_size(16)
         tight_layout()
         show()
 
