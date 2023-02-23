@@ -656,7 +656,7 @@ class Loc(object):
         real_s2 = zeros([len_minutes, 3, 1])
         rmse = zeros(len_minutes)
         for l0 in L0:
-            print("Despliegue: {}".format(l0))
+            print("Deployment: {}".format(l0))
             sat_u.setTLE(sat_u_TLEs[1 + l0*3], sat_u_TLEs[2 + l0*3])
             sat_s1.setTLE(sat_s1_TLEs[1 + l0*3], sat_s1_TLEs[2 + l0*3])
             acum_est = acum_est*0

@@ -108,8 +108,8 @@ class Locate(object):
              Elevation of the femto-satellite seen by known position 2
              (CubeSat 2) in degrees.
         """
-        d1 = self.get_distance(u, s1)
-        d2 = self.get_distance(u, s2)
+        d1 = linalg.norm(u - s1)
+        d2 = linalg.norm(u - s2)
         d21 = d2 - d1
         theta1 = arctan2(u[1,0] - s1[1,0], u[0,0] - s1[0,0])
         phi1 = arctan2(u[2,0] - s1[2,0], sqrt((u[0,0] - s1[0,0])**2 + (u[1,0] - s1[1,0])**2))
@@ -404,8 +404,8 @@ class Locate(object):
         G1 = self.get_Gm(k[1], k[2])
         G2 = self.get_Gm(k[3], k[4])
         G  = self.get_G(b1, b2, G1, G2)
-        d1 = self.get_distance(u, s1)
-        d2 = self.get_distance(u, s2)
+        d1 = linalg.norm(u - s1)
+        d2 = linalg.norm(u - s2)
         L1 = self.get_Lm(k[1], k[2])
         L2 = self.get_Lm(k[3], k[4])
         T1 = self.get_Tm(d1, k[2])
@@ -448,8 +448,8 @@ class Locate(object):
         FIM
              The Fisher Information Matrix.
         """
-        d1 = self.get_distance(u, s1)
-        d2 = self.get_distance(u, s2)
+        d1 = linalg.norm(u - s1)
+        d2 = linalg.norm(u - s2)
         c = (u - s2)/d2 - (u - s1)/d1
         l1 = self.get_lm(u, s1)
         l2 = self.get_lm(u, s2)
@@ -506,8 +506,8 @@ class Locate(object):
         h_hat = self.get_h(d21_hat, s1, s2, b1_hat, b2_hat, G1_hat, G2_hat)
         initial_estimate = (G_hat*G_hat_transpose).I*G_hat*h_hat
         for i in range(2):
-            d1 = self.get_distance(initial_estimate, s1)
-            d2 = self.get_distance(initial_estimate, s2)
+            d1 = linalg.norm(initial_estimate - s1)
+            d2 = linalg.norm(initial_estimate - s2)
             L1 = self.get_Lm(theta1_hat, phi1_hat)
             L2 = self.get_Lm(theta2_hat, phi2_hat)
             T1 = self.get_Tm(d1, phi1_hat)
@@ -969,7 +969,7 @@ class Locate(object):
         print(sqrt(rcrb[i]))
         return rmse, bias, rcrb
 
-    def plot_fig_GNSS(self, L, v, dep_date):
+    def plot_fig_GNSS(self, L, dep_date, output="rcrb_GNSS.csv"):
         """
         This method studies the effect of the accuracy of the GNSS
         devices used by the CubeSats in the femto-satellite's
@@ -984,11 +984,10 @@ class Locate(object):
         ----------
         L        : int
                    Number of ensemble runs.
-        v        : list
-                   Intended deployment velocity (without ADCS noise).
         dep_date : datetime.datetime
                    Date on which the deployment takes place.
         """
+        start = datetime.utcnow()
         std_GNSS = array([10.0, 50.0, 100.0, 120.0])
         std_ADS = 36/3600 # STT with 36 arcseconds of accuracy.
         std_ACS = 0.06    # RWs of 0.06° of accuracy.
@@ -1000,20 +999,29 @@ class Locate(object):
         u_mass = 0.08
         L0 = 5000
         data_path = resource_filename("pypredict","data/")
+        sat_u = Sat(name="FLOCK 4P-1", tlepath="{}planet.txt".format(data_path), cat="Planet Labs")
         sat_s1 = Sat(name="FLOCK 4P-1", tlepath="{}planet.txt".format(data_path), cat="Planet Labs")
         sat_s2 = Sat(name="FLOCK 4P-1", tlepath="{}planet.txt".format(data_path), cat="Planet Labs")
         sat_s2.setTLE("1 44814U 19081L   20321.73053029  .00001305  00000-0  63025-4 0  9996",
                       "2 44814  97.4788  21.6285 0013387  80.2501 280.0246 15.20374749 54001")
-        dep_noise = self.get_deployment_noise(std_ADS, std_ACS, L0)
+        with open("u_TLEs.txt", 'r') as u_TLEs:
+            sat_u_TLEs = u_TLEs.readlines()
+
+        with open("s1_TLEs.txt", 'r') as s1_TLEs:
+            sat_s1_TLEs = s1_TLEs.readlines()
+
         studied_date = dep_date + timedelta(days=3)
-        for i in range(L0):
+        sat_s2.updateOrbitalParameters(studied_date)
+        for l0 in range(L0):
+            current_time = datetime.utcnow()
+            print("\nSimulation {}/{}, Elapsed time: {:.2f} minutes".format(l0+1, L0,
+                                      (current_time - start).total_seconds()/60))
             sat_s1.setTLE("1 44814U 19081L   20321.73053029  .00001305  00000-0  63025-4 0  9996",
                           "2 44814  97.4788  21.6285 0013387  80.2501 280.0246 15.20374749 54001")
-            sat_s1.updateOrbitalParameters(dep_date)
-            sat_s2.updateOrbitalParameters(dep_date)
-            vel = self.noisy_dep_velocity(v, dep_noise[:,i]) # STT of 36 arcseconds RW of 0.06°.
-            print(vel)
-            sat_u = dpl.deploy("Femto", sat_s1, s1_mass, u_mass, "FE1", vel, dep_date)
+            sat_u.setTLE(sat_u_TLEs[1 + l0*3], sat_u_TLEs[2 + l0*3])
+            sat_s1.setTLE(sat_s1_TLEs[1 + l0*3], sat_s1_TLEs[2 + l0*3])
+            sat_u.updateOrbitalParameters(studied_date)
+            sat_s1.updateOrbitalParameters(studied_date)
             rm, b, rc = self.simulation_GNSS(sat_u, sat_s1, sat_s2, L, std_GNSS, studied_date)
             rmse += rm
             bias += b
@@ -1021,6 +1029,13 @@ class Locate(object):
         rmse = sqrt(rmse/L0)
         bias = sqrt(bias/L0)
         rcrb = sqrt(rcrb/L0)
+        with open(output, 'w') as data_file:
+            out = csv.writer(data_file)
+            out.writerow(["std GNSS", "RMSE", "Bias", "RCRB"])
+            for i in range(len(std_GNSS)):
+                out.writerow([std_GNSS[i], rmse[i], bias[i], rcrb[i]])
+        end = datetime.utcnow()
+        print("Duration: {}".format(end-start))
         fig, ax = subplots(1, 1)
         ax.loglog(std_GNSS, rmse, 'o', linewidth=2.0, markersize=12,
                   clip_on=False, fillstyle="none", label="RMSE")
@@ -1030,8 +1045,8 @@ class Locate(object):
                   clip_on=False, label="Bias")
         ax.grid()
         ax.legend(fontsize=14, loc="upper left")
-        ax.set(xlabel="{} [m]".format(r'$\sigma_{GNSS}$'), ylabel="RMSE and bias [m]",
-               title="100 minutes after deployment at [{:0.1f}, {:0.1f}, {:0.1f}] m/s".format(v[0], v[1], v[2]))
+        ax.set(xlabel="{} [m]".format(r'$\sigma_{GNSS}$'), ylabel="RMSE and bias [m]")#,
+               #title="100 minutes after deployment at [{:0.1f}, {:0.1f}, {:0.1f}] m/s".format(v[0], v[1], v[2]))
         ax.xaxis.label.set_size(16)
         ax.yaxis.label.set_size(16)
         ax.tick_params(which="both", direction="in", labelsize=14,
@@ -1077,7 +1092,7 @@ class Locate(object):
         sat_s2.setTLE("1 44814U 19081L   20321.73053029  .00001305  00000-0  63025-4 0  9996",
                       "2 44814  97.4788  21.6285 0013387  80.2501 280.0246 15.20374749 54001")
         Q = self.get_Q(std_RD, std_AOA)
-        date = dep_date + timedelta(days=3)#minutes=100)
+        date = dep_date + timedelta(days=3)
         sat_s2.updateOrbitalParameters(date + timedelta(seconds=4))
         s2 = sat_s2.getXYZ()
         for i, std in enumerate(std_ADS):
@@ -1161,7 +1176,7 @@ class Locate(object):
         axis((10**-2.0, 10**-1.0, 10**1, 2*10**2))
         tight_layout()
 
-    def plot_fig_RCRB(self, date0):
+    def plot_fig_RCRB(self, date0, output="rcrb_dir.csv"):
         """
         Studies the effect of the deployment direction in the
         performance of the femto-satellite localization.
@@ -1198,6 +1213,7 @@ class Locate(object):
         lower_mean = 10**8
         std_RD = 10.0
         std_AOA = 1.0*pi/180.0
+        Q = self.get_Q(std_RD, std_AOA)
         dpl = Dpl()
         s1_mass = 3.2
         u_mass = 0.08
@@ -1220,7 +1236,7 @@ class Locate(object):
                 sat_u = dpl.deploy("Femto", sat_s1, s1_mass, u_mass, "FE1", vel, dep_date)
                 print(sat_u.line2)
                 print(sat_s1.line2)
-                r, d1, d2, al = self.simulation_RCRB(sat_u, sat_s1, sat_s2, minutes, studied_date, std_RD, std_AOA)
+                r, d1, d2, al = self.simulation_RCRB(sat_u, sat_s1, sat_s2, minutes, studied_date, Q)
                 rcrb += r
                 temp_1_dir_rcrb.append(sqrt(r))
             all_rcrb.append(sqrt(rcrb/10.0))
@@ -1231,6 +1247,18 @@ class Locate(object):
                 best_dir = vel
                 print(len(all_rcrb_4_1_dir))
                 print(lower_mean)
+        with open(output, 'w') as data_file:
+            out = csv.writer(data_file)
+            out.writerow(["Time", "+x", "-x", "+y", "-y", "+z", "-z", "Apogee + 0 min",
+                          "Apogee + 10 min", "Apogee + 20 min", "Apogee + 30 min",
+                          "Apogee + 40 min", "Apogee + 50 min", "Apogee + 60 min",
+                          "Apogee + 70 min", "Apogee + 80 min", "Apogee + 90 min"])
+            for i in range(len(minutes)):
+                out.writerow([minutes[i], all_rcrb[0][i], all_rcrb[1][i], all_rcrb[2][i],
+                              all_rcrb[3][i], all_rcrb[4][i], all_rcrb[5][i], all_rcrb_4_1_dir[0][i],
+                              all_rcrb_4_1_dir[1][i], all_rcrb_4_1_dir[2][i], all_rcrb_4_1_dir[3][i],
+                              all_rcrb_4_1_dir[4][i], all_rcrb_4_1_dir[5][i], all_rcrb_4_1_dir[6][i],
+                              all_rcrb_4_1_dir[7][i], all_rcrb_4_1_dir[8][i], all_rcrb_4_1_dir[9][i]])
         fig, ax = subplots(1, 1)
         ax.semilogy(minutes, all_rcrb[0], '-', linewidth=1.8, markersize=12,
                     label="+x")
@@ -1257,7 +1285,7 @@ class Locate(object):
         print("Best direction: {}".format(best_dir))
         self.plot_fig_point_in_orbit(best_dir, date0, all_rcrb=all_rcrb_4_1_dir)
 
-    def simulation_RCRB(self, sat_u, sat_s1, sat_s2, minutes, date, std_RD, std_AOA):
+    def simulation_RCRB(self, sat_u, sat_s1, sat_s2, minutes, date, Q):
         """
         This method calculates the root Cramer-Rao bound of the
         localization method, the distance between the CubeSat 1
@@ -1282,10 +1310,8 @@ class Locate(object):
                   Array of minutes to be studied since a given date.
         date    : datetime.datetime
                   Simulation date.
-        std_RD  : float
-                  Standard deviation of the range difference in meters.
-        std_AOA : float
-                  Standard deviation of the AOA in radians.
+        Q       : numpy.matrix
+                  Measurement noise covariance matrix.
 
         Returns
         -------
@@ -1302,7 +1328,6 @@ class Locate(object):
                   and the femto-satellite-CubeSat-2 for each minute
                   in the minutes array.
         """
-        Q = self.get_Q(std_RD, std_AOA)
         rcrb = zeros(len(minutes))
         dist_u_s1 = zeros(len(minutes))
         dist_u_s2 = zeros(len(minutes))
@@ -1318,9 +1343,9 @@ class Locate(object):
             k = self.get_real_vector(u, s1, s2)
             MSE = self.get_MSE(u, s1, s2, k, Q)
             rcrb[j] = MSE[0,0] + MSE[1,1] + MSE[2,2]
-            dist_u_s1[j] = self.get_distance(u, s1)
-            dist_u_s2[j] = self.get_distance(u, s2)
-            dist_s1_s2[j] = self.get_distance(s1, s2)
+            dist_u_s1[j] = linalg.norm(u - s1)
+            dist_u_s2[j] = linalg.norm(u - s2)
+            dist_s1_s2[j] = linalg.norm(s1 - s2)
         alpha = arccos(-(dist_s1_s2**2 - dist_u_s1**2 - dist_u_s2**2)/(2*dist_u_s1*dist_u_s2))
         alpha = 180/pi*alpha
         return rcrb, dist_u_s1, dist_u_s2, alpha
@@ -1350,6 +1375,7 @@ class Locate(object):
         all_rcrb = []
         std_RD = 10.0
         std_AOA = 1.0*pi/180.0
+        Q = self.get_Q(std_RD, std_AOA)
         dpl = Dpl()
         s1_mass = 3.2
         u_mass = 0.08
@@ -1364,7 +1390,7 @@ class Locate(object):
             sat_s2.updateOrbitalParameters(dep_date)
             sat_u = dpl.deploy("Femto", sat_s1, s1_mass, u_mass, "FE1", vel, dep_date)
             studied_date = dep_date + timedelta(days=3)
-            rcrb, d1, d2, al = self.simulation_RCRB(sat_u, sat_s1, sat_s2, minutes, studied_date, std_RD, std_AOA)
+            rcrb, d1, d2, al = self.simulation_RCRB(sat_u, sat_s1, sat_s2, minutes, studied_date, Q)
             all_rcrb.append(sqrt(rcrb))
         return all_rcrb
 
@@ -1524,6 +1550,7 @@ class Locate(object):
         std_RD = 10.0
         std_AOA = 1.0*pi/180.0
         std_GNSS = 10.0
+        Q = self.get_Q(std_RD, std_AOA)
         dpl = Dpl()
         s1_mass = 3.2
         u_mass = 0.08
@@ -1558,7 +1585,7 @@ class Locate(object):
             r, b = self.sat_simulation(sat_u, sat_s1, sat_s2, L, std_RD, std_AOA, std_GNSS, minutes, studied_date)
             rmse += r
             bias += b
-            r, d1, d2, al = self.simulation_RCRB(sat_u, sat_s1, sat_s2, finer_minutes, studied_date, std_RD, std_AOA)
+            r, d1, d2, al = self.simulation_RCRB(sat_u, sat_s1, sat_s2, finer_minutes, studied_date, Q)
             rcrb += r
             dist_u_s1 += d1
             dist_u_s2 += d2
@@ -1653,7 +1680,7 @@ class Locate(object):
             for i in range(len(u_TLEs)):
                 data_file_u.write(u_TLEs[i] + "\n")
 
-    def sim_from_generated_data(self, L, v, dep_date):
+    def sim_from_generated_data(self, L, v, dep_date, output="full_simulation.csv"):
         """
         Simulates the localization of a femto-satellite using the
         TLE data sets that were already generated and saved in txt
@@ -1672,6 +1699,7 @@ class Locate(object):
         std_RD = 10.0
         std_AOA = 1.0*pi/180.0
         std_GNSS = 10.0
+        Q = self.get_Q(std_RD, std_AOA)
         L0 = 5000
         minutes = [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100]
         rmse = zeros(len(minutes))
@@ -1693,17 +1721,19 @@ class Locate(object):
             sat_u_TLEs = u_TLEs.readlines()
         with open("s1_TLEs.txt", 'r') as s1_TLEs:
             sat_s1_TLEs = s1_TLEs.readlines()
-        for i in range(L0):
-            print("Deployment {}/{}".format(i+1, L0))
-            sat_u.setTLE(sat_u_TLEs[1 + i*3], sat_u_TLEs[2 + i*3])
-            sat_s1.setTLE(sat_s1_TLEs[1 + i*3], sat_s1_TLEs[2 + i*3])
+        for l0 in range(L0):
+            current_time = datetime.utcnow()
+            print("\nDeployment {}/{}, Elapsed time: {:.2f} minutes".format(l0+1, L0,
+                                      (current_time - start).total_seconds()/60))
+            sat_u.setTLE(sat_u_TLEs[1 + l0*3], sat_u_TLEs[2 + l0*3])
+            sat_s1.setTLE(sat_s1_TLEs[1 + l0*3], sat_s1_TLEs[2 + l0*3])
             sat_u.updateOrbitalParameters(studied_date)
             sat_s1.updateOrbitalParameters(studied_date)
             sat_s2.updateOrbitalParameters(studied_date + timedelta(seconds=4))
             r, b = self.sat_simulation(sat_u, sat_s1, sat_s2, L, std_RD, std_AOA, std_GNSS, minutes, studied_date)
             rmse += r
             bias += b
-            r, d1, d2, al = self.simulation_RCRB(sat_u, sat_s1, sat_s2, finer_minutes, studied_date, std_RD, std_AOA)
+            r, d1, d2, al = self.simulation_RCRB(sat_u, sat_s1, sat_s2, finer_minutes, studied_date, Q)
             rcrb += r
             dist_u_s1 += d1
             dist_u_s2 += d2
@@ -1718,9 +1748,19 @@ class Locate(object):
         dist_u_s1 = dist_u_s1/L0
         dist_u_s2 = dist_u_s2/L0*0.001 # m to km
         alpha_mean = alpha_mean/L0
+        with open(output, 'w') as data_file:
+            out = csv.writer(data_file)
+            out.writerow(["Finer minutes", "RCRB", "Distance u-s1", "Distance u-s2",
+                          "Alpha min", "Alpha mean", "Alpha max", "Minutes", "RMSE", "Bias"])
+            for i in range(len(rmse)):
+                out.writerow([finer_minutes[i], rcrb[i], dist_u_s1[i], dist_u_s2[i],
+                         alpha_min[i], alpha_mean[i], alpha_max[i], minutes[i], rmse[i], bias[i]])
+            for i in range(len(rmse), len(rcrb)):
+                out.writerow([finer_minutes[i], rcrb[i], dist_u_s1[i], dist_u_s2[i],
+                         alpha_min[i], alpha_mean[i], alpha_max[i]])
         fig, ax = subplots(1, 1)
         ax.set_xlim(0, 100)
-        ax.set_ylim(4, 8000)
+        ax.set_ylim(4, 100000)
         ax2 = ax.twinx()
         ax2.set_ylim(0, 180)
         ax.set_zorder(10)
@@ -1762,7 +1802,7 @@ class Locate(object):
         print("Start: {}\nFinish: {}".format(start, finish))
         show()
 
-    def rcrb_from_generated_data(self, dep_date):
+    def rcrb_from_generated_data(self, dep_date, output="rcrb.csv"):
         """
         Calculates and saves the average RCRB using TLE data sets
         of the deployment of the femto-satellite.
@@ -1775,6 +1815,7 @@ class Locate(object):
         start = datetime.utcnow()
         std_RD = 10.0
         std_AOA = 1.0*pi/180.0
+        Q = self.get_Q(std_RD, std_AOA)
         L0 = 5000
         div = 32
         finer_minutes = arange(0, div*100+1, dtype="float")/div
@@ -1802,7 +1843,7 @@ class Locate(object):
             sat_u.updateOrbitalParameters(studied_date)
             sat_s1.updateOrbitalParameters(studied_date)
             sat_s2.updateOrbitalParameters(studied_date + timedelta(seconds=4))
-            r, d1, d2, al = self.simulation_RCRB(sat_u, sat_s1, sat_s2, finer_minutes, studied_date, std_RD, std_AOA)
+            r, d1, d2, al = self.simulation_RCRB(sat_u, sat_s1, sat_s2, finer_minutes, studied_date, Q)
             rcrb += r
             dist_u_s1 += d1
             dist_u_s2 += d2
@@ -1815,7 +1856,7 @@ class Locate(object):
         dist_u_s1 = dist_u_s1/L0
         dist_u_s2 = dist_u_s2/L0*0.001 # m to km
         alpha_mean = alpha_mean/L0
-        with open("rcrb.csv", 'w') as data_file_rcrb:
+        with open(output, 'w') as data_file_rcrb:
             outRCRB = csv.writer(data_file_rcrb)
             outRCRB.writerow(["RCRB", "Distance u-s1", "Distance u-s2", "Alpha min", "Alpha mean", "Alpha max"])
             for i in range(len(rcrb)):
@@ -1841,6 +1882,7 @@ class Locate(object):
         start = datetime.utcnow()
         std_RD = 10.0
         std_AOA = 1.0*pi/180.0
+        Q = self.get_Q(std_RD, std_AOA)
         div = 32
         finer_minutes = arange(0, div*100+1, dtype="float")/div
         rcrb = zeros(len(finer_minutes))
@@ -1867,7 +1909,7 @@ class Locate(object):
             sat_u.updateOrbitalParameters(studied_date)
             sat_s1.updateOrbitalParameters(studied_date)
             sat_s2.updateOrbitalParameters(studied_date + timedelta(seconds=4))
-            r, d1, d2, al = self.simulation_RCRB(sat_u, sat_s1, sat_s2, finer_minutes, studied_date, std_RD, std_AOA)
+            r, d1, d2, al = self.simulation_RCRB(sat_u, sat_s1, sat_s2, finer_minutes, studied_date, Q)
             rcrb += r
             dist_u_s1 += d1
             dist_u_s2 += d2
@@ -1974,7 +2016,7 @@ if __name__ == "__main__":
     """
     #locate.plot_fig_RCRB(date0)
     #locate.plot_fig_ADCS(5000, v, date0 + timedelta(minutes=10))
-    #locate.plot_fig_GNSS(L, v, date0 + timedelta(minutes=10))
+    #locate.plot_fig_GNSS(L, date0 + timedelta(minutes=10))
     #locate.sim_deployment_in_1_geom(L, v, date0 + timedelta(minutes=10))
     #locate.sim_from_generated_data(L, v, date0 + timedelta(minutes=10))
     finish = datetime.utcnow()
