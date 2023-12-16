@@ -1716,6 +1716,8 @@ class Locate(object):
         sat_u = Sat(name="FLOCK 4P-1", tlepath="{}planet.txt".format(data_path), cat="Planet Labs")
         sat_s1 = Sat(name="FLOCK 4P-1", tlepath="{}planet.txt".format(data_path), cat="Planet Labs")
         sat_s2 = Sat(name="FLOCK 4P-1", tlepath="{}planet.txt".format(data_path), cat="Planet Labs")
+        sat_s2.setTLE("1 44814U 19081L   20321.73053029  .00001305  00000-0  63025-4 0  9996",
+                      "2 44814  97.4788  21.6285 0013387  80.2501 280.0246 15.20374749 54001")
         studied_date = dep_date + timedelta(days=3)
         with open("u_TLEs.txt", 'r') as u_TLEs:
             sat_u_TLEs = u_TLEs.readlines()
