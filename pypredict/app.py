@@ -1172,7 +1172,7 @@ class ApplicationWindow(QtWidgets.QMainWindow):
                           "resource", "sarsat", "spire", "starlink",
                           "tdrss", "tle-new", "visual", "weather", "x-comm"]
         for i, file_name in enumerate(self.tle_files):
-            link = "https://celestrak.com/NORAD/elements/{}.txt".format(file_name)
+            link = f"https://celestrak.com/NORAD/elements/gp.php?GROUP={file_name}&FORMAT=tle"
             self.popup.plainTextEdit.insertPlainText("Downloading: {}".format(link))
             with open("{}{}.txt".format(self.tle_path, file_name), "w") as dest:
                 response = urlopen(link)
