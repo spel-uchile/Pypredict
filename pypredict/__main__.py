@@ -31,9 +31,8 @@ data_path = resource_filename("pypredict","data/")
 
 SUCHAI2 = Sat(name="SUCHAI-2", tlepath="{}active.txt".format(data_path), cat="CubeSat")
 SUCHAI3 = Sat(name="SUCHAI-3", tlepath="{}active.txt".format(data_path), cat="CubeSat")
-PLANTSAT = Sat(name="PLANTSAT", tlepath="{}active.txt".format(data_path), cat="CubeSat")
 ISS = Sat(name="ISS (ZARYA)", tlepath="{}tdrss.txt".format(data_path), cat="Tracking and Data Relay")
-Sats = [SUCHAI2, SUCHAI3, PLANTSAT, ISS]
+Sats = [SUCHAI2, SUCHAI3, ISS]
 
 def main(args=None):
     if args is None:
