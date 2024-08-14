@@ -4,7 +4,7 @@
     orbital parameters in real time. Simulates satellite localization
     and deployment.
     
-    Copyright (C) 2018-2022, Matías Vidal Valladares, matvidal.
+    Copyright (C) 2018-2024, Matías Vidal Valladares, matvidal.
     Authors: Matías Vidal Valladares <matias.vidal.v@gmail.com>
 
     This program is free software: you can redistribute it and/or modify
@@ -20,7 +20,7 @@
     You should have received a copy of the GNU General Public License
     along with this program. If not, see <https://www.gnu.org/licenses/>.
 """
-__version__ = "3.3.1"
+__version__ = "3.3.2"
 
 from cartopy.crs import Geodetic, PlateCarree
 from cartopy.geodesic import Geodesic
@@ -31,7 +31,6 @@ from matplotlib.pyplot import imread, figure
 from numpy import abs, asarray, cos, ndarray, pi
 from pkg_resources import resource_filename
 from PyQt5 import QtWidgets, QtGui, QtCore
-from pymongo import MongoClient
 from pypredict.dayNightMap import Map
 from pypredict.dpl import Dpl
 from pypredict.navigation import Toolbar
@@ -56,11 +55,11 @@ class ApplicationWindow(QtWidgets.QMainWindow):
                  "radar", "resource", "sarsat", "spire", "tdrss",
                  "tle_new", "weather", "x_comm", "active", "tle_files",
                  "map", "dpl_img", "tdoa_img", "world_map", "dpl",
-                 "dmin", "canvas", "saa", "date", "db", "en_db",
-                 "time_timer", "sats_timer", "canvas_timer",
-                 "bg_timer", "Dialog", "table_timer", "sats_lngs",
-                 "sats_lats", "usr_sats", "usr_tle_file", "toolbar",
-                 "img_path", "tle_path", "forward", "backward", "pause"]
+                 "dmin", "canvas", "saa", "date", "time_timer",
+                 "sats_timer", "canvas_timer", "bg_timer", "Dialog",
+                 "table_timer", "sats_lngs", "sats_lats", "usr_sats",
+                 "usr_tle_file", "toolbar", "img_path", "tle_path",
+                 "forward", "backward", "pause"]
 
     def __init__(self, Sats):
         self.Sats = Sats
@@ -83,9 +82,6 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         self.setCanvas()
         self.setCustomStatusBar()
         self.setMenu()
-        client = MongoClient("localhost", 27017)
-        self.db = client["SatConstellation"]
-        self.en_db = False
         self.data_gen()
         self.updateTableContent()
         self.setTableConnections()
@@ -593,15 +589,11 @@ class ApplicationWindow(QtWidgets.QMainWindow):
     def updateSatellites(self):
         """
         Updates the orbital parameters of all the satellites that are on
-        the list Sats. If the user enabled the database, part of the
-        data is dumped into the database.
+        the list Sats.
         """
         if (self.pause is False):
             for Sat in self.Sats:
                 Sat.updateOrbitalParameters(self.date)
-                if (self.en_db):
-                    col = self.db[Sat.name]
-                    col.insert_one(self.formatDump(Sat))
  
     def setCanvas(self):
         """
@@ -702,29 +694,6 @@ class ApplicationWindow(QtWidgets.QMainWindow):
                 theta.setTextAlignment(QtCore.Qt.AlignVCenter | QtCore.Qt.AlignRight)
                 self.ui.Table.setItem(i, 12, theta)
 
-    def formatDump(self, Sat):
-        """
-        Formats some basic data of a satellite for a database.
-
-        Parameters
-        ----------
-        Sat : pypredict.sat.Sat object
-              Object of the class Sat.
-        """
-        dump = {
-                "id": Sat.satnumber,
-                "name": Sat.name,
-                "obc": {
-                    "datetime": self.date.strftime("%F %H:%M:%S.%f")
-                        },
-                "orbit": {
-                    "lat": Sat.getLat(),
-                    "lon": Sat.getLng(date=self.date),
-                    "alt": Sat.getAlt()
-                        }
-                }
-        return dump
-
     def savePicture(self):
         """
         Creates a dialog for the user to save a picture of the world map
@@ -754,24 +723,6 @@ class ApplicationWindow(QtWidgets.QMainWindow):
 
     def notAvailable(self):
         print("This command is not available yet")
-
-    def enableDB(self):
-        """
-        Enables some basic data of the satellites to be saved in a
-        database.
-        """
-        self.en_db = True
-        self.ui.actionEnable_database.setText("Disable database")
-        self.ui.actionEnable_database.triggered.connect(self.disableDB)
-
-    def disableDB(self):
-        """
-        Disables the option to save some data of the satellites in a
-        database.
-        """
-        self.en_db = False
-        self.ui.actionEnable_database.setText("Enable database")
-        self.ui.actionEnable_database.triggered.connect(self.enableDB)
 
     def removeSAA(self):
         """
@@ -1258,7 +1209,6 @@ class ApplicationWindow(QtWidgets.QMainWindow):
         self.ui.actionSave_TLEs.triggered.connect(self.saveTLEs)
         self.ui.actionUpdate_TLE_from_net.triggered.connect(self.updateTLEDialog)
         self.ui.actionUpdate_TLE_from_file.triggered.connect(self.updateTLEfromFile)
-        self.ui.actionEnable_database.triggered.connect(self.enableDB)
         self.ui.actionAdd_south_atlantic_anomaly.triggered.connect(self.addSAA)
         self.ui.actionRemove_coverage.triggered.connect(self.removeCoverage)
         self.ui.actionAdd_remove_satellites.triggered.connect(self.addRemoveSat)
