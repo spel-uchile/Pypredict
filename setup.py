@@ -178,7 +178,7 @@ setup(
                       'pyshp>=1.1.4',
                       'Pillow>=7.1.1',
                       'pykdtree>=1.3.1',
-                      'cartopy==0.19.0.post1',
+                      'cartopy==0.21.0',
                       'sgp4>=2.7',
                       'scipy>=1.4.1'],  # Optional
 
